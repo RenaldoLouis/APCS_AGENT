@@ -1,0 +1,60 @@
+# --- General Noise ---
+.git/
+.vscode/
+.idea/
+*.log
+logs/
+.DS_Store
+node_modules/
+
+# --- Frontend (apcs_web) ---
+apcs_web/node_modules/
+apcs_web/build/
+apcs_web/dist/
+apcs_web/.next/
+apcs_web/public/assets/
+apcs_web/public/flags/
+apcs_web/src/assets/
+apcs_web/node_modules/antd/         
+apcs_web/node_modules/firebase/      # Don't let it scan the client SDK internals
+apcs_web/node_modules/@ant-design/   # Icons and internal assets
+apcs_web/node_modules/three/             # 3D engine internals are massive
+apcs_web/node_modules/@react-three/      # React wrappers for Three.js
+apcs_web/node_modules/@mui/              # Material UI has thousands of small files
+apcs_web/node_modules/@emotion/          # CSS-in-JS internals
+apcs_web/node_modules/@mediapipe/        # Machine learning models (Huge!)
+apcs_web/node_modules/bootstrap/         # Standard CSS, agent already knows it
+apcs_web/node_modules/lodash/            # Utility source code
+apcs_web/node_modules/exceljs/           # Spreadsheet logic is very verbose
+apcs_web/node_modules/@react-pdf/        # PDF rendering engines are token killers
+
+# --- Backend (apcs_service) ---
+apcs_service/node_modules/
+apcs_service/logs/
+apcs_service/migrations/
+apcs_service/database.json
+apcs_service/node_modules/aws-sdk/   # Massive file count
+apcs_service/node_modules/firebase-admin/ 
+apcs_service/node_modules/nodemailer/
+apcs_service/node_modules/express/   # It knows Express, no need to read the source
+apcs_service/node_modules/pg/            # Postgres driver internals
+apcs_service/node_modules/bull/          # Redis queue source code
+apcs_service/node_modules/winston/       # Logging library source
+apcs_service/node_modules/xlsx/          # Legacy SheetJS is very context-heavy
+
+# --- Documentation & Assets ---
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
+
+# --- General Monorepo Bloat ---
+**/package-lock.json                 # Scanning a 2MB lockfile is a major token drain
+**/yarn.lock
+**/*.map                             # Source maps are pure token-burn
+
+# --- Testing & Build Tooling ---
+apcs_web/src/__tests__/                  # Ignore tests unless you are actively writing them
+apcs_web/node_modules/@testing-library/
+**/coverage/                             # Test coverage reports
