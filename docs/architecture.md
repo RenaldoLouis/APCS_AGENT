@@ -4,6 +4,83 @@ This document describes the Firestore data model, API contracts, and system flow
 
 ---
 
+## Tech Stack & UI/UX Guidelines
+
+*   **Frontend:** React.js + Ant Design (antd).
+*   **Backend:** Node.js + Express.js.
+*   **Database:** Firebase Firestore (NoSQL) & Firebase Auth.
+*   **Storage:** AWS S3 (Presigned URLs for direct uploads/downloads).
+*   **Integrations:** Paper.id (Invoicing), Nodemailer (Emails).
+*   **Theme:** Elegant Dark Mode
+    *   Background: `#121212` | Card: `#1E1E1E`
+    *   Accents: `#EBBC64` (Gold) | Text: `#e5cc92` (Cream)
+
+### Core Rules
+1.  **Bilingual Support (EN/ID):** All UI strings must consider both languages.
+2.  **Firebase Optimization:** Use pagination (`limit`, `startAfter`). Never fetch entire collections.
+3.  **Immutability:** Always use spread operators (`...`) for nested Firestore updates.
+4.  **Dark Theme Persistence:** Override default Ant Design styles to match the APCS theme.
+
+
+This project is a monorepo containing both the Frontend (`apcs_web`) and Backend (`apcs_service`). Always respect this exact directory structure, paying close attention to capitalization and nested `src` folders.
+
+## 1. Frontend (`apcs_web/`)
+A React application using Ant Design and Firebase Client SDK.
+
+\`\`\`text
+apcs_web/
+├── public/
+├── scripts/
+├── src/
+│   ├── apis/            # Axios API endpoints for communicating with the backend
+│   ├── assets/          # Static images, icons, and flags
+│   ├── components/      # Reusable UI components
+│   ├── config/          # Frontend configurations
+│   ├── constant/        # Hardcoded constants (e.g., categories, countries)
+│   ├── context/         # React Context (e.g., DataContext.js for Auth state)
+│   ├── hooks/           # Custom React hooks (e.g., useFetchRegistrantsData)
+│   ├── middleware/      # Frontend route protection/logic
+│   ├── Pages/           # Full page views (Note the capital 'P')
+│   ├── services/        # Frontend business logic/services
+│   ├── styles/          # Global styles
+│   ├── utils/           # Helper functions (e.g., date parsing, youtube duration)
+│   ├── App.js           # Main React Router setup
+│   ├── firebase.js      # Firebase client initialization
+│   ├── i18n.js          # Internationalization setup
+│   ├── ProtectedRoute.js
+│   └── PublicRoute.js
+└── package.json
+\`\`\`
+
+**Frontend Rules:**
+* Page components strictly go into `src/Pages/`.
+* API calls to the backend must be placed in `src/apis/`.
+* Utilize `src/i18n.js` for dual-language (EN/ID) text whenever adding new user-facing copy.
+
+## 2. Backend (`apcs_service/`)
+A Node.js Express server utilizing a layered architecture.
+
+\`\`\`text
+apcs_service/
+├── logs/
+├── migrations/
+├── src/
+│   ├── configs/         # Environment, DB, and 3rd party config (Firebase Admin, AWS, Nodemailer)
+│   ├── controllers/     # Express route handlers (Extracts req/res, passes to Services)
+│   ├── middlewares/     # Express middlewares (Auth verification, Error handling)
+│   ├── models/          # Data models / interfaces
+│   ├── repositories/    # Direct database interaction layer (Firestore calls)
+│   ├── routes/          # Express router definitions mapping to controllers
+│   ├── services/        # Core business logic (Billing, Emails, AWS uploads)
+│   └── utils/           # Shared backend helpers (Logger, Custom Errors)
+├── index.js             # Express server entry point
+├── database.json
+└── package.json
+\`\`\`
+---
+
+---
+
 ## Table of Contents
 
 - [1. System Overview](#1-system-overview)
