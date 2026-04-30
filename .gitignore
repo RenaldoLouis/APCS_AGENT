@@ -1,0 +1,6 @@
+.antigravity
+node_modules
+.env
+CONVENTIONS.md
+apcs_service
+apcs_website
