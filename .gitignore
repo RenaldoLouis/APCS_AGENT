@@ -1,6 +1,22 @@
 .antigravity
 node_modules
 .env
+# Ignore source code directories (managed in other repos)
+apcs_service/
+apcs_web/
 CONVENTIONS.md
-apcs_service
-apcs_website
+.cursorrules
+.windsurfrules
+.agents/
+
+# Ignore local environment or temporary files
+.DS_Store
+*.zip
+*.log
+
+# Optional: Ignore data files if they contain sensitive info
+*.csv
+
+# Ensure the agent and rule files are tracked
+# !.agents/
+!.geminiignore
