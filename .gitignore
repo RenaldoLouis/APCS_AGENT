@@ -9,6 +9,7 @@ CONVENTIONS.md
 .cursorrules
 .windsurfrules
 .agents/
+Ticketing_SaaS_Zentre/
 
 # Ignore local environment or temporary files
 .DS_Store
@@ -21,3 +22,4 @@ CONVENTIONS.md
 # Ensure the agent and rule files are tracked
 # !.agents/
 !.geminiignore
+pitch-deck-reference.html
