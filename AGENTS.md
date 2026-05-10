@@ -19,3 +19,4 @@
 - **Passive Constraints:** Always check these conventions before suggesting or executing code changes.
 - **Code Edits:** Ensure all changes are compatible with the existing Monorepo structure.
 - **Communication:** Provide a brief summary of what was changed and why.
+- **Ticketing & Seat Booking Flow:** Whenever working on or modifying logic related to seat booking, ticketing flows, or venue settings, you **MUST** refer to `docs/SEAT_BOOKING_FLOW.md` to understand the architecture and interactions between `SystemSettings`, `VenueSettings`, `OrchestraSettings`, and `PublicTicketBookingPage`.
