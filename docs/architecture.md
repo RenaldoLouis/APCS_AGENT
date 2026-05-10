@@ -147,19 +147,18 @@ apcs_service/
 **Used by:** `PublicTicketRepository.getPublicTicketEventData`, `PublicTicketRepository.createPublicTicketBooking` (server-side price validation).
 
 ```json
-{
-  "title": "APCS Gala Concert 2026",
-
-  "sessions": {
-    "Venue1": {
-      "2026-11-01": ["10:00-12:25", "14:40-17:00", "18:50-20:40"],
-      "2026-11-02": ["10:05-12:15", "14:10-16:30", "18:40-20:50"]
-    },
-    "Venue2": {
-      "2026-11-01": ["10:20-12:20", "14:10-16:00", "18:05-20:15"],
-      "2026-11-02": ["10:25-12:45", "14:40-16:50", "18:35-20:35"]
+  "venues": [
+    {
+      "id": "Venue1",
+      "label": "Jatayu Hall",
+      "imageUrl": "...",
+      "seatConfig": [...],
+      "sessions": {
+        "2026-11-01": ["10:00-12:25", "14:40-17:00"],
+        "2026-11-02": ["10:05-12:15"]
+      }
     }
-  },
+  ],
 
   "ticketTiers": [
     { "id": "presto",  "name": "Presto",  "description": "Premium front section", "price": 150000 },
