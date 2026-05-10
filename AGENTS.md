@@ -20,3 +20,4 @@
 - **Code Edits:** Ensure all changes are compatible with the existing Monorepo structure.
 - **Communication:** Provide a brief summary of what was changed and why.
 - **Ticketing & Seat Booking Flow:** Whenever working on or modifying logic related to seat booking, ticketing flows, or venue settings, you **MUST** refer to `docs/SEAT_BOOKING_FLOW.md` to understand the architecture and interactions between `SystemSettings`, `VenueSettings`, `OrchestraSettings`, and `PublicTicketBookingPage`.
+- **Database Architecture Check:** Whenever modifying Firestore database logic, schema, or collections, you **MUST** first cross-reference and verify the structure defined in `docs/architecture.md`. Update this file if you introduce any new collections or alter the data flow.
