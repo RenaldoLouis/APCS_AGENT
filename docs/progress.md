@@ -67,6 +67,8 @@ A complete visual and architectural overhaul of the **Login** and **Jury Dashboa
 
 4. **Score in Table** — Assessed registrants now show their score directly in the table (highlighted) for at-a-glance progress visibility.
 
+5. **UI Refinements** — Persistent navbar across all views, formatted `videoDuration` (mm:ss) in table and assessment strip, and improved ensemble member list visibility.
+
 ### Status Logic (Pending vs Assessed)
 
 Status is **per jury member** — based on whether the logged-in jury has a score document in `JuryScores2025` for that registrant:
