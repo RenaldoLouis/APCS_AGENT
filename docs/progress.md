@@ -4,6 +4,89 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🎨 Jury Dashboard & Login Page Redesign (APCS Scoring Platform)
+
+**Date:** 2026-05-15
+**Status:** ✅ Completed
+**Design Source:** `docs/apcs-scoring-platform/` (high-fidelity prototype by design partner)
+
+### What Was Built
+
+A complete visual and architectural overhaul of the **Login** and **Jury Dashboard** pages to match the new APCS Scoring Platform prototype. Transitioned from a dark-themed Ant Design/MUI layout to a **light editorial design** with IBM Plex typography. The jury scoring flow was also restructured from inline table editing to a dedicated assessment form page.
+
+### Design System Shift
+
+| Aspect | Before | After |
+|--------|--------|-------|
+| Theme | Dark (`#121212`) | Light editorial (`#f7f6f3` paper) |
+| Cards | `#1E1E1E` + gold border | `#ffffff` + subtle `#e3e1da` border |
+| Accent | `#EBBC64` gold | `#15161a` ink with warm status colors |
+| Typography | System fonts / MUI defaults | IBM Plex Sans + IBM Plex Mono |
+| Components | MUI TextField, Ant Design Table/Tabs | Native HTML with custom CSS |
+| Status | Gold text on dark | Amber pills (pending) / Green pills (assessed) |
+
+### Files Created / Modified
+
+#### Shared
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `public/index.html` | MODIFIED | Added Google Fonts import (IBM Plex Sans + Mono) |
+
+#### Login Page (`Pages/Login/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `Login.js` | REWRITTEN | Centered card layout, native HTML inputs, SVG icons. Removed all MUI dependencies. |
+| `Login.css` | NEW | Light-theme design tokens, input groups, buttons, error banner, dividers |
+
+#### Jury Dashboard (`Pages/JuryDashboard/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `JuryDashboard.js` | REWRITTEN | Dashboard table view with stat cards, category tabs, search/filter, pagination. Routes to separate AssessmentForm. |
+| `JuryDashboard.css` | NEW | Full design system — nav, stats, tabs, table, slider, modals, buttons, pills (~500 lines) |
+| `Icons.js` | NEW | 18 SVG icon components matching the prototype's icon set |
+| `ScoreSlider.js` | NEW | Hatched-fill drag slider with mouse drag + keyboard support (arrows, pgup/pgdn, home/end) |
+| `AssessmentForm.js` | NEW | Dedicated scoring view — info strip, score input + slider, minus points, feedback/comments, action bar |
+
+### Key Changes
+
+1. **Login Page** — Centered 380px card with "A" logo block, email/password inputs with eye toggle, Google sign-in, error banner, footer. All auth logic (`signInWithEmail`, `signInWithGoogle`) preserved.
+
+2. **Dashboard View** — Nav bar with brand + user info, 3 summary stat cards (Total/Pending/Assessed), category tabs with pending count badges, search + status filter bar, clean table with score column, pagination.
+
+3. **Assessment Form (New Flow)** — Clicking "Assess →" or "Edit" navigates to a full-page scoring view instead of editing inline in the table row. Features:
+   - Participant info strip with repertoire links (sheet music, video)
+   - Score input (0–100) with quick-set chips (60/70/80/90/95) + hatched-fill drag slider
+   - Minus points with ±buttons and presets (0/1/2/5)
+   - Final score display with formula (`score − minus = final`)
+   - Feedback textarea (with char counter) + optional comments
+   - "Next participant →" button with pending queue position (e.g., "2 of 5 pending")
+   - "Save assessment" → success modal → back to dashboard
+
+4. **Score in Table** — Assessed registrants now show their score directly in the table (highlighted) for at-a-glance progress visibility.
+
+### Status Logic (Pending vs Assessed)
+
+Status is **per jury member** — based on whether the logged-in jury has a score document in `JuryScores2025` for that registrant:
+
+- **Pending** = no `JuryScores2025` document for `(registrantId, juryUserId)` pair
+- **Assessed** = document exists with a defined `score` value
+
+Each jury member sees their own independent progress. See `docs/business_perspective.md` for the full schema.
+
+### Business Logic Preserved
+
+All existing data flows remain untouched:
+- Firebase Auth (email + Google via `useAuth()`)
+- Firestore queries (`Registrants2025`, `JuryScores2025`)
+- Score saving (`setDoc` to `JuryScores2025`)
+- Video loading (AWS S3 signed URLs via `apis.aws`)
+- PDF viewing, Logout + redirect, Age category mapping
+
+---
+
 ## 🎭 Premium Theater Seat Selection UI/UX Overhaul
 
 **Date:** 2026-04-28
@@ -85,3 +168,4 @@ A self-service, public-facing ticket booking flow for the APCS 2026 Gala Concert
 ### Related Docs
 
 - [Architecture & Data Structure](./architecture.md) — Firestore schemas, API contracts, flow diagrams
+
