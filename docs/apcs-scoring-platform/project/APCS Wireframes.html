@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>APCS Scoring · Wireframes</title>
+<meta name="viewport" content="width=1600">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --paper:   #f7f6f3;        /* off-white background */
+    --paper-2: #eceae4;        /* subtle inset surface */
+    --paper-3: #ffffff;        /* card surface */
+    --ink:    #15161a;
+    --ink-2:  #3d4047;
+    --ink-3:  #74777f;
+    --ink-4:  #a4a7ad;
+    --rule:   #d8d6cf;         /* light rule */
+    --rule-2: #c4c2bb;         /* darker rule */
+    --hi:     #e7c44a;         /* single mustard accent */
+    --hi-bg:  #f4e8b9;
+    --warn:   #c08a2a;
+    --warn-bg:#f3e6c5;
+    --ok:     #3f6e3c;
+    --ok-bg:  #dde8d8;
+    --redpencil: #8a3a2c;      /* annotation accent */
+    --hand:  'IBM Plex Sans', system-ui, sans-serif;   /* alias retained */
+    --print: 'IBM Plex Sans', system-ui, sans-serif;
+    --type:  'IBM Plex Mono', ui-monospace, monospace;
+    --note:  'IBM Plex Sans', system-ui, sans-serif;
+  }
+
+  html, body { background: var(--paper); color: var(--ink); }
+  body{
+    margin:0;
+    font-family: var(--print);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ------- mid-fi primitives ------- */
+  .sk-box{
+    border: 1px solid var(--rule);
+    background: var(--paper-3);
+    border-radius: 6px;
+    position: relative;
+  }
+  .sk-box.tight{ border-radius: 4px; }
+  .sk-box.dash{
+    border-style: dashed;
+    border-color: var(--rule-2);
+    background: transparent;
+  }
+  .sk-box.fill{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .sk-box.muted{ background: var(--paper-2); border-color: var(--rule); }
+
+  .sk-line{
+    height: 0;
+    border-top: 1px solid var(--rule);
+    margin: 12px 0;
+  }
+  .sk-line.thin{ border-top-color: var(--rule); }
+  .sk-line.dash{ border-top-style: dashed; border-top-color: var(--rule-2); }
+
+  .sk-btn{
+    display: inline-flex; align-items:center; justify-content:center; gap:6px;
+    border: 1px solid var(--rule-2);
+    background: var(--paper-3);
+    border-radius: 5px;
+    padding: 8px 14px;
+    font-family: var(--print);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--ink);
+    text-decoration: none;
+    user-select: none;
+    transition: background .12s, border-color .12s, transform .06s;
+  }
+  .sk-btn:hover{ background: var(--paper-2); border-color: var(--ink-3); }
+  .sk-btn:active{ transform: translateY(1px); }
+  .sk-btn.primary{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .sk-btn.primary:hover{ background: #2a2c33; border-color: #2a2c33; }
+  .sk-btn.ghost{ background: transparent; border-color: transparent; }
+  .sk-btn.ghost:hover{ background: var(--paper-2); }
+  .sk-btn.small{ padding: 5px 10px; font-size: 12px; }
+
+  .sk-pill{
+    display:inline-flex; align-items:center; gap:5px;
+    border:1px solid var(--rule-2);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-family: var(--print);
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--paper-3);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .sk-pill.dot::before{
+    content:""; width:6px; height:6px; border-radius:50%;
+    background: var(--ink-3); display:inline-block;
+  }
+  .sk-pill.warn{ background: var(--warn-bg); color: #6b4d14; border-color:#e0cf95; }
+  .sk-pill.warn.dot::before{ background: var(--warn); }
+  .sk-pill.ok{ background: var(--ok-bg); color: var(--ok); border-color:#bdd1b6; }
+  .sk-pill.ok.dot::before{ background: var(--ok); }
+
+  .sk-input{
+    border:1px solid var(--rule-2);
+    border-radius: 5px;
+    background: var(--paper-3);
+    padding: 8px 10px;
+    font-family: var(--print);
+    font-size: 13px;
+    color: var(--ink-2);
+    width: 100%;
+    box-sizing: border-box;
+    display:flex; align-items:center; gap:8px;
+    transition: border-color .12s;
+  }
+  .sk-input:hover{ border-color: var(--ink-3); }
+  .sk-input .ph{ color: var(--ink-3); }
+  .sk-input .caret::after{
+    content:""; display:inline-block; width:1px; height:14px;
+    background: var(--ink); margin-left:1px; vertical-align:middle;
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink{ 50%{ opacity: 0; } }
+
+  .label{
+    font-family: var(--print);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--ink-3);
+  }
+  /* .hand was the handwritten display class — now just bold sans */
+  .hand{ font-family: var(--print); letter-spacing: -0.01em; }
+  .note{ font-family: var(--print); font-size: 12px; color: var(--ink-3); font-style: italic; }
+
+  /* mustard accent underline kept as a subtle highlight */
+  .hi{
+    background-image: linear-gradient(transparent 62%, var(--hi-bg) 62%, var(--hi-bg) 95%, transparent 95%);
+    padding: 0 2px;
+  }
+
+  /* avatar circle */
+  .sk-avatar{
+    width: 36px; height: 36px;
+    border:1px solid var(--rule-2);
+    border-radius: 50%;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family: var(--print); font-weight: 600; font-size: 12px;
+    background: var(--paper-2);
+    color: var(--ink-2);
+  }
+  .sk-avatar.sm{ width: 28px; height: 28px; font-size: 10px; }
+  .sk-avatar.lg{ width: 56px; height: 56px; font-size: 18px; }
+
+  /* table */
+  .sk-table{
+    width:100%; border-collapse: separate; border-spacing: 0;
+    font-family: var(--print);
+    font-size: 13px;
+  }
+  .sk-table th{
+    text-align: left;
+    font-family: var(--print);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--ink-3);
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--rule-2);
+    background: var(--paper-2);
+  }
+  .sk-table td{
+    padding: 11px 8px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: middle;
+  }
+  .sk-table tbody tr:last-child td{ border-bottom: none; }
+  .sk-table tbody tr:hover td{ background: var(--paper-2); }
+  .sk-table tr.muted td{ color: var(--ink-3); }
+  .sk-table tr.muted td:nth-child(1){ color: var(--ink-2); }
+
+  /* sketchy icon helpers — use stroke-based inline SVGs only */
+  .ico{
+    display:inline-block; width:1em; height:1em; vertical-align:-2px;
+    color: currentColor;
+  }
+
+  /* annotations — clean, tagged callouts (no rotation) */
+  .annot{
+    position: absolute;
+    font-family: var(--print);
+    color: var(--redpencil);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.45;
+    pointer-events: none;
+    transform: none;
+    background: var(--paper-3);
+    border: 1px dashed var(--redpencil);
+    border-radius: 4px;
+    padding: 6px 9px;
+    max-width: 200px;
+  }
+  .annot::before{
+    content: "NOTE";
+    display:block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    color: var(--redpencil);
+    opacity: .7;
+    margin-bottom: 2px;
+  }
+  .annot svg{ overflow: visible; }
+
+  /* canvas overrides — clean cards */
+  .dc-card{
+    background: var(--paper-3) !important;
+    border: 1px solid var(--rule-2) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04) !important;
+    overflow: hidden !important;
+  }
+
+  /* generic stack helpers */
+  .row{ display:flex; gap:12px; align-items:center; }
+  .col{ display:flex; flex-direction:column; gap:12px; }
+  .grow{ flex: 1 1 auto; min-width: 0; }
+  .between{ justify-content: space-between; }
+
+  /* Page chrome/nav inside artboards */
+  .nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--paper-3);
+  }
+  .nav .brand{ display:flex; align-items:center; gap:10px; font-family: var(--print); font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .nav .brand .logo{
+    width:24px; height:24px; border:1px solid var(--ink); background: var(--ink); color: var(--paper);
+    border-radius: 5px;
+    display:inline-flex;align-items:center;justify-content:center; font-size: 12px; font-weight: 700;
+  }
+
+  /* legend / cover banner */
+  .cover{
+    padding: 32px 32px 8px 32px;
+    max-width: 1300px;
+  }
+  .cover h1{
+    font-family: var(--print); font-weight: 600; font-size: 28px;
+    margin: 0 0 6px 0; letter-spacing: -0.02em;
+  }
+  .cover .sub{
+    font-family: var(--print); color: var(--ink-2); font-size: 13px;
+    max-width: 760px; line-height: 1.6;
+  }
+  .cover .meta{
+    display:flex; gap: 22px; margin-top: 14px; flex-wrap: wrap;
+    font-family: var(--type); font-size: 11px; color: var(--ink-3);
+  }
+  .cover .meta b{ color: var(--ink-2); font-weight: 500; }
+
+  /* DC label / title font */
+  .dc-section-title, .dc-label, .dc-section-subtitle{
+    font-family: var(--print) !important;
+  }
+
+  /* Modal/overlay shown on top of artboards */
+  .ovl{
+    position: absolute; inset: 0;
+    background: rgba(20,18,16,.55);
+    display:flex; align-items:center; justify-content:center;
+    backdrop-filter: blur(1px);
+  }
+
+  /* "interactive" arrow callouts on Variant A row to imply nav */
+  .nav-flow-arrow{
+    position: absolute;
+    top: 50%;
+    right: -52px;
+    transform: translateY(-50%) rotate(-3deg);
+    pointer-events: none;
+    color: var(--redpencil);
+    font-family: var(--note);
+    font-size: 22px;
+    z-index: 4;
+  }
+</style>
+</head>
+<body>
+
+<!-- Cover -->
+<div class="cover">
+  <h1>APCS Scoring Platform <span class="hi">— wireframes</span></h1>
+  <div class="sub">
+    Loose, exploratory sketches of the 5 core screens, laid out for side-by-side comparison.
+    Each row shows two distinctly different approaches; the <span class="note">red notes</span> call out behaviour and reasoning.
+    Click any artboard's expand icon to focus it, or use → / ← to step through the flow like a deck.
+  </div>
+  <div class="meta">
+    <span><b>5</b> screens</span>
+    <span><b>2</b> variants each</span>
+    <span><b>Tone</b> minimal swiss · sketched</span>
+    <span><b>Mode</b> light only</span>
+  </div>
+</div>
+
+<!-- Reusable inline-SVG icons (sketchy, single stroke). They live in <defs>
+     so we can reference them with <use>. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2.5 12c2.6-4.6 6-7 9.5-7s6.9 2.4 9.5 7c-2.6 4.6-6 7-9.5 7S5.1 16.6 2.5 12z"/>
+      <circle cx="12" cy="12" r="2.6"/>
+    </symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 3l18 18"/>
+      <path d="M10.7 6.2A10 10 0 0 1 12 6c4 0 7.4 2.3 9.5 6-.7 1.3-1.6 2.4-2.6 3.3"/>
+      <path d="M6.5 7.6C4.7 8.9 3.2 10.7 2.5 12c2.1 3.7 5.5 6 9.5 6 1.4 0 2.7-.3 3.9-.8"/>
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>
+    </symbol>
+    <symbol id="i-google" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 9.5h5.2c.2.7.3 1.5.3 2.5 0 3.6-2.4 6-5.5 6"/>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="6.5"/>
+      <path d="M20 20l-3.6-3.6"/>
+    </symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 9l6 6 6-6"/>
+    </symbol>
+    <symbol id="i-arrow-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 12h16"/><path d="M14 6l6 6-6 6"/>
+    </symbol>
+    <symbol id="i-arrow-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 12H4"/><path d="M10 6l-6 6 6 6"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 12.5l5 5L20 6"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="11" width="14" height="9" rx="2"/>
+      <path d="M8 11V8a4 4 0 0 1 8 0v3"/>
+    </symbol>
+    <symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 18V5l11-2v13"/>
+      <circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>
+    </symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>
+    </symbol>
+    <symbol id="i-pdf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 3h8l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
+      <path d="M14 3v5h5"/>
+    </symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 4l13 8-13 8z"/>
+    </symbol>
+    <symbol id="i-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="9" r="3.5"/>
+      <circle cx="17" cy="10" r="2.5"/>
+      <path d="M3 19c.7-3 3-5 6-5s5.3 2 6 5"/>
+      <path d="M14 19c.4-1.7 1.6-3 3-3s2.6 1.3 3 3"/>
+    </symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="9" r="3.5"/>
+      <path d="M5 20c1-3.5 3.7-5.5 7-5.5s6 2 7 5.5"/>
+    </symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3l10 18H2z"/>
+      <path d="M12 10v5"/><circle cx="12" cy="18" r=".7" fill="currentColor"/>
+    </symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 5l14 14"/><path d="M19 5L5 19"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- Mount point — design canvas -->
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="wireframes.jsx"></script>
+
+</body>
+</html>
