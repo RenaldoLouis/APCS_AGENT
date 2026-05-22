@@ -133,6 +133,7 @@ apcs_service/
 │  publicBookings2026/* ───── One doc per public booking        │
 │  seatBook2025/* ─────────── Legacy admin bookings             │
 │  Registrants2025/* ──────── Competition registrations         │
+│  JuryScores2025/* ───────── Jury assessment scores            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -354,6 +355,35 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
 | Collection | Used by | Purpose |
 |---|---|---|
 | `seatBook2025` | `TicketRepository.saveSeatBookProfileInfo`, `confirmSeatSelection` | Admin-created bookings (legacy flow) |
+
+---
+
+### 2.6 `JuryScores2025` collection
+
+**Document ID format:** `{registrantId}_{juryUserId}` (composite key)
+**Purpose:** Stores individual assessment scores, participant comments (performance feedback), and panel-specific comments.
+
+```json
+{
+  "id": "AijmAQ8GAzBJ0ENHkKiD_mSbaqnjPVHS9XbaRP6TFcCjmcI73",
+  "score": 85,
+  "comment": "Nice dynamics, good posture.",
+  "panelComment": "Consider for honorable mention.",
+  "isFinalized": false,
+  "juryUserId": "mSbaqnjPVHS9XbaRP6TFcCjmcI73",
+  "juryName": "Jury Member A",
+  "juryEmail": "juryA@example.com",
+  "registrantId": "AijmAQ8GAzBJ0ENHkKiD",
+  "registrantName": "Renaldo Louis",
+  "competitionCategory": "Harp",
+  "performanceCategory": "Solo",
+  "ageCategory": "YoungGuitar",
+  "timestamp": {
+    "seconds": 1716307200,
+    "nanoseconds": 0
+  }
+}
+```
 
 ---
 
