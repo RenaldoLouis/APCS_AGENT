@@ -4,6 +4,61 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🧪 Unit Testing for Critical Business Processes
+
+**Date:** 2026-05-24
+**Status:** ✅ Completed
+
+### What Was Built
+
+A comprehensive unit testing suite protecting the registration pricing, invoice conversion, and payment discount flows across both frontend and backend projects. Includes a Git pre-push hook that blocks pushes if any test fails.
+
+### Test Coverage Summary
+
+| Project | Test File | Tests | What It Covers |
+|---------|-----------|:-----:|----------------|
+| `apcs_service` | `invoiceUtils.test.js` | 11 | USD→IDR conversion (rate 17,200), IDR passthrough, discount conversion, invoice notes |
+| `apcs_service` | `discountUtils.test.js` | 15 | All VocalChoir discount tiers (5-10/11-20/21-30), boundary values, wrong categories, edge cases |
+| `apcs_website` | `priceProvider.test.js` | 20 | Solo/Ensemble pricing, international USD, VocalChoir discounts, boundary tests, baseAmount consistency |
+| **Total** | | **46** | |
+
+### Files Created / Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `package.json` | MODIFIED | Added Jest devDependency + `npm test` script |
+| `src/utils/invoiceUtils.js` | NEW | Extracted USD→IDR conversion logic with `USD_TO_IDR_RATE = 17200` constant |
+| `src/utils/discountUtils.js` | NEW | Extracted VocalChoir ensemble discount calculation |
+| `src/utils/__tests__/invoiceUtils.test.js` | NEW | 11 tests for invoice price conversion |
+| `src/utils/__tests__/discountUtils.test.js` | NEW | 15 tests for discount tiers |
+| `src/repositories/PaperRepository.js` | MODIFIED | Uses `invoiceUtils` instead of inline conversion |
+| `src/controllers/PaperController.js` | MODIFIED | Uses `discountUtils` instead of inline discount logic |
+
+#### Frontend (`apcs_website/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/utils/priceProvider.test.js` | EXPANDED | Added 13 new tests (boundary, international ensemble, non-VocalChoir, baseAmount) |
+
+#### Project Root
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `test-all.ps1` | NEW | PowerShell script to run all tests across both projects |
+| `.git/hooks/pre-push` | NEW | Git hook that blocks push if any test fails |
+
+### Key Design Decisions
+
+1. **Extracted pure functions** — Invoice conversion and discount logic were extracted from `PaperRepository.js` and `PaperController.js` into standalone utility modules (`invoiceUtils.js`, `discountUtils.js`). This makes them testable without needing to mock Firebase, Axios, or Express.
+
+2. **Single source of truth for USD rate** — The `USD_TO_IDR_RATE = 17200` constant in `invoiceUtils.js` is used by both the conversion logic and the invoice notes, preventing the mismatch bug (16,900 vs 17,200) that was caught in the previous audit.
+
+3. **Git pre-push hook** — Automatically runs all 46 tests before every `git push`. Can be bypassed with `git push --no-verify` for emergency hotfixes.
+
+---
+
 ## 🎨 Jury Dashboard & Login Page Redesign (APCS Scoring Platform)
 
 **Date:** 2026-05-15
