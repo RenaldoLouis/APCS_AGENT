@@ -4,6 +4,26 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 💱 Update USD to IDR Conversion Rate
+
+**Date:** 2026-05-25
+**Status:** ✅ Completed
+
+### What Was Built
+
+Updated the fixed USD to IDR conversion rate used for international payments and price registrations from 17,200 to 17,800.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/utils/invoiceUtils.js` | MODIFIED | Updated `USD_TO_IDR_RATE` constant to 17,800 |
+| `src/utils/__tests__/invoiceUtils.test.js` | MODIFIED | Updated unit tests with the new 17,800 rate calculations |
+
+---
+
 ## 🧪 Unit Testing for Critical Business Processes
 
 **Date:** 2026-05-24
