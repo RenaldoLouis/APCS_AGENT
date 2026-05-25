@@ -41,8 +41,8 @@ try {
 Write-Host ""
 
 # --- Frontend Tests ---
-Write-Host "[2/2] Running Frontend Tests (apcs_website)..." -ForegroundColor Yellow
-Push-Location "$projectRoot\apcs_website"
+Write-Host "[2/2] Running Frontend Tests (apcs_web)..." -ForegroundColor Yellow
+Push-Location "$projectRoot\apcs_web"
 try {
     & cmd /c "npx react-scripts test --watchAll=false --ci 2>&1"
     if ($LASTEXITCODE -ne 0) {
