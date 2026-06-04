@@ -4,6 +4,49 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## ⏰ Jury Deadline Admin UI & Login Enforcement
+
+**Date:** 2026-06-04
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Jury Deadline Settings Admin Page** — New page in Admin Dashboard (Jury Management → Jury Deadlines) to manage per-competition-category scoring deadlines. Admins can add, edit, and remove deadlines with a date-only picker. The time is automatically set to **23:59:59** end-of-day, so jury can score all day until the deadline date ends.
+
+2. **Jury Email Login Blocking** — When a jury member tries to log in via email/password and their competition category's deadline has passed, login is blocked. The user is signed out immediately and shown an error: *"The scoring period for [category] has ended."* Admin/subadmin logins and Google sign-in are never affected.
+
+3. **AGENTS.md Update** — Added "Restricted Verification" rule to prevent the agent from launching browsers for UI verification. The user verifies UI manually; agent provides walkthrough artifacts.
+
+### Files Created / Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `Pages/AdminDashboard/JuryDeadlineSettings.js` | NEW | Admin page: add/edit/delete per-category jury deadlines with date picker, status tags, and save |
+| `Pages/AdminDashboard/AdminDashboard.js` | MODIFIED | Added "Jury Management" sidebar submenu with "Jury Deadlines" item (menu key `'20'`) |
+| `context/DataContext.js` | MODIFIED | Added jury deadline enforcement in `signInWithEmail` — blocks login if category deadline has passed |
+
+#### Documentation
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `docs/architecture.md` | MODIFIED | Updated section 2.8 with admin UI reference, date-only picker, auto end-of-day, and `DataContext` enforcement details |
+| `docs/progress.md` | MODIFIED | Added this entry |
+| `AGENTS.md` | MODIFIED | Added "Restricted Verification" section |
+
+### Key Design Decisions
+
+1. **Date-only picker** — Admins don't need to think about time. Selecting June 15 means the jury can score until 23:59:59 on June 15. The `toEndOfDay()` helper handles this automatically.
+
+2. **Login blocking at auth layer** — Enforcement happens in `DataContext.signInWithEmail()` *after* Firebase Auth succeeds but *before* state is set or navigation occurs. The user is signed out of Firebase Auth immediately. This ensures the block can't be bypassed by navigating directly to `/juryDashboard`.
+
+3. **Graceful degradation** — If the system settings API fails during login, the deadline check is skipped (jury can still log in). This prevents a settings outage from locking out all jury members.
+
+4. **Category keys from `competitionList`** — The admin dropdown uses the same `competitionList` constant that registrants use during registration, ensuring key consistency between the deadline map and the jury user's `competitionCategory` field.
+
+---
+
 ## 🔐 Login Split-Screen, Dashboard Logo, Simplified Scoring & Jury Deadline
 
 **Date:** 2026-05-28

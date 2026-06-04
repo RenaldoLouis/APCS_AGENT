@@ -391,24 +391,28 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
 
 **Field:** `juryDeadlines` (added to existing `systemSettings/global` document)
 **Purpose:** Per-competition-category deadlines for jury scoring. After the deadline passes, jury members for that category are blocked from logging in via email/password and can no longer submit scores.
+**Managed by:** Admin Dashboard → Jury Management → Jury Deadlines (`JuryDeadlineSettings.js`)
 
 ```json
 {
   "currentEventId": "APCS2026",
   "juryDeadlines": {
-    "Piano Solo": "2026-06-15T23:59:00+07:00",
-    "Violin Solo": "2026-06-20T23:59:00+07:00",
-    "Harp": "2026-06-18T23:59:00+07:00"
+    "Piano": "2026-06-15T23:59:59.999Z",
+    "Violin": "2026-06-20T23:59:59.999Z",
+    "Harp": "2026-06-18T23:59:59.999Z"
   }
 }
 ```
 
+> **Note:** Admins select a **date only** (no time picker). The system automatically sets the deadline to **23:59:59.999** of the selected date, so jury members can score all day until the end of that day.
+
 **Behavior:**
 - **24 hours before deadline (H-1):** Warning modal shown to jury on login. Deadline text in dashboard nav turns red with pulsing animation.
-- **After deadline:** Jury email login is blocked (shows "Scoring period has ended"). Google login and admin login remain unaffected.
+- **After deadline:** Jury email login is blocked in `DataContext.signInWithEmail()` — user is signed out and shown "The scoring period for [category] has ended". Google login and admin login remain unaffected.
 - **No deadline set:** No restrictions applied; jury can score at any time.
 
 **Updated by:** `POST /api/v1/apcs/systemSettings/global` with `{ juryDeadlines: { ... } }` in body.
+**Admin UI:** `AdminDashboard.js` → menu key `'20'` → `JuryDeadlineSettings.js` (Add/Edit/Delete per-category deadlines with date picker + Save All).
 
 ---
 
