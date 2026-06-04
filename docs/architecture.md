@@ -331,6 +331,8 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
 **Purpose:** One document per competition registration. Created during the registration flow (`Register.js`).
 **Used by:** `JuryDashboard.js`, `AdminContent.js`, `SessionAssignmentManager.js`, `PaperController.handlePaperWebhook`
 
+> **⚠️ Tech Debt Notice:** Despite the "2025" in the name, this collection is used for **all** years (e.g., APCS2025, APCS2026). The initial plan to separate years into different collections was abandoned. To differentiate registrants by year, you **must** filter queries using the `eventId` field (e.g., `where('eventId', '==', 'APCS2026')`).
+
 #### Key fields
 
 | Field | Type | Description |
@@ -358,10 +360,12 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
 
 ---
 
-### 2.6 `JuryScores2025` collection
+### 2.7 `JuryScores2025` collection
 
 **Document ID format:** `{registrantId}_{juryUserId}` (composite key)
 **Purpose:** Stores individual assessment scores, participant comments (performance feedback), and panel-specific comments.
+
+> **⚠️ Tech Debt Notice:** Similar to `Registrants2025`, this collection is used for **all** years despite its name. To filter scores by year, you generally filter `Registrants2025` by `eventId` first, and then fetch the corresponding scores by matching `registrantId`.
 
 ```json
 {
@@ -378,11 +382,27 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
   "competitionCategory": "Harp",
   "performanceCategory": "Solo",
   "ageCategory": "YoungGuitar",
-  "timestamp": {
-    "seconds": 1716307200,
-    "nanoseconds": 0
-  }
+  "timestamp": { "seconds": 1716307200, "nanoseconds": 0 },
+  "adminAdjustedScore": null,
+  "adminAdjustedAt": null,
+  "adminAdjustedBy": null,
+  "finalizedAt": null,
+  "finalizedBy": null
 }
+```
+
+#### Admin Scoring Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `adminAdjustedScore` | number\|null | Admin-set override score. Jury member never sees this — they always see their original `score`. Average calculation uses this when present, otherwise falls back to `score`. |
+| `adminAdjustedAt` | timestamp\|null | When admin last adjusted the score |
+| `adminAdjustedBy` | string\|null | Email of admin who adjusted the score |
+| `isFinalized` | boolean | When `true`, the jury member can no longer edit their score for this registrant. Set by admin via Scoring Recap page. |
+| `finalizedAt` | timestamp\|null | When admin finalized the score |
+| `finalizedBy` | string\|null | Email of admin who finalized |
+
+> **⚠️ Finalization behavior:** When `isFinalized` is `true`, the jury's AssessmentForm disables all inputs and shows a "Finalized" banner. The jury can still view their score/feedback but cannot save changes. Admins can unfinalize to re-open editing.
 ```
 
 ---

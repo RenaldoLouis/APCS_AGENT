@@ -4,6 +4,58 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🏆 Scoring Recap Admin Page & Assessment Form Layout Update
+
+**Date:** 2026-06-04
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Scoring Recap Admin Page** — New page in Admin Dashboard (Scoring Management → Scoring Recap) for the APCS team to review all jury scores across registrants. Supports multiple juries per registrant with average score calculation.
+
+2. **Admin Score Adjustments** — Admin can adjust a jury's score without modifying the original. Stored in a separate `adminAdjustedScore` field. The jury member always sees their original score. Average calculation uses the adjusted score when available.
+
+3. **Score Finalization** — Admin can mark a registrant's scores as "Finalized", which locks the jury from editing. Shows 🔒 badge in both admin and jury dashboards. Can be reversed (unfinalized) if needed.
+
+4. **CSV Export** — Download scoring data as CSV with all jury scores, adjustments, feedback, and APCS notes per registrant.
+
+5. **Assessment Form Layout Update** — Restructured jury AssessmentForm to match prototype: performance feedback full-width on top, then notes + overall score side-by-side below.
+
+6. **Menu Rename** — "Jury Management" renamed to "Scoring Management" with two sub-items: "Scoring Recap" (new) and "Jury Deadlines" (existing).
+
+### Files Created / Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `Pages/AdminDashboard/ScoringRecap.js` | NEW | Admin page: category filter, expandable table with multi-jury scores, admin adjustments, finalization, CSV export |
+| `Pages/AdminDashboard/AdminDashboard.js` | MODIFIED | Renamed "Jury Management" → "Scoring Management", added "Scoring Recap" menu item (key `'21'`) |
+| `Pages/JuryDashboard/AssessmentForm.js` | MODIFIED | Added `isFinalized` prop — disables inputs and shows finalized banner when score is locked. Also restructured form layout to match prototype. |
+| `Pages/JuryDashboard/JuryDashboard.js` | MODIFIED | Passes `isFinalized` to AssessmentForm, shows 🔒 Finalized badge on locked rows in table |
+| `Pages/JuryDashboard/JuryDashboard.css` | MODIFIED | Added `.jd-score-input` placeholder styling |
+
+#### Documentation
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `docs/architecture.md` | MODIFIED | Updated JuryScores2025 schema with admin scoring fields (`adminAdjustedScore`, `finalizedAt`, etc.) |
+| `docs/progress.md` | MODIFIED | Added this entry |
+
+### Key Design Decisions
+
+1. **Admin edits stored separately** — `adminAdjustedScore` is a new field on `JuryScores2025` docs. The jury's original `score` is never modified. This prevents jury confusion ("why did my score change?").
+
+2. **Effective score = adminAdjustedScore ?? score** — Average calculation uses the adjusted score when present, otherwise the original. This gives admin full control over the final average.
+
+3. **Finalization = real lock** — Setting `isFinalized: true` on all jury score docs for a registrant actually disables the jury's form inputs and save button. It's not just a visual marker.
+
+4. **Batch finalization** — All jury score docs for a registrant are updated in a single Firestore `writeBatch`, ensuring atomicity.
+
+5. **No new collections** — Reuses existing `JuryScores2025` collection with new optional fields. Backward-compatible with existing data.
+
+---
+
 ## ⏰ Jury Deadline Admin UI & Login Enforcement
 
 **Date:** 2026-06-04
