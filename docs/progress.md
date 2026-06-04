@@ -4,6 +4,54 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🔐 Login Split-Screen, Dashboard Logo, Simplified Scoring & Jury Deadline
+
+**Date:** 2026-05-28
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Login Page Split-Screen** — Redesigned to a 50/50 split layout: left panel shows `contactUsPageBackground.jpeg` with overlay text, right panel contains the login form. Removed "forgot password" link.
+
+2. **Dashboard Logo Replacement** — Replaced `<span class="jd-brand-logo">A</span>` text logo with `apc_logo_bold.svg` image in the JuryDashboard nav bar.
+
+3. **Simplified Scoring** — Removed minus points, ScoreSlider, and quick-set chips from `AssessmentForm.js`. Now shows a clean single score input (0-100) + feedback textarea + comments textarea.
+
+4. **Per-Category Jury Deadline** — Added `juryDeadlines` map field to `systemSettings/global` Firestore document. Each key is a competition category, value is an ISO-8601 deadline string.
+
+5. **Deadline Warning Modal** — When jury logs in within 24 hours of their category's deadline, a `DeadlineWarningModal` displays a live countdown and dismiss button (shown once per session via `sessionStorage`).
+
+6. **Deadline Display on Dashboard** — Live countdown chip in the nav bar. Normal = neutral, urgent (H-1) = red with pulse animation, expired = red static.
+
+7. **Login Deadline Banners** — Login page shows informational banners: expired categories show "Scoring period has ended", urgent categories show remaining time. Google login and admin login remain unblocked.
+
+### Files Created / Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/repositories/SystemSettingsRepository.js` | MODIFIED | Added support for `juryDeadlines` map field in `updateGlobalSettings` |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `Pages/Login/Login.js` | REWRITTEN | Split-screen layout, deadline banners, removed forgot password |
+| `Pages/Login/Login.css` | REWRITTEN | 50/50 split screen, responsive stacking, deadline banner styles |
+| `Pages/JuryDashboard/JuryDashboard.js` | MODIFIED | SVG logo import, deadline fetching/display, DeadlineWarningModal integration |
+| `Pages/JuryDashboard/JuryDashboard.css` | MODIFIED | Added `.jd-brand-img`, `.jd-deadline` (normal/urgent/expired), `.jd-deadline-modal-icon` |
+| `Pages/JuryDashboard/AssessmentForm.js` | REWRITTEN | Simplified to single score input + feedback + comments (removed slider, minus, quick-set) |
+| `Pages/JuryDashboard/DeadlineWarningModal.js` | NEW | Warning modal with live countdown for H-1 deadline proximity |
+
+#### Documentation
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `docs/architecture.md` | MODIFIED | Added section 2.8 documenting `juryDeadlines` in `systemSettings/global` |
+
+---
+
 ## 💱 Update USD to IDR Conversion Rate
 
 **Date:** 2026-05-25

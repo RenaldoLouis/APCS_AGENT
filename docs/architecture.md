@@ -387,6 +387,31 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
 
 ---
 
+### 2.8 `systemSettings/global` — Jury Deadlines
+
+**Field:** `juryDeadlines` (added to existing `systemSettings/global` document)
+**Purpose:** Per-competition-category deadlines for jury scoring. After the deadline passes, jury members for that category are blocked from logging in via email/password and can no longer submit scores.
+
+```json
+{
+  "currentEventId": "APCS2026",
+  "juryDeadlines": {
+    "Piano Solo": "2026-06-15T23:59:00+07:00",
+    "Violin Solo": "2026-06-20T23:59:00+07:00",
+    "Harp": "2026-06-18T23:59:00+07:00"
+  }
+}
+```
+
+**Behavior:**
+- **24 hours before deadline (H-1):** Warning modal shown to jury on login. Deadline text in dashboard nav turns red with pulsing animation.
+- **After deadline:** Jury email login is blocked (shows "Scoring period has ended"). Google login and admin login remain unaffected.
+- **No deadline set:** No restrictions applied; jury can score at any time.
+
+**Updated by:** `POST /api/v1/apcs/systemSettings/global` with `{ juryDeadlines: { ... } }` in body.
+
+---
+
 ## 3. Public Ticket Booking Flow
 
 ### Step-by-step (frontend)

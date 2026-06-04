@@ -4,6 +4,11 @@
 - **NEVER** run `npm run start`.
 - **NEVER** run `npm run build`.
 
+## 🚫 Restricted Verification
+- **NEVER** launch or use a local browser (browser subagent, Playwright MCP, etc.) to verify UI changes. Verify correctness through code review and logical reasoning only.
+- The user will manually verify all UI/UX changes in their own browser. Creating a **walkthrough artifact** is sufficient for verification guidance.
+
+
 ## 🛠 Tech Stack & Architecture
 - **Frontend:** React.js using **Ant Design** components.
 - **Backend:** Node.js with **Express**.
