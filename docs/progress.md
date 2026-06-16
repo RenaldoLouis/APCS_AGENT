@@ -4,6 +4,45 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 💱 Configurable USD→IDR Exchange Rate
+
+**Date:** 2026-06-06
+**Status:** ✅ Completed
+
+### What Was Built
+
+Made the USD→IDR exchange rate configurable from the Admin Dashboard instead of being hardcoded in `invoiceUtils.js`. The rate is now stored in Firestore (`systemSettings/global → usdToIdrRate`) and fetched at invoice creation time.
+
+1. **Admin UI** — New "Exchange Rate Configuration" card on the System Settings page with an `InputNumber` (min 10,000 / max 25,000 IDR) and save button.
+2. **Backend** — `PaperRepository.createInvoice` fetches the rate from Firestore and passes it to `buildInvoiceItem()` / `buildInvoiceNotes()`. Falls back to `DEFAULT_USD_TO_IDR_RATE = 17800` if the Firestore value is missing.
+3. **Rate Integrity Tests** — 6 new tests in `invoiceUtils.test.js` verifying: fallback behavior (null/undefined/0 → default), custom rate is actually used, notes display the correct rate, IDR items are unaffected. These run automatically via `test-all.ps1`.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/utils/invoiceUtils.js` | MODIFIED | Replaced `USD_TO_IDR_RATE` constant with `DEFAULT_USD_TO_IDR_RATE` fallback; `buildInvoiceItem` and `buildInvoiceNotes` now accept `usdToIdrRate` as parameter |
+| `src/repositories/PaperRepository.js` | MODIFIED | Fetches `usdToIdrRate` from `systemSettings/global` and passes it to invoice utils |
+| `src/repositories/SystemSettingsRepository.js` | MODIFIED | Added `usdToIdrRate` as a supported field in `updateGlobalSettings` |
+| `src/utils/__tests__/invoiceUtils.test.js` | MODIFIED | Updated existing tests to pass rate as parameter; added 6 exchange rate integrity tests |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/SystemSettings.js` | MODIFIED | Added "Exchange Rate Configuration" card with InputNumber (min/max validated) |
+
+#### Documentation
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `docs/architecture.md` | MODIFIED | Updated section 2.8 with `usdToIdrRate` field documentation |
+| `docs/progress.md` | MODIFIED | Added this entry |
+
+---
+
 ## 🏆 Scoring Recap Admin Page & Assessment Form Layout Update
 
 **Date:** 2026-06-04

@@ -5,6 +5,7 @@ apcs_website
 # Ignore source code directories (managed in other repos)
 apcs_service/
 apcs_web/
+apcs_web/build
 CONVENTIONS.md
 .cursorrules
 .windsurfrules

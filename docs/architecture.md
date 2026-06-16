@@ -407,7 +407,7 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
 
 ---
 
-### 2.8 `systemSettings/global` — Jury Deadlines
+### 2.8 `systemSettings/global` — Jury Deadlines & Exchange Rate
 
 **Field:** `juryDeadlines` (added to existing `systemSettings/global` document)
 **Purpose:** Per-competition-category deadlines for jury scoring. After the deadline passes, jury members for that category are blocked from logging in via email/password and can no longer submit scores.
@@ -420,9 +420,16 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
     "Piano": "2026-06-15T23:59:59.999Z",
     "Violin": "2026-06-20T23:59:59.999Z",
     "Harp": "2026-06-18T23:59:59.999Z"
-  }
+  },
+  "usdToIdrRate": 17800
 }
 ```
+
+**Field:** `usdToIdrRate` (number)
+**Purpose:** The exchange rate used for converting USD registration fees to IDR on Paper.id invoices. Defaults to `17800` if not set.
+**Managed by:** Admin Dashboard → Ticketing System → System Settings (`SystemSettings.js`)
+**Used by:** `PaperRepository.createInvoice` → `invoiceUtils.buildInvoiceItem` / `invoiceUtils.buildInvoiceNotes`
+**Validation:** Must be between 10,000 and 25,000 (enforced in Admin UI).
 
 > **Note:** Admins select a **date only** (no time picker). The system automatically sets the deadline to **23:59:59.999** of the selected date, so jury members can score all day until the end of that day.
 
