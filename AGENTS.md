@@ -3,6 +3,7 @@
 ## 🚫 Restricted Commands
 - **NEVER** run `npm run start`.
 - **NEVER** run `npm run build`.
+- **ALWAYS** use `yarn` instead of `npm` for installing dependencies.
 
 ## 🚫 Restricted Verification
 - **NEVER** launch or use a local browser (browser subagent, Playwright MCP, etc.) to verify UI changes. Verify correctness through code review and logical reasoning only.

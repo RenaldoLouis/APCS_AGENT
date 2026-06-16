@@ -100,6 +100,17 @@ Made the USD→IDR exchange rate configurable from the Admin Dashboard instead o
 
 ---
 
+## 🚀 E2E Registration Testing
+
+**Date:** 2026-06-05
+**Status:** ✅ Completed
+
+### Latest Updates
+- **E2E Playwright Tests Added:** Created `/apcs_web/e2e/register.spec.js` to automate form filling and validation for single performers, 5-person ensembles, and 12-person vocal choirs (to verify invoice splitting logic). Scripts target production by default and gracefully handle ReCAPTCHA pauses.
+- **Added TESTING.md:** Documented E2E testing commands for quick reference.
+
+---
+
 ## 🏆 Scoring Recap Admin Page & Assessment Form Layout Update
 
 **Date:** 2026-06-04

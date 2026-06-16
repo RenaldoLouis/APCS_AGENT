@@ -11,6 +11,7 @@ CONVENTIONS.md
 .windsurfrules
 .agents/
 Ticketing_SaaS_Zentre/
+content/
 
 # Ignore local environment or temporary files
 .DS_Store
