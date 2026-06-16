@@ -338,15 +338,59 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
 | Field | Type | Description |
 |-------|------|-------------|
 | `eventId` | string | e.g., `"APCS2025"` |
+| `name` | string | **Parent/guardian/teacher name** — this is NOT the performer name. |
+| `teacherName` | string | Teacher name |
 | `competitionCategory` | string | e.g., `"Piano Solo"`, `"Violin Solo"` |
+| `instrumentCategory` | string | Instrument sub-category |
 | `PerformanceCategory` | string | `"Individual"` or `"Ensemble"` |
 | `ageCategory` | string | Key from `RegisterPageConst.ageCategories` (e.g., `"primary"`, `"junior"`) |
-| `performers` | array | Array of `{ firstName, lastName, fullName, ... }` objects |
+| `totalPerformer` | number | Count of performers in the `performers` array |
+| `performers` | array | Array of performer objects — **this is where performer names and emails live** (see below) |
 | `repertoire` | string | Name of the piece being performed |
+| `youtubeLink` | string | YouTube link for the performance |
 | `videoDuration` | number | **Duration of the performance video in seconds.** Calculated during upload via `getVideoDuration()`. Display as `mm:ss` (e.g., 192 → `"03:12"`). |
 | `videoPerformanceS3Link` | string | S3 key for the uploaded performance video |
 | `pdfRepertoireS3Link` | string | S3 key for the uploaded sheet music PDF |
+| `birthCertS3Link` | string | S3 key for birth certificate |
+| `examCertificateS3Link` | string | S3 key for exam certificate / recommendation letter |
+| `profilePhotoS3Link` | string | S3 key for profile photo |
+| `paymentStatus` | string | `"PAID"`, `"UNPAID"`, etc. |
+| `amountToPay` | number | Amount in IDR |
 | `duration` | string | Legacy field — formatted duration string (e.g., `"00:05:30"`). Prefer `videoDuration` for numeric calculations. |
+
+> **⚠️ CRITICAL: `name` vs performer names**
+> - `record.name` = **parent/guardian/teacher** name (top-level field)
+> - `record.performers[].fullName` = **performer** name (inside the `performers` array)
+>
+> When displaying or referencing a registrant's performer name, **always** use `record.performers[].fullName` (with `firstName + lastName` fallback). Never use `record.name` for this purpose.
+
+#### `performers[]` array structure
+
+Each element in the `performers` array has the following fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `firstName` | string | Performer's first name |
+| `lastName` | string | Performer's last name |
+| `fullName` | string | **Primary display name** — use this for all UI display (e.g., `"Renaldo Louis"`) |
+| `email` | string | Performer's email address (used for sending confirmation emails) |
+| `dob` | string/timestamp | Date of birth |
+| `gender` | string | Gender |
+| `nationality` | string | e.g., `"Indonesia"` |
+| `country` | string | Country of residence |
+| `province` | string | Province |
+| `city` | string | City |
+| `zipCode` | string | Zip code |
+| `addressLine` | string | Street address |
+| `phoneNumber` | string | Phone number |
+| `countryCode` | string | Phone country code (e.g., `"+62"`) |
+
+**Common pattern for getting performer display name:**
+```js
+const performerNames = (record.performers || [])
+    .map(p => p.fullName || `${p.firstName || ''} ${p.lastName || ''}`.trim())
+    .join(' & ');
+```
 
 > **⚠️ Important:** The `videoDuration` field stores **seconds as a number** (e.g., `312` for 5 minutes 12 seconds). Always convert to `mm:ss` for display. Do **not** confuse with the legacy `duration` string field.
 

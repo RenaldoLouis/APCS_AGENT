@@ -4,6 +4,36 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 📧 Resend Registration Confirmation Email (Admin Fallback)
+
+**Date:** 2026-06-16
+**Status:** ✅ Completed
+
+### What Was Built
+
+Added a "Resend Email" button to the Registrant Dashboard table so admins can manually resend the registration confirmation email to registrants who didn't receive it — e.g., due to Paper.id webhook failures or email delivery issues.
+
+The backend endpoint replicates the **exact same email logic** used in `handlePaperWebhook`: it fetches the registrant from Firestore, groups performers by email, formats the price, and calls both `sendEmailFunc` (confirmation to user) and `sendEmailNotifyApcs` (admin notification).
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/controllers/PaperController.js` | MODIFIED | Added `resendConfirmationEmail` function — mirrors webhook email logic |
+| `src/routes/PaymentRoute.js` | MODIFIED | Added `POST /resendConfirmationEmail` route |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/apis/index.js` | MODIFIED | Added `resendConfirmationEmail` API call |
+| `src/Pages/AdminDashboard/RegistrantDashboard.js` | MODIFIED | Added `handleResendConfirmationEmail` handler + `resendingId` state |
+| `src/constant/RegistrantsColumn.js` | MODIFIED | Added "Resend Email" button with `MailOutlined` icon to table actions column |
+
+---
+
 ## 💱 Configurable USD→IDR Exchange Rate
 
 **Date:** 2026-06-06
