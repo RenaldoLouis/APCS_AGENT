@@ -4,6 +4,33 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🛑 Registration Enable/Disable Feature
+
+**Date:** 2026-06-16
+**Status:** ✅ Completed
+
+### What Was Built
+
+Added a global setting to the Admin Dashboard allowing admins to seamlessly enable or disable the public Registration page (`/register`). When disabled, the form is completely hidden and replaced with an elegant, APCS-branded "Under Maintenance" full-screen overlay. 
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/repositories/SystemSettingsRepository.js` | MODIFIED | Added `isRegistrationEnabled` to the `updateGlobalSettings` whitelist payload to persist the toggle state. |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/context/DataContext.js` | MODIFIED | Fetches and stores `isRegistrationEnabled` from global settings. |
+| `src/Pages/AdminDashboard/SystemSettings.js` | MODIFIED | Added a new "Registration Configuration" card with a toggle switch. |
+| `src/Pages/Register/Register.js` | MODIFIED | Conditionally renders the "Under Maintenance" UI when registration is disabled. |
+
+---
+
 ## 📧 Resend Registration Confirmation Email (Admin Fallback)
 
 **Date:** 2026-06-16
