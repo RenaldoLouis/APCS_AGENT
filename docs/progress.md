@@ -4,6 +4,31 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## ⚖️ Registrant Score & Award Discrepancy Fix
+
+**Date:** 2026-06-23
+**Status:** ✅ Completed
+
+### What Was Built
+
+Addressed an issue where a student's score in the `RegistrantDashboard` differed from `ScoringRecap` because the dashboard previously ignored admin-adjusted scores during dynamic average calculations.
+
+1. **Dashboard Dynamic Average Alignment:** Updated the calculation logic in `RegistrantDashboard` (both on-the-fly and during "Sync All Scores") to prioritize `adminAdjustedScore` if one exists, matching the `ScoringRecap` logic.
+2. **Tooltip Insight:** Enhanced the jury breakdown tooltip in the Registrants table to explicitly show the adjustment if an admin intervened: e.g., `75 (Original: 85)`.
+3. **Award Visibility in Recap:** Added a dynamic "Award" column to the `ScoringRecap` page, mimicking the `RegistrantDashboard`, complete with tier colors and a "VERIFIED" badge when finalized.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/RegistrantDashboard.js` | MODIFIED | Included `adminAdjustedScore` in dynamic `getScoreData` mapping and the `handleSyncAllScores` database batch update to ensure accurate averages. |
+| `src/constant/RegistrantsColumn.js` | MODIFIED | Updated the `Popover` list items to display both the adjusted and original scores side-by-side if applicable. |
+| `src/Pages/AdminDashboard/ScoringRecap.js` | MODIFIED | Added an `Award` column dynamically calculating the final award based on the average score, utilizing `calculateAward` from `Utils.js`. |
+
+---
+
 ## 🛑 Registration Enable/Disable Feature
 
 **Date:** 2026-06-16

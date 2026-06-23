@@ -20,6 +20,7 @@
 - **Component Structure:** Prefer functional components with Hooks.
 - **State Management:** Prioritize clean, modular state handling.
 - **Naming:** Use camelCase for variables and functions, and PascalCase for components.
+- **Backend Error Handling:** NEVER `throw` errors directly inside asynchronous repository functions that are wrapped by `DatabaseUtil.executeDatabaseOperation()`. Because `executeDatabaseOperation` expects a callback, throwing an error directly causes an Unhandled Promise Rejection which crashes the Node.js server. Instead, ALWAYS return the error via the callback (e.g., `return callback(new AppError(...))`). You may only `throw new AppError(...)` inside standard async Promise-returning functions that do not use callbacks and are properly `await`ed and caught by the controller.
 
 ## 🤖 Agent Behavior
 - **Passive Constraints:** Always check these conventions before suggesting or executing code changes.
