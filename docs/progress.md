@@ -14,9 +14,12 @@ This document tracks features and changes made to the APCS project over time.
 Completed a full audit of the ticketing system admin flow and implemented several fixes and documentation updates based on the user's feedback:
 1. **Unified `publicBookings` Collection:** Migrated away from year-specific collections (e.g., `publicBookings2026`) to a single unified `publicBookings` collection. Updated `PublicTicketRepository` and `PublicCustomersList` to read/write from this unified collection, filtering by `currentEventId`.
 2. **Fixed Rollback Bug:** Fixed a variable scope error (`bookingData.eventId` → `eventId`) in the `PublicTicketRepository` manual rollback catch block.
-3. **Dynamic Venue Labels:** Updated `PublicTicketController` to dynamically fetch the event data and resolve the venue's label for the "Seat Held" and "Booking Confirmation" emails, removing the hardcoded fallback.
-4. **Orchestra Settings Polish:** Replaced the free-text `time` input with a dynamic dropdown `<Select>` populated from the venue's `sessions` for the selected date. Also added `eventId: currentEventId` to newly generated seat documents.
-5. **Documentation Sync:** Created a comprehensive `docs/TICKETING_SYSTEM_GUIDE.md` for internal staff. Synced `docs/architecture.md` and `docs/SEAT_BOOKING_FLOW.md` with the new data model.
+3. **SessionId Parsing Fix:** Fixed an issue where the Session ID parsing in `PublicTicketRepository.js` failed for Venue IDs containing underscores (e.g. `Venue_uuid`), which caused the Venue to display incorrectly as `"Venue"` and the date as `"uuid"` in the Public Booking UI.
+4. **Ticket Pricing & Addon Calculation Fix:** Fixed `PublicTicketBookingPage.js` where string concatenation was happening in the total calculation instead of arithmetic addition due to `price` being stored as a string. Updated `TicketPricingSettings.js` to explicitly cast `price` values to `Number` before saving to Firestore to prevent future data issues.
+5. **Dynamic Venue Labels:** Updated `PublicTicketController` to dynamically fetch the event data and resolve the venue's label for the "Seat Held" and "Booking Confirmation" emails, removing the hardcoded fallback.
+6. **Orchestra Settings Polish:** Replaced the free-text `time` input with a dynamic dropdown `<Select>` populated from the venue's `sessions` for the selected date. Also added `eventId: currentEventId` to newly generated seat documents.
+7. **Paper.id Invoice Dynamics:** Removed hardcoded venue names ("Jatayu" / "Melati") from the Paper.id invoice generation in `PublicTicketRepository` and updated it to dynamically read the venue label from the event configuration.
+8. **Documentation Sync:** Created a comprehensive `docs/TICKETING_SYSTEM_GUIDE.md` for internal staff. Synced `docs/architecture.md` and `docs/SEAT_BOOKING_FLOW.md` with the new data model.
 
 ### Files Modified
 
@@ -34,7 +37,7 @@ Completed a full audit of the ticketing system admin flow and implemented severa
 | `src/Pages/AdminDashboard/PublicCustomersList.js` | MODIFIED | Changed to read from `publicBookings`, filtered by `currentEventId`, formatted columns. |
 | `src/Pages/AdminDashboard/OrchestraSettings.js` | MODIFIED | Added `<Select>` for time based on selected venue/date, added `eventId` to seat batch write. |
 | `src/components/molecules/AdminContentComponent/SessionAssignmentManager.css` | MODIFIED | Added `flex-shrink: 0` to `.sam-session-card` to prevent clipping when expanding multiple sessions. Updated layout to have strict height with internal scrollbars. |
-| `src/Pages/TicketBooking/PublicTicketBookingPage.js` | MODIFIED | Fixed `isPublicEnabled` to merge overlapping eligibility schedule entries for the same date. |
+| `src/Pages/TicketBooking/PublicTicketBookingPage.js` | MODIFIED | Fixed `isPublicEnabled` to merge overlapping eligibility schedule entries for the same date. Fixed UI bug where Venue IDs with underscores caused incorrect date/venue parsing. |
 | `src/Pages/AdminDashboard/TicketPricingSettings.js` | MODIFIED | Updated `addScheduleEntry` to merge tiers into existing dates instead of creating duplicates. |
 
 #### Documentation
@@ -558,7 +561,7 @@ A self-service, public-facing ticket booking flow for the APCS 2026 Gala Concert
 - [x] Seed `seatsAPCS2026` collection using admin `uploadFullSeatLayout`
 - [ ] Configure Paper.id webhook URL → `/api/v1/apcs/public-ticket/webhook`
 - [x] ~~Set up lock cleanup job~~ — **Not needed.** Lazy expiry check built into the Firestore transaction itself: if a seat is `locked` but `lockedAt > 30 min ago`, the transaction treats it as available and reclaims it for the new user. The old booking is also automatically marked `expired`.
-- [ ] End-to-end test with `PAPER_ENV=development`
+- [x] End-to-end test with `PAPER_ENV=development`
 - [ ] Race condition test (two tabs, same seat, simultaneous Pay Now)
 
 ### Related Docs
