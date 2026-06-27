@@ -4,6 +4,50 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🎫 Ticketing System Audit & Bug Fixes
+
+**Date:** 2026-06-27
+**Status:** ✅ Completed
+
+### What Was Built
+
+Completed a full audit of the ticketing system admin flow and implemented several fixes and documentation updates based on the user's feedback:
+1. **Unified `publicBookings` Collection:** Migrated away from year-specific collections (e.g., `publicBookings2026`) to a single unified `publicBookings` collection. Updated `PublicTicketRepository` and `PublicCustomersList` to read/write from this unified collection, filtering by `currentEventId`.
+2. **Fixed Rollback Bug:** Fixed a variable scope error (`bookingData.eventId` → `eventId`) in the `PublicTicketRepository` manual rollback catch block.
+3. **Dynamic Venue Labels:** Updated `PublicTicketController` to dynamically fetch the event data and resolve the venue's label for the "Seat Held" and "Booking Confirmation" emails, removing the hardcoded fallback.
+4. **Orchestra Settings Polish:** Replaced the free-text `time` input with a dynamic dropdown `<Select>` populated from the venue's `sessions` for the selected date. Also added `eventId: currentEventId` to newly generated seat documents.
+5. **Documentation Sync:** Created a comprehensive `docs/TICKETING_SYSTEM_GUIDE.md` for internal staff. Synced `docs/architecture.md` and `docs/SEAT_BOOKING_FLOW.md` with the new data model.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/repositories/PublicTicketRepository.js` | MODIFIED | Changed collection to `publicBookings`, fixed variable scope in rollback. Also fixed `getTodayAllowedTiers` to merge overlapping schedule dates. |
+| `src/controllers/PublicTicketController.js` | MODIFIED | Fetches dynamic venue label before sending emails. |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/PublicCustomersList.js` | MODIFIED | Changed to read from `publicBookings`, filtered by `currentEventId`, formatted columns. |
+| `src/Pages/AdminDashboard/OrchestraSettings.js` | MODIFIED | Added `<Select>` for time based on selected venue/date, added `eventId` to seat batch write. |
+| `src/components/molecules/AdminContentComponent/SessionAssignmentManager.css` | MODIFIED | Added `flex-shrink: 0` to `.sam-session-card` to prevent clipping when expanding multiple sessions. Updated layout to have strict height with internal scrollbars. |
+| `src/Pages/TicketBooking/PublicTicketBookingPage.js` | MODIFIED | Fixed `isPublicEnabled` to merge overlapping eligibility schedule entries for the same date. |
+| `src/Pages/AdminDashboard/TicketPricingSettings.js` | MODIFIED | Updated `addScheduleEntry` to merge tiers into existing dates instead of creating duplicates. |
+
+#### Documentation
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `docs/TICKETING_SYSTEM_GUIDE.md` | NEW | Internal staff guide for configuring and monitoring the ticketing flow. |
+| `docs/architecture.md` | MODIFIED | Updated references to `publicBookings`. |
+| `docs/SEAT_BOOKING_FLOW.md` | MODIFIED | Updated checkout flow and seat generation details. |
+| `docs/progress.md` | MODIFIED | Added this entry. |
+
+---
+
 ## ⚖️ Registrant Score & Award Discrepancy Fix
 
 **Date:** 2026-06-23

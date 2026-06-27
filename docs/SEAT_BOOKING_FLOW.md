@@ -51,7 +51,7 @@ The seat booking logic involves several administrative configuration screens and
   - `venue`, `date`, `time`: The specific slot chosen from the performer sessions pool.
   - `reservedRows`: Array of rows (e.g., `["A", "B"]`) that are blocked from public selection, typically held for free complimentary tickets.
   - `complimentaryQuota`: Total number of free tickets allowed for this session.
-- **Seat Generation**: *Crucial step.* When a new orchestra session is created, the system loops through the selected Venue's `seatConfig`. For every seat defined in the blueprint, it writes a document to the `seats{eventId}` collection with `status: 'available'`.
+- **Seat Generation**: *Crucial step.* When a new orchestra session is created, the system loops through the selected Venue's `seatConfig`. For every seat defined in the blueprint, it writes a document to the `seats{eventId}` collection with `eventId`, `venueId`, `status: 'available'`, etc.
 
 ### 7. PublicTicketBookingPage.js (Public Interface)
 - **Purpose**: The user-facing page where tickets are actually reserved and purchased.
@@ -65,7 +65,7 @@ The seat booking logic involves several administrative configuration screens and
       - If the user is a registered winner and the session has `complimentaryQuota` remaining, they are granted 2 complimentary tickets automatically (assigned on the spot, not from the map).
       - Renders the remaining seats on a visual map. Seats belonging to `reservedRows` (defined in `OrchestraSettings`) are greyed out and unselectable.
       - Users can select available seats to add to their cart.
-  4. **Checkout**: Consolidates selected seat IDs, add-ons, user details, and buyer type. Submits the payload to `createBooking`, which locks the seats and redirects to a payment gateway.
+  4. **Checkout & Locking**: Consolidates selected seat IDs, add-ons, user details, and buyer type. Submits the payload to the backend repository (`PublicTicketRepository.js`). The backend opens a Firestore transaction to lazily lock the seats (verifying they are still available) and writes the booking record to the unified `publicBookings` collection. It then generates an invoice via Paper.id and redirects the user to the payment URL. Upon successful payment, a webhook confirms the payment and updates the booking and seat status. Dynamic venue labels are fetched during email generation to provide accurate confirmation emails.
 
 ## Summary of the Data Flow
 1. Admin designs the blueprint (`VenueSettings`).
