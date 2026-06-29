@@ -4,6 +4,53 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🛡️ Public Ticket Race Condition & Expiry Protection
+
+**Date:** 2026-06-28
+**Status:** ✅ Completed
+
+### What Was Built
+
+Implemented a bulletproof seat locking and invoice expiration mechanism ("Option 4") to prevent users from paying for expired reservations and causing race conditions on the Paper.id side.
+
+1. **Active Invoice Deletion (Backend)**: Added `deleteInvoice` to the Paper repository. When a seat lock expires after 30 minutes, the server actively reaches out to Paper.id via `DELETE /sales-invoices/{id}` to void the invoice.
+2. **Instant & Fallback Timers (Backend)**: 
+   - A `setTimeout` runs exactly 30 minutes after checkout to instantly void the invoice and release seats.
+   - A `PublicTicketSweeper` background job runs every 5 minutes to sweep and void any stale pending invoices in case the Node.js server restarts and drops the `setTimeout` tasks.
+3. **Webhook Safety Guard (Backend)**: Added a hard check inside the `/public-ticket/webhook` handler. If the webhook arrives *after* the `lockExpiresAt` timestamp, the payment is rejected, preventing race conditions where the user pays at the exact moment their lock expires.
+4. **Live Countdown (Frontend)**: Updated the `WaitingPayment.js` page to actively poll a new `/api/v1/apcs/public-ticket/booking-status/:bookingId` endpoint. Displays a real-time countdown timer (e.g., `29:59`). If the timer hits `00:00` or the ticket is marked expired, the "Pay Now" link is removed and a red "Time Expired" alert is shown to prevent the user from attempting payment.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/repositories/PaperRepository.js` | MODIFIED | Added `deleteInvoice` API integration with Paper.id. |
+| `src/repositories/PublicTicketRepository.js` | MODIFIED | Added `setTimeout` logic on checkout to delete invoice on expiry. Added `lockExpiresAt` safety guard to webhook handler. |
+| `src/jobs/PublicTicketSweeper.js` | NEW | Background cron job that runs every 5 mins to clean up expired invoices if server restarts. |
+| `index.js` | MODIFIED | Mounted the `PublicTicketSweeper` job on startup. |
+| `src/controllers/PublicTicketController.js` | MODIFIED | Added `getBookingStatus` endpoint for frontend polling. |
+| `src/routes/PaymentRoute.js` | MODIFIED | Mounted `GET /public-ticket/booking-status/:bookingId`. |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/Register/WaitingPayment.js` | MODIFIED | Added `setInterval` countdown timer. Triggers "Time Expired" state. |
+| `src/Pages/TicketBooking/PublicTicketBookingPage.js` | MODIFIED | Passes `isPublicTicket: true` state to the waiting payment page. |
+| `src/apis/index.js` | MODIFIED | Added `publicTicket.getBookingStatus` API call. |
+
+#### Documentation
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `docs/SEAT_BOOKING_FLOW.md` | MODIFIED | Updated flow to document Paper.id active voiding and countdown. |
+| `docs/TICKETING_SYSTEM_GUIDE.md` | MODIFIED | Updated Payment & Webhooks section with Expiry Logic details. |
+| `docs/progress.md` | MODIFIED | Added this entry. |
+
+---
+
 ## 🎫 Ticketing System Audit & Bug Fixes
 
 **Date:** 2026-06-27
@@ -19,7 +66,9 @@ Completed a full audit of the ticketing system admin flow and implemented severa
 5. **Dynamic Venue Labels:** Updated `PublicTicketController` to dynamically fetch the event data and resolve the venue's label for the "Seat Held" and "Booking Confirmation" emails, removing the hardcoded fallback.
 6. **Orchestra Settings Polish:** Replaced the free-text `time` input with a dynamic dropdown `<Select>` populated from the venue's `sessions` for the selected date. Also added `eventId: currentEventId` to newly generated seat documents.
 7. **Paper.id Invoice Dynamics:** Removed hardcoded venue names ("Jatayu" / "Melati") from the Paper.id invoice generation in `PublicTicketRepository` and updated it to dynamically read the venue label from the event configuration.
-8. **Documentation Sync:** Created a comprehensive `docs/TICKETING_SYSTEM_GUIDE.md` for internal staff. Synced `docs/architecture.md` and `docs/SEAT_BOOKING_FLOW.md` with the new data model.
+8. **Email Template Refactoring:** Moved the seat-hold and booking-confirmation email templates out of `PublicTicketController.js` and into `EmailTemplateService.js` to keep controllers clean. Standardized their design by reusing `generateCommonHeader()` and `generateCommonFooter()` for a consistent APCS brand appearance.
+9. **Emoji & Emoticon Cleanup:** Removed all emojis/emoticons (e.g., 🎓, ⏱, ✓) from `PublicTicketBookingPage.js` and the email templates to ensure a highly professional UI and communication standard.
+10. **Documentation Sync:** Created a comprehensive `docs/TICKETING_SYSTEM_GUIDE.md` for internal staff. Synced `docs/architecture.md` and `docs/SEAT_BOOKING_FLOW.md` with the new data model.
 
 ### Files Modified
 
@@ -559,7 +608,7 @@ A self-service, public-facing ticket booking flow for the APCS 2026 Gala Concert
 
 - [x] Seed `events/APCS2026` document in Firebase Console with real pricing
 - [x] Seed `seatsAPCS2026` collection using admin `uploadFullSeatLayout`
-- [ ] Configure Paper.id webhook URL → `/api/v1/apcs/public-ticket/webhook`
+- [x] Configure Paper.id webhook URL → `/api/v1/apcs/public-ticket/webhook`
 - [x] ~~Set up lock cleanup job~~ — **Not needed.** Lazy expiry check built into the Firestore transaction itself: if a seat is `locked` but `lockedAt > 30 min ago`, the transaction treats it as available and reclaims it for the new user. The old booking is also automatically marked `expired`.
 - [x] End-to-end test with `PAPER_ENV=development`
 - [ ] Race condition test (two tabs, same seat, simultaneous Pay Now)

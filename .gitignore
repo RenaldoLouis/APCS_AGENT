@@ -12,6 +12,7 @@ CONVENTIONS.md
 .agents/
 Ticketing_SaaS_Zentre/
 content/
+logs/
 
 # Ignore local environment or temporary files
 .DS_Store
