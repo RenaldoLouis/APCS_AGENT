@@ -4,6 +4,41 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🎼 Repertoire Title & Environment Hardening
+
+**Date:** 2026-07-05
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Repertoire Title Field**: Added a new field for participants to input their "Title of Song / Repertoire" directly on the `/register` page below the teacher's name.
+2. **Admin UI Support**: The `SessionAssignmentManager` admin panel now dynamically displays the repertoire title (🎼 [Title]) natively within the session cards, enabling admins to make more informed scheduling decisions without clicking into details.
+3. **Backend Propagation**: Ensured `repertoireTitle` flows through the backend endpoints, including aggregation via `PublicTicketRepository`. Because the original backend dynamically handles incoming destructured payload fields (`...dataToSave`), the new field writes to Firestore natively without requiring schema migrations.
+4. **Environment Hardening**: Patched `PaperController.js` and `PublicTicketController.js` webhook listeners to robustly handle edge cases where `process.env.PAPER_ENV` equals `'Production'` instead of strictly `'production'` or `'prod'`, preventing payload structure mismatches on incoming payments.
+5. **E2E Automation**: Updated the Playwright scripts (`register.spec.js` and `vocal-choir-discount.spec.js`) to automatically inject test data for the new repertoire title field during continuous integration tests.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/controllers/PaperController.js` | MODIFIED | Added robust `paperEnv` capitalization checks for the Paper.id webhook payload |
+| `src/controllers/PublicTicketController.js` | MODIFIED | Added robust `paperEnv` capitalization checks for the Public Ticket webhook payload |
+| `src/repositories/PublicTicketRepository.js` | MODIFIED | Included `repertoireTitle` in the winners aggregate fetch payload |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/Register/Register.js` | MODIFIED | Rendered the "Title of Song / Repertoire" field, added it to the form schema and submission payload |
+| `src/components/molecules/AdminContentComponent/SessionAssignmentManager.js` | MODIFIED | Displayed the repertoire title visually on admin session cards and mapped it into the serialized API payload |
+| `src/constant/translations/en.json` & `id.json` | MODIFIED | Added translation tokens for `repertoireTitle` and placeholders |
+| `e2e/register.spec.js` | MODIFIED | Automated the repertoire title input field in the main testing suite |
+| `e2e/vocal-choir-discount.spec.js` | MODIFIED | Automated the repertoire title input field in the discount testing suite |
+
+---
+
 ## 🛡️ Public Ticket Race Condition & Expiry Protection
 
 **Date:** 2026-06-28
