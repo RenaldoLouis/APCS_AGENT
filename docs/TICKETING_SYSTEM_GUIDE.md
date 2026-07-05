@@ -66,6 +66,15 @@ Once settings are configured, users access the Public Ticket Booking page.
 ### Rollback / Failed Invoices
 - If the system successfully locks seats but fails to generate a Paper.id invoice due to an API error, the system performs an automatic rollback, releasing the seats immediately so the user can try again without waiting 30 minutes.
 
+### Seat Occupancy Dashboard
+- **Purpose**: A centralized real-time view of all sessions and their seating statistics (total, available, locked, booked).
+- **Location**: Admin Dashboard > Ticketing System > Seat Occupancy
+- **Action**: Use this screen to track how many seats have been sold for each session. You can also visually inspect the exact layout of any session by clicking "View Layout" to see which seats are taken and the name/email of the person occupying them.
+
+### Non-Destructive Seat Generation
+- **Purpose**: Safely adding seats to a session or recalculating the layout after a venue change.
+- **Action**: When you click "Generate Seats" for a session that already has seats, the system will automatically preserve any seats that are currently `booked` or `locked`. It will only overwrite seats that are currently `available`. This guarantees you will not accidentally overwrite active customer reservations.
+
 ---
 
 **Note to Administrators**: When altering the database structure or troubleshooting logic, always refer to `SEAT_BOOKING_FLOW.md` for the technical data flow. This guide and the flow document must be kept in sync.

@@ -51,9 +51,17 @@ The seat booking logic involves several administrative configuration screens and
   - `venue`, `date`, `time`: The specific slot chosen from the performer sessions pool.
   - `reservedRows`: Array of rows (e.g., `["A", "B"]`) that are blocked from public selection, typically held for free complimentary tickets.
   - `complimentaryQuota`: Total number of free tickets allowed for this session.
-- **Seat Generation**: *Crucial step.* When a new orchestra session is created, the system loops through the selected Venue's `seatConfig`. For every seat defined in the blueprint, it writes a document to the `seats{eventId}` collection with `eventId`, `venueId`, `status: 'available'`, etc.
+- **Seat Generation Tracking**: 
+  - To track whether seats have been generated for a given session, the `events` document contains a `sessionsSeatsGenerated` map (e.g. `sessionsSeatsGenerated["2026-08-15_19:00"]: true`).
+  - *Crucial step:* When a new orchestra session is created (or manually regenerated via `SeatEvent.js`), the system loops through the selected Venue's `seatConfig`. For every seat defined in the blueprint, it writes a document to the `seats{eventId}` collection with `eventId`, `venueId`, `sessionId`, `status: 'available'`, etc.
+  - **Non-Destructive Regeneration**: When regenerating a layout for an existing session (e.g., if the venue configuration is expanded), the backend script in `SeatEvent.js` first fetches existing seats. It explicitly skips and preserves any seats currently marked as `booked` or `locked`, ensuring active reservations are never accidentally overwritten.
 
-### 7. PublicTicketBookingPage.js (Public Interface)
+### 7. SeatOccupancy.js (Admin Dashboard)
+- **Purpose**: Provides administrative oversight into seating statistics across all sessions (Competition and Orchestra).
+- **Data Structure**: Uses Firestore's `getCountFromServer()` aggregation queries against the `seats{eventId}` collection to retrieve total, available, locked, and booked counts efficiently without loading thousands of documents.
+- **Seat Layout Inspector**: Admins can open a detailed interactive visual map of any generated session. It renders `CustomSeatPicker.js` in a read-only mode. It queries the specific session's seats and transforms them into a 2D layout, coloring them by status. Hovering over a `booked` or `locked` seat reveals a tooltip containing the owner's Name and Email.
+
+### 8. PublicTicketBookingPage.js (Public Interface)
 - **Purpose**: The user-facing page where tickets are actually reserved and purchased.
 - **Flow**:
   1. **Identify Entry**: Users select whether they are a "Public Buyer" or "Registered Winner". 
@@ -71,6 +79,9 @@ The seat booking logic involves several administrative configuration screens and
 ## Summary of the Data Flow
 1. Admin designs the blueprint (`VenueSettings`).
 2. Admin defines the time slots for each venue (`PerformerSessionsSettings`).
-3. Admin schedules public performances and generates live seat records (`OrchestraSettings`).
-4. Admin configures pricing and sales windows (`TicketSettings`).
-5. Public/Winners load the session, retrieve the seat documents, pick their seats, and check out (`PublicTicketBookingPage`).
+3. Admin schedules public performances (`OrchestraSettings`).
+4. Admin generates physical seat documents in the database, with flags stored in `events` (`SeatEvent.js` / `OrchestraSettings`).
+5. Admin configures pricing and sales windows (`TicketSettings`).
+6. Public/Winners load the session, retrieve the seat documents, pick their seats, and check out (`PublicTicketBookingPage`).
+7. System processes payment and finalizes the seat status as `booked` or rolls back to `available` on timeout.
+8. Admin monitors seat capacity and specific owner placements via the Seat Occupancy Dashboard (`SeatOccupancy.js`).

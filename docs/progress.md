@@ -4,6 +4,42 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🎟️ Performance Invitation Email Flow
+
+**Date:** 2026-07-05
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **New Email Template**: Created `PERFORMANCE_INVITATION` email template targeting Gold, Silver, and Diamond award winners for the APCS Gala Concert. The email is highly customized based on user's name.
+2. **PDF Attachment Support**: Added support for static PDF attachments via `apcs_service/src/services/attachments` (using `fs` resolving relative paths) mapping directly to the email flow without breaking Node.js server boundaries.
+3. **Backend Logic & Validations**: 
+   - Added logic to automatically check the `finalAward` for the selected registrants.
+   - If a registrant doesn't have a valid final award (Gold, Silver, Diamond) or their award is "Participant", the backend securely drops them, logs the error, and proceeds with the rest of the batch, preventing invalid invites.
+4. **Admin Dashboard Integration**: Added a prominent "Send Performance Invitation" button on the Admin Dashboard under "Email Management."
+5. **Interactive UI Modal**: Admins are presented with an advanced selection modal with specific filtering criteria (Name, Category, Award), DatePickers to inject dynamic fields (`confirmationDeadline`, `rundownReleaseDate`), and comprehensive selection tracking.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/services/EmailTemplateService.js` | MODIFIED | Included `PERFORMANCE_INVITATION` template mapping |
+| `src/services/EmailService.js` | MODIFIED | Implemented logic to support `.pdf` static file attachments + server-side validation |
+| `src/controllers/EmailController.js` | MODIFIED | Exposed `sendEmailPerformanceInvitation` controller |
+| `src/routes/PaymentRoute.js` | MODIFIED | Added POST `/sendEmailPerformanceInvitation` route |
+| `src/services/attachments/PERFORMANCE_INVITATION_2026.pdf` | NEW | Dummy static PDF file |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/apis/index.js` | MODIFIED | Wrapped backend endpoints `sendEmailPerformanceInvitation` |
+| `src/Pages/AdminDashboard/RegistrantDashboard.js` | MODIFIED | Extended UI to include DatePickers, a specific Table filtering by awards, and the Action buttons in the `Email Management` panel |
+
+---
+
 ## 🎼 Repertoire Title & Environment Hardening
 
 **Date:** 2026-07-05
