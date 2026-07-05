@@ -4,6 +4,28 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🛡️ Infrastructure: Cloudflare "Ticket War" Defense Strategy
+
+**Date:** 2026-07-05
+**Status:** ✅ Completed
+
+### What Was Built
+
+Verified and documented a robust infrastructure scaling strategy to protect the constrained shared hosting server (30 Entry Process limit) during high-concurrency ticket sales ("Ticket Wars"). 
+
+1. **Static Asset Caching**: Leveraged Cloudflare to cache all React frontend assets (`Cf-Cache-Status: HIT`), preventing static file requests from instantly exhausting the origin server's entry processes.
+2. **API Bypass Rules**: Verified Cloudflare Page Rules to explicitly bypass caching for all `/api/*` endpoints (`Cf-Cache-Status: DYNAMIC`), ensuring dynamic checkout sessions and database writes securely reach the Express server without cross-user data contamination.
+
+### Files Modified
+
+#### Documentation
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `docs/architecture.md` | MODIFIED | Added Section 8 "Infrastructure & Scaling" documenting the Cloudflare defense strategy. |
+
+---
+
 ## 🎫 Ticketing Flow & Complimentary Orchestra Quota Fix
 
 **Date:** 2026-07-05

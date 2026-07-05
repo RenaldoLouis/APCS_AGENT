@@ -684,3 +684,23 @@ This flow uses:
 - `seatBook2025` collection (not `publicBookings2026`)
 - `TicketRepository.js` (not `PublicTicketRepository.js`)
 - Manual admin verification of payment (not Paper.id webhook)
+
+---
+
+## 8. Infrastructure & Scaling
+
+### "Ticket War" Cloudflare Defense Strategy
+To survive high-concurrency events (e.g., hundreds of users logging on simultaneously at exactly 12:00 PM for ticket sales) while hosted on a constrained shared hosting environment (e.g., CloudLinux 30 Entry Processes limit), the following infrastructure strategy is explicitly enforced:
+
+1. **Frontend Caching (Bypass Origin)**: 
+   - **Cloudflare** is positioned in front of the domain.
+   - All static assets from the React frontend (`.js`, `.css`, media, `index.html`) are aggressively cached by Cloudflare. 
+   - These requests return a `Cf-Cache-Status: HIT` header and **never** touch the origin Node.js/LiteSpeed server, thereby preserving the 30 Entry Process limit exclusively for backend data operations.
+   
+2. **Backend API Bypass (Dynamic Execution)**:
+   - A Cloudflare Page Rule (or Cache Rule) MUST be configured to `Bypass` cache for all backend API routes (e.g., `*apcsmusic.com/api/*`).
+   - This ensures all backend calls reach the Node.js Express server natively (`Cf-Cache-Status: DYNAMIC`).
+   - **WARNING:** If this rule is missing or misconfigured, Cloudflare may cache API responses, leading to catastrophic data leaks (e.g., User B seeing User A's checkout session).
+
+3. **Database Offloading**:
+   - The heavy lifting of concurrency and database scaling is strictly offloaded to **Firebase Firestore**. The Node.js server acts merely as a lightweight orchestrator for payload validations, atomic transactions, and Paper.id webhook integrations.
