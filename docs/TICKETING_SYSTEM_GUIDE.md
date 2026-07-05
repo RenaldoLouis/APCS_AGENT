@@ -41,9 +41,9 @@ Once settings are configured, users access the Public Ticket Booking page.
 1. **Identity Selection**: Users specify if they are a Public Buyer or a Registered Winner.
 2. **Session Selection**: Users select the Orchestra Session they wish to attend.
 3. **Seat Selection**: 
-   - An interactive seat map loads based on the generated seat documents.
+   - An interactive seat map loads based on the generated seat documents for paid selection.
    - Greyed-out seats indicate `reservedRows` or already sold/locked seats.
-   - Registered winners are allocated their complimentary tickets (if quota allows) before selecting additional seats on the map.
+   - If the user is a Registered Winner, they are granted a calculated amount of complimentary tickets based on the remaining quota (1 free ticket + 1 free ticket per paid performance seat). They will then proceed to a secondary interactive map step to physically select their free orchestra seats.
 4. **Checkout**: 
    - The user proceeds to checkout.
    - The backend *lazily* locks the selected seats for 30 minutes to prevent double-booking.

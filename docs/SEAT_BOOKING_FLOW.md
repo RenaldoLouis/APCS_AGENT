@@ -69,12 +69,16 @@ The seat booking logic involves several administrative configuration screens and
       - Registered winners select their identity from the list of eligible winners.
   2. **Select Session**: Users choose which performance slot they wish to attend.
   3. **Seat Selection**: 
-      - Fetches generated seat documents for the chosen session from the backend.
-      - If the user is a registered winner and the session has `complimentaryQuota` remaining, they are granted 2 complimentary tickets automatically (assigned on the spot, not from the map).
-      - Renders the remaining seats on a visual map. Seats belonging to `reservedRows` (defined in `OrchestraSettings`) are greyed out and unselectable.
+      - Renders the remaining seats on a visual map for paid selection. Seats belonging to `reservedRows` (defined in `OrchestraSettings`) are greyed out and unselectable.
+      - **Complimentary Tickets**: If the user is a registered winner, the system dynamically calculates their complimentary ticket allowance based on the orchestra session's remaining `complimentaryQuota`. They are granted 1 free ticket (for themselves) + 1 free ticket for every paid performance seat they select.
+      - If they qualify for complimentary tickets, they proceed to a secondary interactive map step specifically to select their free orchestra seats.
       - Users can select available seats to add to their cart.
-  4. **Checkout & Locking**: Consolidates selected seat IDs, add-ons, user details, and buyer type. Submits the payload to the backend repository (`PublicTicketRepository.js`). The backend opens a Firestore transaction to lazily lock the seats (verifying they are still available) and writes the booking record to the unified `publicBookings` collection. 
-  5. **Payment & Expiry**: The backend generates an invoice via Paper.id and sets a strict 30-minute lock timer. The user is redirected to the payment URL and a real-time countdown timer is displayed. If payment is completed within 30 minutes, a webhook confirms the payment, reserves the seats permanently, and triggers a confirmation email with dynamic venue labels. If the 30 minutes expire before payment, the backend actively voids the Paper.id invoice, releases the locked seats, and prevents any delayed payment webhooks from processing.
+  4. **Checkout & Locking**: Consolidates `selectedSeatIds` (paid seats), `orchestraSelectedSeatIds` (free seats), add-ons, user details, and buyer type. Submits the payload to the backend repository (`PublicTicketRepository.js`). The backend opens an atomic Firestore transaction to:
+      - Lazily lock the requested paid seats for 30 minutes.
+      - Instantly increment the `complimentaryClaimed` quota on the `events` document to safely claim the free quota without overselling.
+      - Lazily lock the requested complimentary orchestra seats for 30 minutes.
+      - Write the booking record to the unified `publicBookings` collection. 
+  5. **Payment & Expiry**: The backend generates an invoice via Paper.id and sets a strict 30-minute lock timer. The user is redirected to the payment URL with a real-time countdown. If payment is completed within 30 minutes, the Paper.id webhook confirms the payment, permanently marking BOTH the `selectedSeatIds` and `orchestraSelectedSeatIds` as `reserved`, and triggers a confirmation email. If the 30 minutes expire before payment, the backend actively voids the Paper.id invoice, and a strict atomic cleanup transaction fires to release both the normal and orchestra locked seats, as well as actively refund the claimed complimentary quota back to the event pool.
 
 ## Summary of the Data Flow
 1. Admin designs the blueprint (`VenueSettings`).

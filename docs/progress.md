@@ -4,6 +4,37 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🎫 Ticketing Flow & Complimentary Orchestra Quota Fix
+
+**Date:** 2026-07-05
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Complimentary Quota Validation**: Fixed a critical backend bug where complimentary orchestra tickets for Registrant Winners were completely ignored. The backend now securely reads `orchestraSelectedSeatIds` and immediately increments `complimentaryClaimed` on the event document during the booking transaction to prevent overselling the free quota.
+2. **Atomic Orchestra Seat Locking**: During checkout, the backend now safely locks the free `orchestraSelectedSeatIds` for 30 minutes alongside the paid `selectedSeatIds`, ensuring nobody else can take those exact seats while the user is paying via Paper.id.
+3. **Automated Quota & Seat Refund**: Upgraded both the `PublicTicketSweeper.js` cron job and the `setTimeout` expiry block. If a user fails to pay within 30 minutes, an atomic transaction fires that actively releases the free orchestra seats AND automatically refunds the `complimentaryClaimed` quota back to the event pool, ensuring the tickets aren't permanently lost to abandoned carts.
+4. **Webhook Reservation Confirmation**: Updated the Paper.id webhook listener `handlePublicTicketWebhookPaid` to merge the paid seats and the complimentary orchestra seats, permanently reserving both sets when the payment is successfully completed.
+5. **UI Refinements**: 
+   - Added a prominent "Notice: All ticket sales are final and strictly non-refundable" alert directly on the `WaitingPayment.js` checkout screen.
+   - Centered the countdown timer text for better visual alignment.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/repositories/PublicTicketRepository.js` | MODIFIED | Included `orchestraSelectedSeatIds` in payload destructuring, added `complimentaryClaimed` quota management inside the `createBooking` transaction, added seat lock updates, and updated webhook confirmation merging logic. |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/Register/WaitingPayment.js` | MODIFIED | Added non-refundable disclaimer and centered the countdown timer wrapper block. |
+
+---
+
 ## 🎟️ Performance Invitation Email Flow
 
 **Date:** 2026-07-05
