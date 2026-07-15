@@ -18,6 +18,9 @@ yarn playwright test e2e/register.spec.js --headed
 
 # To test specific Vocal Choir discount tiers (5%, 15%, 20%):
 yarn playwright test e2e/vocal-choir-discount.spec.js --headed
+
+# To test specific Video Upload (up to 800MB):
+yarn playwright test e2e/video-upload.spec.js --headed
 ```
 
 ### What the `register.spec.js` script does:
