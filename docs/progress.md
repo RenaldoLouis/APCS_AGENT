@@ -4,6 +4,70 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🤖 ReCAPTCHA Token Expiry & Concurrent Registration Fallback
+
+**Date:** 2026-07-19
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **ReCAPTCHA Token Expiry Fix:** Resolved a critical issue where the Google reCAPTCHA token would expire (timeout after 2 minutes) while waiting for large 1.5GB video uploads to finish. The `grecaptcha.execute()` call was moved to trigger *after* the S3 video upload completes, right before the backend submission, guaranteeing a fresh token every time.
+2. **Concurrent Registration Fallback (Invoice API):** Implemented a graceful fallback mechanism on the frontend to prevent users from encountering errors if the Paper.id invoice creation API times out or fails under heavy concurrent load (e.g., 50+ users registering simultaneously). The frontend now silently catches the error, falls back to the standard email success flow, and allows the backend to tag the `invoiceStatus` as `FAILED` for admin review.
+3. **Enterprise Migration Revert:** Cleaned up and reverted an experimental reCAPTCHA Enterprise attempt, ensuring the system reliably uses the stable v3/v2 invisible `api.js` script with the correct Site/Secret key pairs mapped through the `.env` variables.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/Register/Register.js` | MODIFIED | Relocated `grecaptcha.execute()` generation logic. Added a `try/catch` fallback block around `apis.payment.createRegistrationInvoice`. Reverted experimental enterprise script loading. |
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `.env` | MODIFIED | Re-synchronized the `RECAPTCHA_SECRET_KEY` variable to strictly match the valid Site Key provided by the admin. |
+
+---
+
+## 🧾 Invoice Status Tracking & Admin Filter
+
+**Date:** 2026-07-19
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Invoice Status Tracking:** Added an `invoiceStatus` field to `Registrants2025` to track whether Paper.id invoice generation succeeded (`CREATED`) or failed (`FAILED`) during the automated background process.
+2. **Dashboard Filter:** Added a new "Filter by Invoice Status" dropdown (`<Select>`) in the Admin `RegistrantDashboard` so admins can easily find failed invoices.
+3. **Table Column:** Added an `Invoice Status` column next to `Payment Status` in the admin table.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/controllers/PaperController.js` | MODIFIED | Added `invoiceStatus: "CREATED" / "FAILED"` explicit updates to Firestore after attempting invoice generation. |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/RegistrantDashboard.js` | MODIFIED | Added `invoiceStatusFilter` state and UI dropdown for filtering. |
+| `src/hooks/useFetchRegistrantsData.js` | MODIFIED | Added client-side filtering logic for `invoiceStatusFilter`. |
+| `src/constant/RegistrantsColumn.js` | MODIFIED | Added `Invoice Status` column. |
+| `src/Pages/Register/Register.js` | MODIFIED | Added a `try/catch` fallback in `apis.payment.createRegistrationInvoice` to ensure successful registration even if Paper.id API times out. |
+
+#### Documentation
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `docs/architecture.md` | MODIFIED | Documented the new `invoiceStatus` field. |
+| `docs/progress.md` | MODIFIED | Added this entry. |
+
+---
+
 ## 🛡️ Infrastructure: Cloudflare "Ticket War" Defense Strategy
 
 **Date:** 2026-07-05

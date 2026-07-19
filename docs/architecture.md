@@ -355,6 +355,7 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
 | `examCertificateS3Link` | string | S3 key for exam certificate / recommendation letter |
 | `profilePhotoS3Link` | string | S3 key for profile photo |
 | `paymentStatus` | string | `"PAID"`, `"UNPAID"`, etc. |
+| `invoiceStatus` | string | `"CREATED"` (Paper.id invoice created) or `"FAILED"` (Paper.id API failed). Only present for newer registrations. |
 | `amountToPay` | number | Amount in IDR |
 | `duration` | string | Legacy field — formatted duration string (e.g., `"00:05:30"`). Prefer `videoDuration` for numeric calculations. |
 
