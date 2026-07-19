@@ -91,3 +91,8 @@ The seat booking logic involves several administrative configuration screens and
 6. Public/Winners load the session, retrieve the seat documents, pick their seats, and check out (`PublicTicketBookingPage`).
 7. System processes payment and finalizes the seat status as `booked` or rolls back to `available` on timeout.
 8. Admin monitors seat capacity and specific owner placements via the Seat Occupancy Dashboard (`SeatOccupancy.js`).
+
+### Critical Document ID Note
+Seat documents in Firestore MUST use the rigid deterministic ID generation pattern:
+`{venueId}-{areaType}-{row}-{number}_{eventId}_{sessionId}`
+If the schema or prefix logic for this ID is changed (as happened when adding `venueId`), any subsequent "Regenerate" actions will NOT cleanly overwrite the old format, resulting in orphaned duplicate seats appearing in the UI. If you ever change the Document ID schema, you must write a migration script to delete or map the old orphaned seat documents!

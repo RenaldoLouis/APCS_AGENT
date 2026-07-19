@@ -78,3 +78,10 @@ Once settings are configured, users access the Public Ticket Booking page.
 ---
 
 **Note to Administrators**: When altering the database structure or troubleshooting logic, always refer to `SEAT_BOOKING_FLOW.md` for the technical data flow. This guide and the flow document must be kept in sync.
+
+### Webhook Routing Architecture
+Because third-party payment gateways (e.g. Paper.id) often only allow a **single webhook URL** per account, we use `PaperController.handlePaperWebhook` as a **Unified Webhook Router**:
+- The router receives the webhook payload (which is dynamically parsed to support both flat Production payloads and nested Development payloads).
+- It first checks if the `invoiceNumber` (or `externalId`) exists in the `publicBookings` collection.
+- If it does, the payload is dynamically routed to `PublicTicketService.handlePublicTicketWebhookPaid` to fulfill the public ticket booking and send the confirmation email.
+- If it doesn't, it falls back to standard processing, assuming the invoice belongs to the `Registrants2025` collection for competition registration.

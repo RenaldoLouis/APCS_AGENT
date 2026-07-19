@@ -838,3 +838,8 @@ A self-service, public-facing ticket booking flow for the APCS 2026 Gala Concert
 
 - [Architecture & Data Structure](./architecture.md) — Firestore schemas, API contracts, flow diagrams
 
+
+### Fixed
+- **Paper.id Webhook Unified Router (`PaperController.handlePaperWebhook`)**: Because Paper.id only allows configuring a single webhook endpoint for an account, the controller now acts as a router. It dynamically checks if the incoming `invoiceNumber` belongs to the `publicBookings` collection first. If it does, it dynamically routes the payload to `PublicTicketService.handlePublicTicketWebhookPaid` to fulfill the public ticket booking. If not, it falls back to standard `Registrants2025` processing.
+- **Seat Duplication Bug on Public Booking Page**: A recent schema migration updated the seat document ID generation to include the `venueId` prefix to prevent cross-venue collisions (e.g. `Venue_mvfyegwz-Presto-C1...`). Because the "Regenerate" function uses `batch.set` targeted at the new string ID, the older seats generated without the prefix were left orphaned in the database. A cleanup script was run to sweep and delete 1,872 duplicate orphaned seats, fixing the UI bug where "C1" appeared multiple times in the same row.
+- **Seat Regeneration Safety**: Documented and verified that hitting "Regenerate Seats" on the admin dashboard intentionally preserves any seat that is `status !== 'available'`. It uses `batch.set` on the exact same document ID to safely overwrite the available seats with the updated layout without ever wiping out seats that customers have already booked or locked.
