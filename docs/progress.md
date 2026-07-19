@@ -17,6 +17,9 @@ This document tracks features and changes made to the APCS project over time.
 4. **Registrant Name Consistency:** Locked down the "Paying for Registrant" input field in Step 4 to `readOnly`, preventing users from altering the selected registrant identity at checkout.
 5. **Firestore Transaction Read/Write Separation:** Fixed a fatal `Firestore transactions require all reads to be executed before all writes` error in `PublicTicketRepository.js`. Refactored the `runTransaction` block into strict **Read Phase** and **Write Phase** blocks.
 6. **Ticket Quantity Validation Fix:** Updated the backend checkout validation in `PublicTicketRepository.js` to natively understand that paid seats (`selectedSeatIds`) and free seats (`orchestraSelectedSeatIds`) are passed as separate arrays, removing the legacy calculation that artificially halved seat selections.
+7. **Email Seat Separation:** Updated the `sendPublicBookingConfirmationEmail` flow in `EmailService.js` and `EmailTemplateService.js` to distinctly list "Competition Seats" and "Orchestra Seats" on separate lines instead of fusing them into a single string. This prevents user confusion if they are attending sessions in different venues/times.
+8. **Seat Occupancy Color Fix:** Fixed a UI bug in `CustomSeatPicker.js` where all unavailable seats (booked, locked, reserved) were hardcoded to render as grey `#2a2a2a`, making it impossible for admins to see the red/orange status colors in the `SeatOccupancy.js` dashboard. The component now accepts and prioritizes a `statusColor` prop from the admin view while maintaining the grey styling for the public view.
+9. **Public Ticket Checkout Status Fix:** Updated `PublicTicketRepository.js` to save successfully paid tickets with `status: 'booked'` instead of `'reserved'`. This ensures the Admin Dashboard correctly identifies ticket ownership and displays the user's name in tooltips instead of "Reserved for: N/A".
 
 ### Files Modified
 
@@ -25,6 +28,8 @@ This document tracks features and changes made to the APCS project over time.
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/repositories/PublicTicketRepository.js` | MODIFIED | Fixed transactional rule violation (Read before Write) and updated ticket quantity validation logic. |
+| `src/services/EmailService.js` | MODIFIED | Separated `selectedSeatIds` and `orchestraSelectedSeatIds` into distinct template variables. |
+| `src/services/EmailTemplateService.js` | MODIFIED | Updated the HTML template to render Competition Seats and Orchestra Seats on separate lines if applicable. |
 
 #### Frontend (`apcs_web/`)
 

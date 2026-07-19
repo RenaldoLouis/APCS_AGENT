@@ -54,7 +54,7 @@ Once settings are configured, users access the Public Ticket Booking page.
 - The ticketing system uses **Paper.id** for payment processing.
 - When a user successfully pays within 30 minutes, Paper.id sends a webhook to the APCS server.
 - The APCS server verifies the payment, permanently marks the seats as `sold`, and updates the booking status in the `publicBookings` collection.
-- A final "Booking Confirmation" email with seat details and QR/Booking ID is dispatched to the user.
+- A final "Booking Confirmation" email with seat details and QR/Booking ID is dispatched to the user. If the user booked both paid Competition Seats and free Orchestra Seats, the email format will distinctly separate them into two different lists to prevent confusion regarding venue and session times.
 - **Expiration Logic**: If a user fails to pay within 30 minutes, their seat lock expires. The system automatically voids the invoice on Paper.id, ensuring the user cannot pay late, and returns the seats to `available` status for others to purchase. Delayed webhooks for expired bookings are automatically rejected to prevent race conditions.
 
 ## 5. Monitoring & Troubleshooting
