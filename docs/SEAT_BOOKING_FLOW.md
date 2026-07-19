@@ -52,7 +52,7 @@ The seat booking logic involves several administrative configuration screens and
   - `reservedRows`: Array of rows (e.g., `["A", "B"]`) that are blocked from public selection, typically held for free complimentary tickets.
   - `complimentaryQuota`: Total number of free tickets allowed for this session.
 - **Seat Generation Tracking**: 
-  - To track whether seats have been generated for a given session, the `events` document contains a `sessionsSeatsGenerated` map (e.g. `sessionsSeatsGenerated["2026-08-15_19:00"]: true`).
+  - To track whether seats have been generated for a given session, the `events` document contains a `sessionsSeatsGenerated` map. To prevent key collisions across different venues, keys are uniquely prefixed with the venue ID (e.g., `sessionsSeatsGenerated["behring-theatre_2026-08-15_19:00"]: true`).
   - *Crucial step:* When a new orchestra session is created (or manually regenerated via `SeatEvent.js`), the system loops through the selected Venue's `seatConfig`. For every seat defined in the blueprint, it writes a document to the `seats{eventId}` collection with `eventId`, `venueId`, `sessionId`, `status: 'available'`, etc.
   - **Non-Destructive Regeneration**: When regenerating a layout for an existing session (e.g., if the venue configuration is expanded), the backend script in `SeatEvent.js` first fetches existing seats. It explicitly skips and preserves any seats currently marked as `booked` or `locked`, ensuring active reservations are never accidentally overwritten.
 
@@ -73,7 +73,9 @@ The seat booking logic involves several administrative configuration screens and
       - **Complimentary Tickets**: If the user is a registered winner, the system dynamically calculates their complimentary ticket allowance based on the orchestra session's remaining `complimentaryQuota`. They are granted 1 free ticket (for themselves) + 1 free ticket for every paid performance seat they select.
       - If they qualify for complimentary tickets, they proceed to a secondary interactive map step specifically to select their free orchestra seats.
       - Users can select available seats to add to their cart.
-  4. **Checkout & Locking**: Consolidates `selectedSeatIds` (paid seats), `orchestraSelectedSeatIds` (free seats), add-ons, user details, and buyer type. Submits the payload to the backend repository (`PublicTicketRepository.js`). The backend opens an atomic Firestore transaction to:
+  4. **Checkout & Locking**: Consolidates `selectedSeatIds` (paid seats), `orchestraSelectedSeatIds` (free seats), add-ons, user details, and buyer type. Submits the payload to the backend repository (`PublicTicketRepository.js`). The backend opens an atomic Firestore transaction (executing all Reads before any Writes) to:
+      - Validates that the number of requested paid tickets strictly matches the length of `selectedSeatIds`.
+      - Validates that the number of free seats selected in `orchestraSelectedSeatIds` exactly matches the mathematical grant derived from the remaining `complimentaryQuota`.
       - Lazily lock the requested paid seats for 30 minutes.
       - Instantly increment the `complimentaryClaimed` quota on the `events` document to safely claim the free quota without overselling.
       - Lazily lock the requested complimentary orchestra seats for 30 minutes.

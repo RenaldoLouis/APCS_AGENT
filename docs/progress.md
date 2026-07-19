@@ -4,6 +4,39 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🎟️ Dynamic Venue Seating & Validation Overhaul
+
+**Date:** 2026-07-19
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Dynamic Venue Configuration:** Removed hardcoded venue fallback logic from the admin seating management, ensuring `PublicCustomersList.js` and `SeatEvent.js` dynamically pull venue data from the event configuration.
+2. **Key Collision Fix (Seat Generation):** Patched the `sessionsSeatsGenerated` dictionary across the application (`PerformerSessionsSettings.js`, `OrchestraSettings.js`, and `SeatEvent.js`) to prepend `venueId` (e.g. `${venueId}_${date}_${time}`). This fixed a bug where generating seats for Session 1 in Venue A would incorrectly mark Session 1 in Venue B as generated.
+3. **Complimentary Tickets UI Warning:** Added a clear warning block in `PublicTicketBookingPage.js` to alert users when their eligible complimentary tickets mathematically exceed the remaining quota of the selected orchestra session, so they understand why their grant was capped.
+4. **Registrant Name Consistency:** Locked down the "Paying for Registrant" input field in Step 4 to `readOnly`, preventing users from altering the selected registrant identity at checkout.
+5. **Firestore Transaction Read/Write Separation:** Fixed a fatal `Firestore transactions require all reads to be executed before all writes` error in `PublicTicketRepository.js`. Refactored the `runTransaction` block into strict **Read Phase** and **Write Phase** blocks.
+6. **Ticket Quantity Validation Fix:** Updated the backend checkout validation in `PublicTicketRepository.js` to natively understand that paid seats (`selectedSeatIds`) and free seats (`orchestraSelectedSeatIds`) are passed as separate arrays, removing the legacy calculation that artificially halved seat selections.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/repositories/PublicTicketRepository.js` | MODIFIED | Fixed transactional rule violation (Read before Write) and updated ticket quantity validation logic. |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/PerformerSessionsSettings.js` | MODIFIED | Appended `venueId` to `sessionsSeatsGenerated` keys. |
+| `src/Pages/AdminDashboard/OrchestraSettings.js` | MODIFIED | Appended `venueId` to `sessionsSeatsGenerated` keys. |
+| `src/Pages/AdminDashboard/PublicCustomersList.js` | MODIFIED | Removed hardcoded venues and migrated to dynamic mapping. |
+| `src/Pages/AdminDashboard/SeatEvent.js` | MODIFIED | Removed hardcoded venues and updated generation keys. |
+| `src/Pages/TicketBooking/PublicTicketBookingPage.js` | MODIFIED | Made Step 4 Registrant Name read-only, and added quota cap warning block in Step 3. |
+
+---
 ## 🤖 ReCAPTCHA Token Expiry & Concurrent Registration Fallback
 
 **Date:** 2026-07-19
