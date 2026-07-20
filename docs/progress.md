@@ -4,6 +4,34 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 📧 Payment Request Email & Country-Specific Notes
+
+**Date:** 2026-07-20
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Payment Request Feature:** Added the ability for admins to manually send Bank Transfer and PayNow payment request emails directly from the `RegistrantDashboard` per row.
+2. **Dynamic Fee Notes by Country:** Integrated a country selection modal (Singapore/Malaysia/None) before sending payment requests or test emails. This allows admins to attach dynamic, country-specific fee notes (e.g., SGD vs. MYR) to the bottom of the emails based on the client's location.
+3. **Backend Template Updates:** Updated `EmailService.js` to accept a `feeNote` parameter and conditionally render an "Important Notes" section at the bottom of the Bank Transfer and PayNow email templates.
+4. **Test Email Enhancement:** Streamlined the "Payment Request Emails" test section with an inline country selector and consolidated buttons for testing the new templates.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/services/EmailService.js` | MODIFIED | Added `feeNote` parameter to `sendEmailPaymentRequest` and `sendEmailPaymentRequestPaynow` and injected it into the HTML templates. |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/RegistrantDashboard.js` | MODIFIED | Added payment request buttons per row, implemented a country selection modal for dynamic fee notes, and updated the test email section with an inline selector. |
+
+---
+
 ## 🎟️ Dynamic Venue Seating & Validation Overhaul
 
 **Date:** 2026-07-19
@@ -20,6 +48,9 @@ This document tracks features and changes made to the APCS project over time.
 7. **Email Seat Separation:** Updated the `sendPublicBookingConfirmationEmail` flow in `EmailService.js` and `EmailTemplateService.js` to distinctly list "Competition Seats" and "Orchestra Seats" on separate lines instead of fusing them into a single string. This prevents user confusion if they are attending sessions in different venues/times.
 8. **Seat Occupancy Color Fix:** Fixed a UI bug in `CustomSeatPicker.js` where all unavailable seats (booked, locked, reserved) were hardcoded to render as grey `#2a2a2a`, making it impossible for admins to see the red/orange status colors in the `SeatOccupancy.js` dashboard. The component now accepts and prioritizes a `statusColor` prop from the admin view while maintaining the grey styling for the public view.
 9. **Public Ticket Checkout Status Fix:** Updated `PublicTicketRepository.js` to save successfully paid tickets with `status: 'booked'` instead of `'reserved'`. This ensures the Admin Dashboard correctly identifies ticket ownership and displays the user's name in tooltips instead of "Reserved for: N/A".
+
+24. **UI Seats Summary Breakout & Orchestra Session Details:** Fixed a layout issue in `PublicTicketBookingPage.js` where large numbers of selected seats broke the summary view. The summary now cleanly splits "Orchestra Seats" and "Paid/Additional Seats" into their own multi-line rows with word-wrapping. Additionally, the summary now dynamically displays the venue, date, and time of the actual selected Orchestra Session instead of incorrectly defaulting to the underlying performance session's metadata.
+25. **Email Seat Labels Fix:** Fixed a critical bug in `PublicTicketRepository.js` and `EmailService.js` where seat labels (e.g. `G6`, `L8`) were failing to parse properly in confirmation emails due to the new UUID-based Seat IDs, causing the emails to render fallback text like `Venue, Venue`. The frontend now explicitly maps and sends the human-readable `performanceSeatLabels` and `orchestraSeatLabels` arrays in the booking payload. These are permanently saved into the `publicBookings` document, and the backend webhook reads them directly when dispatching the `Payment Confirmed` email.
 
 ### Files Modified
 
