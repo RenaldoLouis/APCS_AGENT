@@ -383,8 +383,13 @@ Each element in the `performers` array has the following fields:
 | `city` | string | City |
 | `zipCode` | string | Zip code |
 | `addressLine` | string | Street address |
-| `phoneNumber` | string | Phone number |
+| `phoneNumber` | string | Phone number (does **not** include country code) |
 | `countryCode` | string | Phone country code (e.g., `"+62"`) |
+
+> **⚠️ CRITICAL: Parsing Performer Country & Phone**
+> - Always use `p.country` if you need the performer's country name.
+> - If `p.country` is missing, use `p.countryCode` (e.g., `"+65"`) to map to a country.
+> - **NEVER** prepend `+` to `p.phoneNumber` to infer the country. Because `phoneNumber` is purely local (e.g., `90029350`), blindly prepending `+` (e.g., `+90...`) will cause false matches with other country codes (like `+90` for Turkey)!
 
 **Common pattern for getting performer display name:**
 ```js

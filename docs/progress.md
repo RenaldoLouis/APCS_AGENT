@@ -4,6 +4,32 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🌍 Country Code Parsing Bug Fix
+
+**Date:** 2026-07-25
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Country Code Parsing Fix:** Fixed a bug in `RegistrantDashboard` where the country of a registrant was being incorrectly parsed. Previously, the system would indiscriminately prepend a `+` to the `phoneNumber` field (e.g., `90029350` became `+90029350`), which falsely matched `+90` (Turkey). The code was updated to prioritize `performer.country` and `performer.countryCode` over parsing `phoneNumber`.
+2. **Data Structure Documentation Update:** Updated `docs/architecture.md` with a critical warning regarding `phoneNumber` vs `countryCode` in the `performers` array to prevent similar parsing mistakes in the future.
+
+### Files Modified
+
+#### Documentation (`docs/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `docs/architecture.md` | MODIFIED | Added critical documentation explaining that `phoneNumber` does not include the country code and that `country` or `countryCode` should always be prioritized. |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/constant/RegistrantsColumn.js` | MODIFIED | Updated the `getCountry` extraction logic to correctly check `performer.country` and `performer.countryCode`. |
+
+---
+
 ## 📧 Payment Request Email & Country-Specific Notes
 
 **Date:** 2026-07-20
