@@ -13,6 +13,9 @@ CONVENTIONS.md
 Ticketing_SaaS_Zentre/
 content/
 logs/
+*.mp4
+*.webm
+*.docx
 
 # Ignore local environment or temporary files
 .DS_Store

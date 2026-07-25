@@ -1,0 +1,176 @@
+ASIA PACIFIC CHORAL SUMMIT
+APCS Platform
+System Documentation
+Ticketing, Registration & Scoring System
+
+Prepared for  Project Stakeholders
+Version 1.0   ·   5 July 2026
+CONFIDENTIAL — For intended recipients only
+
+Table of Contents
+In Microsoft Word, right-click the list below and choose “Update Field” to generate page numbers (also refresh after inserting screenshots).
+Table of Contents	2
+1. Executive Summary	3
+2. Platform Overview	3
+3. Administrative Dashboard	4
+3.1  Registrant Management	4
+3.2  Communications (Email Management)	5
+3.3  Ticketing Management (End to End)	6
+3.4  Seat Assignment (Admin / Token Flow)	7
+3.5  Scoring Management (Recap & Finalisation)	7
+4. Public Ticket Platform	8
+5. Jury / Adjudicator Portal	8
+6. Payment Processing with Paper.id	9
+7. Technical Architecture & Infrastructure Costs	10
+8. Data Privacy & Handling Note	10
+Appendix A. Screenshot Capture Checklist	11
+
+1. Executive Summary
+The APCS platform is a web-based system that runs the full lifecycle of the Asia Pacific Choral Summit — from participant registration and adjudication through to public ticket sales for gala performances. It brings competition management, interactive seat booking, secure online payment, jury scoring, and administrative oversight together in a single, integrated application.
+The system serves two distinct audiences through purpose-built journeys. Registrants — performers, teachers, and parents — use it to enter the competition, upload performance materials, and pay entry fees. Public buyers — the general audience — use it to browse events and purchase seats for gala concerts and recitals. Behind both journeys, an administrative control centre and a dedicated adjudicator portal give the organising team and jury the tools to manage the event end to end.
+This document describes each part of the platform, the administrative workflows that support it, the payment integration with Paper.id, and the underlying technical architecture and cost drivers. Screenshot placeholders are included throughout; capture instructions for each are provided so the visuals can be added directly from the live system.
+2. Platform Overview
+The platform is delivered as a single-page web application with a public-facing website, a secure administrative dashboard, and a separate adjudicator (jury) portal. The public site presents the current competition — “The Sound of Asia” 2026 — with event information, a live registration countdown, a bilingual interface (Indonesian and English), and navigation across Home, About, Gallery, Achievers, Contact, and Register.
+Functionally, the platform is organised around an integrated tool suite. Each tool owns one part of the event lifecycle while sharing a common data layer:
+Tool
+Responsibility
+Registration Engine
+Captures participant data, file uploads (performance videos, certificates), and entry fees.
+Ticketing & Seating Engine
+Manages venue layouts, real-time seat availability, tier pricing, and seat locking to prevent double-booking.
+Scoring Engine
+Lets jury members review performances, submit scores and feedback, under administrative control.
+Payment Gateway (Paper.id)
+Generates invoices, processes payments securely, and confirms transactions back to APCS via webhooks.
+Admin Control Centre
+Central hub to manage registrants, communications, venues, deadlines, and score finalisation.
+
+
+Figure 1. Public landing page — apcsmusic.com “The Sound of Asia” (live screenshot).
+3. Administrative Dashboard
+The Admin Dashboard is the operational nerve centre of the platform. It is organised as a left-hand navigation menu giving access to Contact Form Submissions, Registrant Data, Past Registrants, Public Customers, the Ticketing System, and Scoring Management. The sections below describe each core function.
+3.1  Registrant Management
+The Registrant Data module gives administrators a complete, filterable view of every competition entry. Records can be searched by performer or teacher name and filtered by competition, age category, performance type, and event. Each record exposes the full entry detail — parent and teacher names, number of performers, competition and performance categories, user type, payment status, performer names and emails, YouTube performance links, age and instrument categories, submission timestamp, uploaded performance video and jury files, remarks, and the calculated average score.
+From the same view, administrators can verify uploaded materials, update entry details, and export data for offline use. Export options include a full Excel export, age-category exports (raw and jury-sheet formats), a bulk export of jury comments as a ZIP archive, and shipping-label printing. Supporting operations include bulk registrant upload from file, teacher statistics, award synchronisation, and score import from CSV.
+
+Figure 2: Admin — Registrant Data (List View)
+In the admin dashboard, open Registrant Data and capture the filter bar plus the participant table. Redact participant names/emails before distributing externally.
+Figure 2. Admin — Registrant Data (List View)
+Certificate generation (creative-team handoff).  The Export Jury Comments (ZIP) button on the Registrant Data page compiles each participant’s finalised results and jury feedback into a single downloadable ZIP archive. This archive is handed to the creative team, who use the compiled results as the data source for generating participants’ certificates. Because the export already contains the finalised scores and comments for each participant, certificates can be produced in bulk without manually re-collecting results from the system.
+
+Registrant Data → Export Jury Comments (ZIP): the results package handed to the creative team to generate certificates.
+3.2  Communications (Email Management)
+An integrated Email Management panel, powered by Nodemailer, lets administrators send targeted communications without leaving the dashboard. A general announcement tool can address all recipients or a specific date range, and a set of event-specific actions cover common scenarios — stage reschedule notices, gala concert updates for winners, gala winner announcements, and the “Sound of Asia 2026” invitation to all unique registrant emails. Every action offers a “Send Test” option so a message can be previewed before a live send, and recipient filtering is applied according to the selected parameters.
+
+Figure 3: Admin — Email Management Panel
+On the Registrant Data screen, capture the Email Management section showing the announcement controls, event-specific send buttons, and Send Test options.
+Figure 3. Admin — Email Management Panel
+What recipients receive.  All automated, client-facing emails are sent from a single branded template, so every message a participant or buyer receives looks consistent. The example below — the registration confirmation email — shows the standard layout: a branded header, a personalised greeting, the message body, and a footer with contact details and social links. The same template is reused across features (payment confirmations, seat-selection token links, reschedule notices, and winner announcements); only the heading and body copy change per message.
+
+Example of an automated client email (registration confirmation). All feature emails follow this template format.
+3.3  Ticketing Management (End to End)
+The ticketing system is configured through a set of administrative modules that govern a ticket from creation to purchase. The Ticketing System menu provides System Settings, Venue Settings, Ticket Settings, Performer Sessions, an Admin Page, and Orchestra Settings.
+	•	Venue Settings (the blueprint) — administrators define the physical layout of a venue (for example, Jatayu Hall), creating rows and seat counts and assigning seating tiers such as Presto and Allegro.
+	•	Ticket Settings (pricing & windows) — configure ticket tiers and dynamic pricing, create optional add-ons such as merchandise, and define sales-eligibility windows, including when public sales open.
+	•	Performer Sessions — define the available performance time slots for each venue.
+	•	Orchestra Sessions (seat generation) — schedule specific public performances. On creation, the system generates live seat records from the venue blueprint. Administrators can also reserve rows to block them from public purchase — typically for complimentary participant tickets.
+
+
+Figure 4: Admin — Venue & Ticket Settings
+Open Ticketing System → Venue Settings (and Ticket Settings) and capture the venue blueprint and pricing configuration.
+Figure 4. Admin — Venue & Ticket Settings
+3.4  Seat Assignment (Admin / Token Flow)
+Administrators can assign seats manually or issue secure booking tokens to specific users. The administrator selects a registrant, enters the venue and session details, and generates a secure token. Using the Email Management feature, a unique seat-selection link is sent to the user. When the user opens the link, the token is verified and they confirm their seats on the interactive map — giving participants a controlled, self-service way to claim complimentary seats.
+
+Figure 5: Admin — Seat Assignment / Token Booking Flow
+Capture the seat-assignment screen where a registrant, venue, and session are selected and a booking token/link is generated.
+Figure 5. Admin — Seat Assignment / Token Booking Flow
+3.5  Scoring Management (Recap & Finalisation)
+Scoring Management gives administrators oversight of the entire judging process from a central recap view. Administrators can review all submitted jury scores across categories, apply manual adjustments where necessary, and finalise scores. Once a score is finalised, the assigned jury member can no longer edit their assessment. Administrators also control jury deadlines, which automatically block jury sign-in after a set date, ensuring assessments are locked in on schedule.
+
+Figure 6: Admin — Scoring Recap & Finalisation
+Open Scoring Management and capture the score recap across categories, including the finalisation and jury-deadline controls.
+Figure 6. Admin — Scoring Recap & Finalisation
+4. Public Ticket Platform
+The public ticket platform is a guided, multi-step purchasing flow for public events such as gala concerts and recitals. Its centrepiece is a live, interactive seating map that reflects real-time availability. Rows reserved for participants’ complimentary tickets are visually blocked out and cannot be selected.
+To prevent double-booking, the platform uses a seat-locking mechanism. When a buyer proceeds to pay, their selected seats are locked in the database for a limited window (30 minutes) pending payment. If another buyer attempts to select the same seat during that window, the system rejects the attempt, guaranteeing that no seat is ever sold twice.
+
+Figure 7: Public — Live Interactive Seat Map
+On the public ticket booking page, capture the interactive seat map showing available, reserved (blocked), and selected seats.
+Figure 7. Public — Live Interactive Seat Map
+5. Jury / Adjudicator Portal
+Adjudicators access a dedicated, simplified portal — the APCS Adjudicator Portal — with its own sign-in supporting email/password and Google single sign-on. After signing in, jury members see summary cards for each assigned category: total participants, pending (still to be scored), and assessed (completed).
+Selecting a participant opens a focused assessment form showing the participant’s details, repertoire, and performance video. The adjudicator assigns a base score (0–100), applies any optional deductions (minus points), and writes performance feedback. Access is governed by the administrator-controlled jury deadline, after which sign-in is blocked and assessments are locked.
+
+Figure 8. Jury / Adjudicator Portal sign-in — apcsmusic.com/login (live screenshot).
+6. Payment Processing with Paper.id
+Paper.id is the exclusive invoicing and payment gateway for both registrants and public buyers. The integration is designed so that the amount charged is always calculated and verified server-side, and so that confirmation is fully automated. The end-to-end flow is:
+	•	Invoice creation — at checkout, the backend calculates the total (preventing client-side tampering) and calls the Paper.id API to generate an official invoice.
+	•	Redirection — the user is redirected from the APCS platform to the Paper.id secure payment portal to complete the transaction.
+	•	Webhook confirmation — once payment succeeds, Paper.id sends a real-time, server-to-server webhook back to the APCS server.
+	•	Fulfilment — the APCS server verifies the transaction, marks the booking as PAID, converts locked seats to reserved, and triggers the email service to deliver the confirmed tickets.
+
+
+Figure 9: Checkout — Paper.id Redirection & Confirmation
+Capture the checkout hand-off to the Paper.id payment portal and the resulting confirmation email/ticket. Do not complete a live payment.
+Figure 9. Checkout — Paper.id Redirection & Confirmation
+7. Technical Architecture & Infrastructure Costs
+The platform is built on a modern, scalable, and cost-efficient technology stack. The frontend is a React.js application using the Ant Design component library; the backend is a Node.js/Express service structured in layers. Data is stored in Firebase Firestore for real-time synchronisation, files are held in AWS S3, email is sent via Nodemailer, and payments run through Paper.id.
+Layer
+Technology
+Cost Driver
+Frontend
+React.js + Ant Design (custom theme)
+Served as static assets; negligible runtime cost.
+Backend
+Node.js + Express (layered architecture)
+Hosting to keep the API online and process webhooks (e.g. DigitalOcean / AWS EC2).
+Database
+Firebase Firestore (NoSQL)
+Scales with document reads/writes; pagination and targeted queries keep costs low.
+File Storage
+AWS S3 (presigned URLs)
+Per-GB storage of videos/certificates plus outbound data transfer.
+Email
+Nodemailer
+Low; depends on sending volume / provider.
+Payments
+Paper.id gateway
+Transaction fee per successfully paid invoice.
+
+Cost behaviour is usage-based rather than fixed. The largest variable drivers are file storage and transfer in S3 (driven by the volume and size of uploaded performance videos), database operations in Firestore (mitigated by pagination and targeted queries), and per-transaction payment fees. This keeps baseline costs low during quiet periods and scales predictably with event activity.
+8. Data Privacy & Handling Note
+The platform stores personal data for participants, teachers, parents, and public buyers — including names, email addresses, phone numbers, and uploaded performance materials. When screenshots of live registrant or customer data are added to this document for external distribution, personal identifiers should be redacted or a representative test record used, so that the documentation can be shared without exposing individuals’ information.
+Appendix A. Screenshot Capture Checklist
+Figures 1 and 8 are already inserted as live screenshots, and the Export Jury Comments (ZIP) button and the confirmation-email example are included in Sections 3.1 and 3.2. Replace the remaining placeholders (Figures 2–7 and 9) with screenshots from the live system — admin and checkout captures require the relevant sign-in; capture in view-only mode without changing any data.
+Figure
+Screen
+Where to Capture
+1
+Public landing page
+✓ Inserted (live)
+2
+Registrant Data list
+Admin → Registrant Data
+3
+Email Management panel
+Admin → Registrant Data (lower panel)
+4
+Venue & Ticket Settings
+Admin → Ticketing System
+5
+Seat assignment / token flow
+Admin → Ticketing (seat assignment)
+6
+Scoring recap & finalisation
+Admin → Scoring Management
+7
+Live interactive seat map
+Public ticket booking page
+8
+Jury sign-in
+✓ Inserted (live)
+9
+Paper.id checkout & confirmation
+Checkout hand-off (no live payment)
+
