@@ -4,6 +4,56 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🌍 International Registration Flow Update
+
+**Date:** 2026-07-25
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Automated International Routing:** Updated the public registration flow (`Register.js`) to detect if a registrant is from outside of Indonesia based on their `countryCode`. 
+2. **Payment Info Bypass:** If an international registrant is detected, the frontend will automatically bypass generating a Paper.id invoice link (since Paper.id doesn't support non-Indonesian credit cards yet).
+3. **Automated Options Email:** Instead of redirecting to the payment wait page with a Paper link, it hits the `sendEmailPaymentInfoOptions` endpoint, dynamically inserting their registration details, and sends them the Both Options (Bank Transfer / PayNow) email automatically.
+4. **Admin Testing Tool:** Added a "Test International Registration Email" button in the admin `RegistrantDashboard.js` email demo section to simulate and verify the exact email payload that gets triggered during public registration.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/Register/Register.js` | MODIFIED | Intercepted international users, skipped `createRegistrationInvoice`, and called `sendEmailPaymentInfoOptions` instead. |
+
+---
+
+## 📧 Payment Info Options - Registrant Details Enhancement
+
+**Date:** 2026-07-25
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Registrant Details in Email:** Updated the "Payment Info (Both Options)" email template to dynamically include a prominent "Registration Details" box at the top of the email instead of just a generic payment reference box at the bottom. 
+2. **Dynamic Data Parsing:** The email now includes the registrant's specific **Name**, **Category** (e.g., Guzheng-Openageguzheng), **Amount** (e.g., USD 95 based on their actual competition type and currency), and **Payment Reference**.
+3. **Frontend Integration:** Updated `handleSendPaymentInfoOptions` and `handleSendTestEmail` in `RegistrantDashboard.js` to correctly format and pass the `price`, `competitionCategory`, and `paymentReferenceOverride` payloads to the backend API.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/services/EmailService.js` | MODIFIED | Passed new parameters (`price`, `competitionCategory`, `paymentReferenceOverride`) into the `PAYMENT_INFO_OPTIONS` template. |
+| `src/services/EmailTemplateService.js` | MODIFIED | Restructured the `PAYMENT_INFO_OPTIONS` HTML to include the new "Registration Details" block at the top and removed the redundant bottom reference block. |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/RegistrantDashboard.js` | MODIFIED | Updated the payload for the `sendEmailPaymentInfoOptions` API call to include all required dynamic registrant information. |
+
+---
+
 ## 🌍 Country Code Parsing Bug Fix
 
 **Date:** 2026-07-25
