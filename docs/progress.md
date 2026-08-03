@@ -4,6 +4,37 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## ⏱️ Automatic Video Duration Penalty
+
+**Date:** 2026-07-27
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Configurable Video Penalty:** Admins can now configure the `videoPenaltyThresholdMinutes` and `videoPenaltyScore` in the System Settings page.
+2. **Automatic Penalty Calculation:** The `ScoringRecap` admin page dynamically calculates and displays a video duration penalty (e.g., `-5`) based on the registrant's `videoDuration` and the global settings.
+3. **Manual vs Automatic Handling:** Both the manual "read book" penalty and the automatic video penalty are now tracked and displayed separately on the `ScoringRecap` page. The total effective score is recalculated dynamically.
+4. **Export Recalculation:** The Jury Comments export logic in `RegistrantDashboard` now dynamically calculates the final penalized average directly from the original scores and the automatic video penalty, explicitly excluding manual penalties during the export.
+5. **Accurate Final Awards:** The export ensures the `Final Award` column accurately reflects the penalized average.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/repositories/SystemSettingsRepository.js` | MODIFIED | Whitelisted the new `videoPenaltyThresholdMinutes` and `videoPenaltyScore` configuration settings in the `global` system settings document. |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/SystemSettings.js` | MODIFIED | Added a new "Scoring Configuration" card with inputs for threshold minutes and penalty score. |
+| `src/Pages/AdminDashboard/ScoringRecap.js` | MODIFIED | Added logic to fetch settings, compute auto penalty, display both auto and manual penalties, and export them correctly. |
+| `src/Pages/AdminDashboard/RegistrantDashboard.js` | MODIFIED | Updated `handleExportJuryComments` to apply the auto penalty, recalculate averages dynamically without manual penalties, and export precise values. |
+
+---
+
 ## 🌍 International Registration Flow Update
 
 **Date:** 2026-07-25
@@ -15,6 +46,7 @@ This document tracks features and changes made to the APCS project over time.
 2. **Payment Info Bypass:** If an international registrant is detected, the frontend will automatically bypass generating a Paper.id invoice link (since Paper.id doesn't support non-Indonesian credit cards yet).
 3. **Automated Options Email:** Instead of redirecting to the payment wait page with a Paper link, it hits the `sendEmailPaymentInfoOptions` endpoint, dynamically inserting their registration details, and sends them the Both Options (Bank Transfer / PayNow) email automatically.
 4. **Admin Testing Tool:** Added a "Test International Registration Email" button in the admin `RegistrantDashboard.js` email demo section to simulate and verify the exact email payload that gets triggered during public registration.
+5. **Success Toast Update:** Updated the post-registration success message for international registrants to explicitly state: "Successfully Registered! Please check your email to continue the payment process."
 
 ### Files Modified
 
