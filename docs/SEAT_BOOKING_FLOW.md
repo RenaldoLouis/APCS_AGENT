@@ -79,7 +79,7 @@ The seat booking logic involves several administrative configuration screens and
       - Lazily lock the requested paid seats for 30 minutes.
       - Instantly increment the `complimentaryClaimed` quota on the `events` document to safely claim the free quota without overselling.
       - Lazily lock the requested complimentary orchestra seats for 30 minutes.
-      - Write the booking record (including the explicit seat labels) to the unified `publicBookings` collection. 
+      - Write the booking record (including the explicit seat labels and the user's `registrantId` for traceability) to the unified `publicBookings` collection. 
   5. **Payment & Expiry**: The backend generates an invoice via Paper.id and sets a strict 30-minute lock timer. The user is redirected to the payment URL with a real-time countdown. If payment is completed within 30 minutes, the Paper.id webhook confirms the payment, permanently marking BOTH the `selectedSeatIds` and `orchestraSelectedSeatIds` as `booked`, and triggers a confirmation email. The email uses the explicitly saved `performanceSeatLabels` and `orchestraSeatLabels` from the database to neatly and correctly format the seat list for the user. If the user booked both paid Competition Seats and free Orchestra Seats, the email format distinctly separates them into two different lists to prevent confusion. If the 30 minutes expire before payment, the backend actively voids the Paper.id invoice, and a strict atomic cleanup transaction fires to release both the normal and orchestra locked seats, as well as actively refund the claimed complimentary quota back to the event pool.
 
 ## Summary of the Data Flow

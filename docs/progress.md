@@ -4,6 +4,50 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🎟️ Ticketing System Audit & Bug Fixes (Part 2)
+
+**Date:** 2026-08-15
+**Status:** ✅ Completed
+
+### What Was Built
+
+Completed an end-to-end audit of the ticketing system and implemented 5 critical bug fixes, along with administrative UI enhancements:
+
+1. **Registrant Dashboard Enhancements**: Added a new filter for "Payment Status" (PAID vs PENDING) to easily identify incomplete registrations. Replaced the "User Type" column with the registrant's "Phone Number" for quicker communication access.
+2. **Ticketing Resend Email**: Added a "Resend Email" button to the `PublicCustomersList` admin page to manually resend the booking confirmation email (with seat details and QR code) if the customer lost it or didn't receive it.
+3. **SeatOccupancy Orchestra Bug**: Fixed a bug where generated orchestra seats were showing as "Not Generated" due to a `venueId` key mismatch when evaluating the UI state.
+4. **Timezone Eligibility Fix**: Fixed a 7-hour timezone discrepancy where the public booking page evaluated the eligibility schedule in UTC (`toISOString()`) instead of the required `Asia/Jakarta` timezone.
+5. **Registrant ID Traceability**: Ensured the `registrantId` is saved directly into the `publicBookings` document during checkout for easier auditing and database tracing.
+6. **Rollback ReferenceError & Quota Fix**: Fixed a fatal scoping error in `PublicTicketRepository` where an invoice generation failure would throw a `ReferenceError` on rollback, permanently locking seats. Upgraded the rollback logic to also correctly refund any complimentary orchestra quota that was claimed during the failed transaction.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/controllers/PaperController.js` | MODIFIED | Added `emailSent` tracking field when sending confirmation emails. |
+| `src/controllers/PublicTicketController.js` | MODIFIED | Added new endpoint logic to resend booking confirmation emails. |
+| `src/routes/PaymentRoute.js` | MODIFIED | Registered the new `POST /public-ticket/resendEmail` endpoint. |
+| `src/repositories/PublicTicketRepository.js` | MODIFIED | Appended `registrantId` to the booking document. Fixed the variable scope on the `catch` block and implemented complimentary quota refund logic for failed API requests. |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/RegistrantDashboard.js` | MODIFIED | Added Payment Status filter logic and swapped the User Type column for Phone Number. |
+| `src/Pages/AdminDashboard/PublicCustomersList.js` | MODIFIED | Added the Resend Email action button and integrated it with the new backend endpoint. |
+| `src/Pages/AdminDashboard/SeatOccupancy.js` | MODIFIED | Patched the `isGenerated` lookup key to correctly include `venueId`. |
+| `src/Pages/TicketBooking/PublicTicketBookingPage.js` | MODIFIED | Switched `new Date().toISOString()` to `toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })`. |
+
+#### Documentation
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `docs/SEAT_BOOKING_FLOW.md` | MODIFIED | Documented the `registrantId` tracking. |
+| `docs/TICKETING_SYSTEM_GUIDE.md` | MODIFIED | Documented the Resend Email feature and Quota Rollback. |
+| `docs/progress.md` | MODIFIED | Added this entry. |
+
 ## ⏱️ Automatic Video Duration Penalty
 
 **Date:** 2026-07-27

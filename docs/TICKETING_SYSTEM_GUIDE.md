@@ -61,10 +61,10 @@ Once settings are configured, users access the Public Ticket Booking page.
 ### Public Customers List
 - **Purpose**: View all public bookings, their payment status (Paid, Pending, Expired), selected seats, and total amounts.
 - **Location**: Admin Dashboard > Ticketing System > Public Customers
-- **Action**: Use this screen to verify if a customer's payment went through or if their booking expired.
+- **Action**: Use this screen to verify if a customer's payment went through or if their booking expired. If a user did not receive their confirmation email, administrators can click the "Resend Email" button to manually dispatch the ticket QR and seat details again.
 
 ### Rollback / Failed Invoices
-- If the system successfully locks seats but fails to generate a Paper.id invoice due to an API error, the system performs an automatic rollback, releasing the seats immediately so the user can try again without waiting 30 minutes.
+- If the system successfully locks seats but fails to generate a Paper.id invoice due to an API error, the system performs an automatic rollback, releasing the seats immediately and automatically refunding any complimentary orchestra quota that was claimed so the user can try again without waiting 30 minutes.
 
 ### Seat Occupancy Dashboard
 - **Purpose**: A centralized real-time view of all sessions and their seating statistics (total, available, locked, booked).
