@@ -4,6 +4,45 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 📊 Registrant Stats Modal in Registrant Dashboard
+
+**Date:** 2026-08-17
+**Status:** ✅ Completed
+
+### What Was Built
+
+Added a "View Registrant Stats" button in the Registrant Dashboard that opens a new modal. This modal displays the total number of **Solo** and **Ensemble** registrations grouped by **Competition Category** (e.g., Piano, Ensemble). It includes an `Event ID` filter and the ability to export the calculated statistics to an Excel (`.xlsx`) file.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/RegistrantDashboard.js` | MODIFIED | Added state, dynamic `useMemo` calculations, table columns, export logic, and the UI modal for the Registrant Stats. |
+
+---
+
+## 📄 Preview Files Modal in Registrant Dashboard
+
+**Date:** 2026-08-16
+**Status:** ✅ Completed
+
+### What Was Built
+
+Added a "Preview Files" button in the Registrant Dashboard action column next to "Download PDF". Instead of downloading, this button triggers a modal that embeds and previews the registrant's **Repertoire** and **Birth Certificate** files directly in the browser. Since the assets are private in S3, the modal dynamically fetches signed URLs via the backend `getPublicVideoLinkAws` endpoint.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/RegistrantDashboard.js` | MODIFIED | Added state, loading logic, and JSX for the "Preview Files" modal. Fetches signed S3 URLs. |
+| `src/constant/RegistrantsColumn.js` | MODIFIED | Appended the "Preview Files" button in the action column. |
+
+---
+
 ## 🎟️ Ticketing System Audit & Bug Fixes (Part 2)
 
 **Date:** 2026-08-15
