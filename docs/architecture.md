@@ -9,7 +9,7 @@ This document describes the Firestore data model, API contracts, and system flow
 *   **Frontend:** React.js + Ant Design (antd).
 *   **Backend:** Node.js + Express.js.
 *   **Database:** Firebase Firestore (NoSQL) & Firebase Auth.
-*   **Storage:** AWS S3 (Presigned URLs for direct uploads/downloads).
+*   **Storage:** AWS S3 (Presigned URLs for uploads) + AWS CloudFront CDN (Low-latency video streaming).
 *   **Integrations:** Paper.id (Invoicing), Nodemailer (Emails).
 *   **Theme:** Elegant Dark Mode
     *   Background: `#121212` | Card: `#1E1E1E`
@@ -343,6 +343,7 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
 | `competitionCategory` | string | e.g., `"Piano Solo"`, `"Violin Solo"` |
 | `instrumentCategory` | string | Instrument sub-category |
 | `PerformanceCategory` | string | `"Individual"` or `"Ensemble"` |
+| `vocalGenreCategory` | string | e.g. `"Classical"`, `"FreeGenre"` (Only applicable for `VocalChoir` competition category) |
 | `ageCategory` | string | Key from `RegisterPageConst.ageCategories` (e.g., `"primary"`, `"junior"`) |
 | `totalPerformer` | number | Count of performers in the `performers` array |
 | `performers` | array | Array of performer objects — **this is where performer names and emails live** (see below) |
@@ -471,6 +472,10 @@ const performerNames = (record.performers || [])
     "Violin": "2026-06-20T23:59:59.999Z",
     "Harp": "2026-06-18T23:59:59.999Z"
   },
+  "juryDeadlineReminderSent": {
+    "Piano_1781567999999": true,
+    "Violin_1781999999999": true
+  },
   "usdToIdrRate": 17800
 }
 ```
@@ -484,7 +489,9 @@ const performerNames = (record.performers || [])
 > **Note:** Admins select a **date only** (no time picker). The system automatically sets the deadline to **23:59:59.999** of the selected date, so jury members can score all day until the end of that day.
 
 **Behavior:**
-- **24 hours before deadline (H-1):** Warning modal shown to jury on login. Deadline text in dashboard nav turns red with pulsing animation.
+- **24 hours before deadline (H-1):** 
+  - A backend cron job (`JuryDeadlineReminder.js`) queries jury members with pending assessments and sends an urgent email reminder. To ensure idempotency, it writes a flag to `juryDeadlineReminderSent` keyed by `Category_DeadlineTimestamp`.
+  - A warning modal is shown to jury on login. Deadline text in dashboard nav turns red with pulsing animation.
 - **After deadline:** Jury email login is blocked in `DataContext.signInWithEmail()` — user is signed out and shown "The scoring period for [category] has ended". Google login and admin login remain unaffected.
 - **No deadline set:** No restrictions applied; jury can score at any time.
 

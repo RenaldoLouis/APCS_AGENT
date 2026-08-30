@@ -4,6 +4,54 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 📧 Jury Deadline Reminder Email System
+
+**Date:** 2026-08-30
+**Status:** ✅ Completed
+
+### What Was Built
+
+Added a server-side background job (`setInterval`) that checks for jury deadlines and sends automated reminder emails. 
+The job runs every 30 minutes, checks if a category deadline is within 24 hours, and emails any jury members in that category who still have pending assessments. 
+Idempotency is achieved by writing a `juryDeadlineReminderSent` flag to the `systemSettings/global` Firestore document.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/jobs/JuryDeadlineReminder.js` | ADDED | The main background job logic to check deadlines, calculate pending assessments, and trigger emails. |
+| `index.js` | MODIFIED | Initialized `startJuryDeadlineReminder` on server startup. |
+| `src/services/EmailService.js` | MODIFIED | Added `sendJuryDeadlineReminderEmail` function to interface with Nodemailer. |
+| `src/services/EmailTemplateService.js` | MODIFIED | Added the `JURY_DEADLINE_REMINDER` HTML template string. |
+
+#### Documentation (`docs/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `architecture.md` | MODIFIED | Documented the new `juryDeadlineReminderSent` flag and background job behavior. |
+
+---
+
+## ⚡ Video CDN Optimization (Jury Dashboard)
+
+**Date:** 2026-08-28
+**Status:** ✅ Completed
+
+### What Was Built
+
+Optimized the video playback experience in the Jury Dashboard by implementing an AWS CloudFront CDN distribution. Replaced the manual backend API call for S3 Presigned URLs with direct CloudFront streaming. This eliminates the backend round-trip latency (saving ~500ms before load) and streams the video chunks from local edge servers, drastically reducing buffering times for high-resolution student uploads.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/JuryDashboard/JuryDashboard.js` | MODIFIED | Refactored `openVideo` to parse the `s3Link` and construct a CloudFront URL directly, bypassing the `apis.aws.getPublicVideoLinkAws` endpoint. |
+
+---
 ## 📊 Registrant Stats Modal in Registrant Dashboard
 
 **Date:** 2026-08-17
