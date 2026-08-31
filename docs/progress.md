@@ -4,6 +4,26 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 📅 Event ID Filter in Public Ticket Bookings (Admin Dashboard)
+
+**Date:** 2026-08-31
+**Status:** ✅ Completed
+
+### What Was Built
+
+Added an "Event ID" dropdown filter to the `PublicCustomersList` admin page. Previously, the page only fetched bookings and seats associated with the global `currentEventId`. Now, administrators can toggle between different past/future events (e.g., `APCS2026`, `APCS2025`) using a dropdown. All Firestore queries for public bookings and seat availability map dynamically update based on the selected event ID.
+
+Additionally, added a "Mark Paid" manual override button in the Actions column for pending bookings. This provides a fallback if the Paper.id webhook fails, allowing admins to manually confirm the booking, finalize seat assignments from `locked` to `booked`, and subsequently trigger the confirmation email.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/PublicCustomersList.js` | MODIFIED | Added an `eventsList` state to fetch and display all available events. Hooked the `selectedEventId` to data-fetching logic for public tickets and seat layouts. |
+
+---
 ## 📧 Jury Deadline Reminder Email System
 
 **Date:** 2026-08-30
