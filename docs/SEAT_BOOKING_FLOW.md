@@ -20,16 +20,29 @@ The seat booking logic involves several administrative configuration screens and
   - `seatConfig`: Array of rows outlining the physical seats. Each row contains `row` (e.g., "A"), `seatCount` (total seats in that row), and `areaType` (the tier: Lento, Allegro, Presto).
 - **Interaction**: Acts as the blueprint. Changing `VenueSettings` does not retroactively change existing seats; it only provides the layout for new sessions.
 
-### 3. TicketSettings.js (`events/{eventId}.ticketTiers`, `.addOns`, and `systemSettings.ticketEligibility`)
-- **Purpose**: A centralized configuration page for all commerce-related settings.
-- **Data Structure**: Manages three distinct areas:
-  - **Ticket Tiers**: Array of objects mapping tier IDs (e.g., "presto") to names, prices, and map colors. Tier IDs **MUST** match the `areaType` defined in Venue Settings for the seating map to display the correct price.
-  - **Optional Add-Ons**: Array of extra items (e.g., "merchandise", "physical_ticket") with prices and descriptions.
-  - **Ticket Eligibility Schedule**: (Moved from SystemSettings) Controls the sales window for different participant categories (Sapphire, Diamond, Public, etc.).
-- **Interaction**: The `PublicTicketBookingPage` uses this configuration to:
-  1. Determine if the "Public Buyer" option should be visible today.
-  2. Filter which registered winners can proceed based on their award tier and today's date.
-  3. Calculate order subtotals and render the interactive seat map with correct tier colors.
+## 3. Ticket Pricing Settings
+
+**File:** `TicketPricingSettings.js`
+
+This defines the available ticket types (tiers) and their **venue-specific prices**. It controls the color of the seats on the public map and what prices users pay.
+
+### Requirements:
+- The **Tier ID** configured here MUST EXACTLY MATCH the `areaType` configured in Venue Settings.
+- If they do not match, seats assigned to that `areaType` will fail to find a color and price, rendering them unbookable.
+- **Venue-Specific Pricing:** Each tier contains a `venuePrices` map (e.g. `{"venue1": 729000, "venue2": 789000}`). If a price is not configured for a specific venue, the system blocks checkout for that session.
+
+### Example Tier Configuration:
+```json
+{
+  "id": "presto",
+  "name": "Presto Tier",
+  "venuePrices": {
+    "venue1": 729000,
+    "venue2": 789000
+  },
+  "color": "#EBBC64"
+}
+```
 
 ### 4. PerformerSessionsSettings.js (`events/{eventId}.venues[].sessions`)
 - **Purpose**: Defines the time slots available for a specific venue (e.g., "09:00-11:00", "13:00-15:00").
@@ -68,13 +81,18 @@ The seat booking logic involves several administrative configuration screens and
       - The "Public Buyer" button is hidden if today's date is not in the "Public" eligibility window defined in **Ticket Settings**.
       - Registered winners select their identity from the list of eligible winners.
   2. **Select Session**: Users choose which performance slot they wish to attend.
-  3. **Seat Selection**: 
-      - Renders the remaining seats on a visual map for paid selection. Seats belonging to `reservedRows` (defined in `OrchestraSettings`) are greyed out and unselectable.
-      - **Complimentary Tickets**: If the user is a registered winner, the system dynamically calculates their complimentary ticket allowance based on the orchestra session's remaining `complimentaryQuota`. They are granted 1 free ticket (for themselves) + 1 free ticket for every paid performance seat they select.
-      - If they qualify for complimentary tickets, they proceed to a secondary interactive map step specifically to select their free orchestra seats.
-      - Users can select available seats to add to their cart.
-  4. **Checkout & Locking**: Consolidates `selectedSeatIds` (paid seats), `orchestraSelectedSeatIds` (free seats), add-ons, user details, and buyer type. Additionally, the frontend explicitly maps and sends the human-readable labels for these seats (`performanceSeatLabels` and `orchestraSeatLabels`) to the backend to ensure accurate display later. Submits the payload to the backend repository (`PublicTicketRepository.js`). The backend opens an atomic Firestore transaction (executing all Reads before any Writes) to:
-      - Validates that the number of requested paid tickets strictly matches the length of `selectedSeatIds`.
+  3. **Ticket Quantities & Add-ons**: 
+      - Users specify how many Presto, Allegro, or Masterclass tickets they want to purchase before seeing any maps. Masterclass tickets do not have seat selection.
+      - Users can select the `seat_selection_performer` add-on, specifying how many of their tickets they wish to explicitly place on the map. This add-on charges a dynamic quantity-based fee (quantity * price).
+  4. **Seat Selection (Performance)**: 
+      - The visual map is ONLY rendered if the user has requested seats via the `seat_selection_performer` add-on.
+      - Users can select up to their chosen add-on quantity. The remaining tickets are assigned randomly by the system.
+  5. **Orchestra Seat Selection (Winners Only)**:
+      - If the user is a registered winner, the system dynamically calculates their complimentary ticket allowance based on the orchestra session's remaining `complimentaryQuota`. They are granted 1 free ticket (for themselves) + 1 free ticket for every paid performance seat they select.
+      - Step 2 ("Select Free Orchestra Seats") is always shown for eligible Winners. A conditional toggle explicitly asks if they want to pay the add-on fee to manually select their orchestra seats.
+      - If they select "No", the system auto-assigns seats. If they select "Yes", the add-on fee is added to their cart and they proceed to an interactive map to manually select their free orchestra seats.
+  6. **Checkout & Locking**: Consolidates explicit ticket quantities, `selectedSeatIds` (paid seats), `orchestraSelectedSeatIds` (free seats), add-ons, user details, and buyer type. Additionally, the frontend explicitly maps and sends the human-readable labels for these seats (`performanceSeatLabels` and `orchestraSeatLabels`) to the backend to ensure accurate display later. Submits the payload to the backend repository (`PublicTicketRepository.js`). The backend opens an atomic Firestore transaction (executing all Reads before any Writes) to:
+      - Validates that `totalSelected` is less than or equal to both `ticketsQty` and `seatSelectionPerformerCount`.
       - Validates that the number of free seats selected in `orchestraSelectedSeatIds` exactly matches the mathematical grant derived from the remaining `complimentaryQuota`.
       - Lazily lock the requested paid seats for 30 minutes.
       - Instantly increment the `complimentaryClaimed` quota on the `events` document to safely claim the free quota without overselling.

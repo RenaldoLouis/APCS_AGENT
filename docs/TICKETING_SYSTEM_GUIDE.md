@@ -18,6 +18,30 @@ Before any tickets can be sold, the following administrative settings must be co
 - **Action**: Create the time slots before configuring performances.
 - **Location**: Admin Dashboard > Ticketing System > Performer Sessions
 
+### Ticket Pricing Settings
+
+**File:** `TicketPricingSettings.js`
+
+This defines the available ticket types (tiers) and their **venue-specific prices**. It controls the color of the seats on the public map and what prices users pay.
+
+### Requirements:
+- The **Tier ID** configured here MUST EXACTLY MATCH the `areaType` configured in Venue Settings.
+- If they do not match, seats assigned to that `areaType` will fail to find a color and price, rendering them unbookable.
+- **Venue-Specific Pricing:** Each tier contains a `venuePrices` map (e.g. `{"venue1": 729000, "venue2": 789000}`). If a price is not configured for a specific venue, the system blocks checkout for that session.
+
+### Example Tier Configuration:
+```json
+{
+  "id": "presto",
+  "name": "Presto Tier",
+  "venuePrices": {
+    "venue1": 729000,
+    "venue2": 789000
+  },
+  "color": "#EBBC64"
+}
+```
+
 ### C. Ticket Settings
 - **What it does**: Configures pricing and availability.
 - **Action**: 
@@ -40,11 +64,16 @@ Once settings are configured, users access the Public Ticket Booking page.
 
 1. **Identity Selection**: Users specify if they are a Public Buyer or a Registered Winner.
 2. **Session Selection**: Users select the Orchestra Session they wish to attend.
-3. **Seat Selection**: 
-   - An interactive seat map loads based on the generated seat documents for paid selection.
+3. **Ticket Quantities & Add-ons**:
+   - Users specify the quantity of Presto, Allegro, or Masterclass tickets they wish to buy. Masterclass tickets do not require seat selection.
+   - Users can optionally select the `seat_selection_performer` add-on, specifying how many of their tickets they want to place manually on the seating map. This add-on charges a per-seat dynamic fee (quantity * price).
+   - Any tickets without a seat explicitly selected on the map will be randomly assigned by the system.
+4. **Seat Selection (Performance)**: 
+   - An interactive seat map loads ONLY if the user purchased the `seat_selection_performer` add-on.
    - Greyed-out seats indicate `reservedRows` or already sold/locked seats.
-   - If the user is a Registered Winner, they are granted a calculated amount of complimentary tickets based on the remaining quota (1 free ticket + 1 free ticket per paid performance seat). They will then proceed to a secondary interactive map step to physically select their free orchestra seats.
-4. **Checkout**: 
+   - If the user is a Registered Winner, they are granted a calculated amount of complimentary tickets based on the remaining quota (1 free ticket + 1 free ticket per paid performance seat). 
+   - They will always proceed to a secondary step ("Select Free Orchestra Seats") where they can choose to pay an additional add-on fee to physically select their free orchestra seats, or choose to have them auto-assigned for free.
+5. **Checkout**: 
    - The user proceeds to checkout.
    - The backend *lazily* locks the selected seats for 30 minutes to prevent double-booking.
    - An invoice is created via Paper.id and the user is redirected to the payment gateway.
