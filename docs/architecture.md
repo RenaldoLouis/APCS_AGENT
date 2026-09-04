@@ -490,7 +490,7 @@ const performerNames = (record.performers || [])
 
 **Behavior:**
 - **24 hours before deadline (H-1):** 
-  - A backend cron job (`JuryDeadlineReminder.js`) queries jury members with pending assessments and sends an urgent email reminder. To ensure idempotency, it writes a flag to `juryDeadlineReminderSent` keyed by `Category_DeadlineTimestamp`.
+  - A backend cron job (`JuryDeadlineReminder.js`) queries jury members with pending assessments and sends urgent email reminders. It sends reminders in three stages: 1 week before, 3 days before, and 24 hours before the deadline. To ensure idempotency, it writes a flag to `juryDeadlineReminderSent` keyed by `Category_DeadlineTimestamp_ReminderWindow` (e.g. `_1w`, `_3d`, `_24h`).
   - A warning modal is shown to jury on login. Deadline text in dashboard nav turns red with pulsing animation.
 - **After deadline:** Jury email login is blocked in `DataContext.signInWithEmail()` — user is signed out and shown "The scoring period for [category] has ended". Google login and admin login remain unaffected.
 - **No deadline set:** No restrictions applied; jury can score at any time.
