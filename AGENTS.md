@@ -3,7 +3,8 @@
 ## 🚫 Restricted Commands
 - **NEVER** run `npm run start`.
 - **NEVER** run `npm run build`.
-- **ALWAYS** use `yarn` instead of `npm` for installing dependencies.
+- **ALWAYS** use `yarn` for installing dependencies in the frontend (`apcs_web`).
+- **ALWAYS** use `npm` for installing dependencies in the backend (`apcs_service`).
 
 ## 🚫 Restricted Verification
 - **NEVER** launch or use a local browser (browser subagent, Playwright MCP, etc.) to verify UI changes. Verify correctness through code review and logical reasoning only.

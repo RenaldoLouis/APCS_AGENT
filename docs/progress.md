@@ -4,6 +4,61 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 👩‍⚖️ Jury Management Page
+
+**Date:** 2026-09-04
+**Status:** ✅ Completed
+
+### What Was Built
+
+Added a standalone **Jury Management** page within the Admin Dashboard to centralize jury account operations. 
+1. **New UI Page:** Created `JuryManagement.js` with a comprehensive data table displaying Name, Email, Category, and the newly added `eventId`.
+2. **Full CRUD Support:** Admins can now Create, Edit (Name, Category, Event ID), and Delete jury members directly from this page.
+3. **Safety Constraints:** Backend validation in `JuryRepository` actively prevents the deletion of a jury member if they have already submitted scores in `JuryScores2025`, avoiding orphaned data.
+4. **Cleanup:** Migrated the legacy "Create New Jury" modal out of `AdminContent.js`, streamlining the dashboard and centralizing jury configurations.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/repositories/JuryRepository.js` | MODIFIED | Added `eventId` support on creation, and introduced `updateJury` and `deleteJury` methods with score-dependency validation. |
+| `src/services/JuryService.js` | MODIFIED | Exposed CRUD operations for controllers. |
+| `src/controllers/JuryController.js` | MODIFIED | Added HTTP handler wrappers for updates and deletions. |
+| `src/routes/PaymentRoute.js` | MODIFIED | Registered `PUT /updateJury/:uid` and `DELETE /deleteJury/:uid` endpoints. |
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/JuryManagement.js` | ADDED | The new centralized dashboard page for managing jury accounts. |
+| `src/Pages/AdminDashboard/AdminContent.js` | MODIFIED | Removed legacy "Create New Jury" button and modal logic. |
+| `src/Pages/AdminDashboard/AdminDashboard.js` | MODIFIED | Registered the new `JuryManagement` component into the "Scoring Management" sidebar menu. |
+| `src/apis/index.js` | MODIFIED | Added frontend Axios bindings for `updateJury` and `deleteJury`. |
+
+---
+
+## 📊 Jury Assessment Progress Tracker
+
+**Date:** 2026-09-04
+**Status:** ✅ Completed
+
+### What Was Built
+
+Added a "Jury Completion Progress" visual tracker to the Admin `ScoringRecap` dashboard. 
+Admins can now instantly see the percentage of assessments each jury has completed within a given category. The system dynamically excludes registrants that are unpaid, and correctly ignores students belonging to the jury themselves from the target calculation.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/ScoringRecap.js` | MODIFIED | Added state to fetch Juries by category, created a `juryProgress` dynamic calculation that filters target vs. scored registrants, and rendered a grid of progress cards. |
+
+---
+
 ## 📅 Event ID Filter in Public Ticket Bookings (Admin Dashboard)
 
 **Date:** 2026-08-31
@@ -1152,3 +1207,9 @@ A self-service, public-facing ticket booking flow for the APCS 2026 Gala Concert
 
 ### Fixed & Enhanced (Sep 02, 2026)
 - **Multi-stage Jury Deadline Reminders (`JuryDeadlineReminder.js`)**: Upgraded the background cron job that sends jury scoring reminders. Previously, it only sent a single warning 24 hours before the deadline. The logic now cascades gracefully to dispatch emails exactly 1 week before, 3 days before, and 24 hours before the deadline. The `EmailTemplateService` was updated to dynamically reflect the `timeRemainingText` for each of these windows. The idempotency flag in Firestore was refactored to include the reminder window (`_1w`, `_3d`, `_24h`) to prevent duplicate email dispatches.
+
+### Fixed & Enhanced (Sep 04, 2026)
+- **Jury Management Dashboard (`JuryManagement.js`)**: Created a dedicated page to manage jury lists including Create, Edit, and Delete operations. Moved the "Add new jury" button from the main admin content page to this new centralized page. Implemented safety logic in `JuryRepository.js` to block deletion of any jury member who has already submitted scores in `JuryScores2025`.
+- **Robust Jury Deletion**: Handled the edge case where a jury member was previously deleted directly from the Firebase Authentication console but their Firestore document remained. The deletion logic now catches the `auth/user-not-found` error and gracefully proceeds to clean up the orphaned Firestore document.
+- **Robust Jury Reminders & Startup Execution (`JuryDeadlineReminder.js`)**: Fixed a critical infinite loop bug where the cron job crashed due to corrupted jury data (missing `uid`), which prevented the reminder sent flag from saving and caused duplicate emails. Wrapped the jury evaluation block in a `try-catch` and added explicit data checks so the loop safely skips corrupted accounts. Additionally, refactored the script to run immediately upon server startup instead of waiting 30 minutes for the first `setInterval` tick.
+- **Jury Email Locale Fix**: Updated the date formatting in the deadline reminder email to use `en-GB` locale to properly format the date and time in English, preventing the appearance of the Indonesian word "pukul" in communications for international jury members.
