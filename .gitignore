@@ -6,6 +6,9 @@ apcs_website
 apcs_service/
 apcs_web/
 apcs_web/build
+apcs_web/node_modules
+apcs_web/*.env
+apcs_service/*.env
 CONVENTIONS.md
 .cursorrules
 .windsurfrules
