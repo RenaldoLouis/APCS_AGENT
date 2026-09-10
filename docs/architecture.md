@@ -172,11 +172,36 @@ apcs_service/
     { "id": "photo",       "name": "Professional Photo Package", "price": 75000 }
   ],
 
+  "videoPenaltyConfig": {
+    "revision": 1,
+    "penaltyScore": 5,
+    "rules": [
+      {
+        "competitionCategory": "Piano",
+        "performanceCategory": "Solo",
+        "instrumentCategory": null,
+        "ageCategory": "Primary",
+        "maximumMinutes": 3
+      },
+      {
+        "competitionCategory": "VocalChoir",
+        "performanceCategory": "Ensemble",
+        "instrumentCategory": "Professionals_B",
+        "ageCategory": "nineteen_plus",
+        "maximumMinutes": 8
+      }
+    ]
+  },
+
   "baseTicketPrice": 100000,
   "pricingTiers": { "...legacy structure for admin flow..." }
 }
 ```
 
+> **Video penalty configuration:** `videoPenaltyConfig` is event-scoped. Rules use the exact values saved by registration. Solo rules are identified by competition, `Solo`, and age; ensemble rules additionally require the saved `instrumentCategory`. The `revision` increments on every save and is copied to synchronized registrant results.
+>
+> A video is over-limit only when `Math.floor(videoDuration) > maximumMinutes * 60`. For any configured limit, fractional media padding through `.999` of the maximum second is allowed and the penalty begins at the next whole second.
+>
 > **Note:** The `ticketTiers`, `addOns`, and `sessions` fields are new additions for the public booking flow. The existing `baseTicketPrice` and `pricingTiers` fields are preserved for the legacy admin flow and `BookingRepository.js`.
 
 ---
@@ -342,14 +367,15 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
 | `teacherName` | string | Teacher name |
 | `competitionCategory` | string | e.g., `"Piano Solo"`, `"Violin Solo"` |
 | `instrumentCategory` | string | Instrument sub-category |
-| `PerformanceCategory` | string | `"Individual"` or `"Ensemble"` |
+| `PerformanceCategory` | string | `"Solo"` or `"Ensemble"` |
 | `vocalGenreCategory` | string | e.g. `"Classical"`, `"FreeGenre"` (Only applicable for `VocalChoir` competition category) |
-| `ageCategory` | string | Key from `RegisterPageConst.ageCategories` (e.g., `"primary"`, `"junior"`) |
+| `ageCategory` | string | Category-specific key from `RegisterPageConst` (e.g., `"Primary"`, `"JuniorwoodWind"`) |
 | `totalPerformer` | number | Count of performers in the `performers` array |
 | `performers` | array | Array of performer objects — **this is where performer names and emails live** (see below) |
 | `repertoire` | string | Name of the piece being performed |
 | `youtubeLink` | string | YouTube link for the performance |
 | `videoDuration` | number | **Duration of the performance video in seconds.** Calculated during upload via `getVideoDuration()`. Display as `mm:ss` (e.g., 192 → `"03:12"`). |
+| `videoPenaltyConfigRevision` | number\|null | Event video-penalty revision used when `averageScore` and `finalAward` were last synchronized. |
 | `videoPerformanceS3Link` | string | S3 key for the uploaded performance video |
 | `pdfRepertoireS3Link` | string | S3 key for the uploaded sheet music PDF |
 | `birthCertS3Link` | string | S3 key for birth certificate |
@@ -400,6 +426,8 @@ const performerNames = (record.performers || [])
 ```
 
 > **⚠️ Important:** The `videoDuration` field stores **seconds as a number** (e.g., `312` for 5 minutes 12 seconds). Always convert to `mm:ss` for display. Do **not** confuse with the legacy `duration` string field.
+
+> **Deprecated:** `Registrants2025.isScoreFinalized` is no longer a result lock and must not be used to skip award synchronization. Existing values are retained for historical safety. Jury editing is locked only by `JuryScores2025.isFinalized`.
 
 ---
 

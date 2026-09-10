@@ -50,6 +50,15 @@ Each registrant's status is determined **per jury member** — it reflects wheth
 
 **Per-jury scoping:** Two different jury members will see independent Pending/Assessed counts for the same set of registrants. Jury A may have scored 5 out of 8, while Jury B has scored 3 out of 8 — each sees their own progress.
 
+### Video Duration Penalties and Finalization
+
+- Each event owns one shared automatic penalty score and a duration matrix keyed by the exact competition registration combination.
+- Solo limits use the music category and age category. Ensemble limits also use the competition division because divisions such as Vocal Professionals B and C can share an eligibility age while having different maximum durations.
+- A video is penalized once when it reaches one whole second beyond its configured maximum. Fractional padding within the maximum second is not penalized.
+- A missing event configuration or unmatched registration never causes an assumed deduction; administrators receive a warning and must correct the configuration.
+- Finalizing a jury assessment locks the jury's submitted input only. Automatic penalties, averages, and awards remain derived values and are recalculated by Sync Awards without reopening the jury assessment.
+- Administrative score corrections belong on individual jury scores through `adminAdjustedScore`; manual deductions remain separate through the registrant's manual penalty fields.
+
 ### Dashboard Summary Cards
 
 The three summary stat cards on the Jury Dashboard derive from this logic:
@@ -83,4 +92,3 @@ The three summary stat cards on the Jury Dashboard derive from this logic:
 | `registrantName` | string | Name of the scored registrant |
 | `timestamp` | Timestamp | Server timestamp of submission |
 | `isFinalized` | boolean | Whether the score has been admin-finalized |
-
