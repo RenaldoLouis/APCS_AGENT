@@ -23,6 +23,10 @@ An administrator-applied deduction that is independent of the Automatic Video Pe
 The average and award calculated from effective jury scores, the Automatic Video Penalty, and any Manual Penalty. It may be recalculated while jury assessments remain locked.
 _Avoid_: Finalized score
 
+**Award Synchronization**:
+The explicit admin action that compares each live Derived Award Result and configuration revision with the stored registrant result, then persists only records that differ. It includes registrants whose jury assessments are locked.
+_Avoid_: Final score lock
+
 **Competition Division**:
 The ensemble entry type stored as `instrumentCategory`, such as Professionals B or Guzheng Ensemble. It is distinct from an Age Category even when the registration flow assigns an eligibility age to it.
 _Avoid_: Ensemble age category

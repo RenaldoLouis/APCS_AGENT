@@ -202,6 +202,8 @@ apcs_service/
 >
 > A video is over-limit only when `Math.floor(videoDuration) > maximumMinutes * 60`. For any configured limit, fractional media padding through `.999` of the maximum second is allowed and the penalty begins at the next whole second.
 >
+> **Unified derived results:** `apcs_web/src/utils/scoringCalculator.js` is the calculation source for scoring displays. `apcs_web/src/utils/awardSynchronization.js` groups every jury score for the selected registrants, resolves event configurations, supplies the same live calculation to exports, and builds the batched award-sync updates. Neither path treats legacy `Registrants2025.isScoreFinalized` as a lock.
+>
 > **Note:** The `ticketTiers`, `addOns`, and `sessions` fields are new additions for the public booking flow. The existing `baseTicketPrice` and `pricingTiers` fields are preserved for the legacy admin flow and `BookingRepository.js`.
 
 ---

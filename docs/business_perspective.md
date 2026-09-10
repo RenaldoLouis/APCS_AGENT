@@ -57,7 +57,8 @@ Each registrant's status is determined **per jury member** — it reflects wheth
 - A video is penalized once when it reaches one whole second beyond its configured maximum. Fractional padding within the maximum second is not penalized.
 - A missing event configuration or unmatched registration never causes an assumed deduction; administrators receive a warning and must correct the configuration.
 - Finalizing a jury assessment locks the jury's submitted input only. Automatic penalties, averages, and awards remain derived values and are recalculated by Sync Awards without reopening the jury assessment.
-- Administrative score corrections belong on individual jury scores through `adminAdjustedScore`; manual deductions remain separate through the registrant's manual penalty fields.
+- Administrative score corrections remain available after jury finalization. They belong on individual jury scores through `adminAdjustedScore`; manual deductions remain separate through the registrant's manual penalty fields.
+- Scoring Recap, dashboard score displays, scoring exports, and award synchronization consume the same live calculation, including finalized and non-finalized jury-score documents. Exports do not fall back to stale stored awards.
 
 ### Dashboard Summary Cards
 
