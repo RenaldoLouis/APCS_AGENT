@@ -50,6 +50,8 @@ Each registrant's status is determined **per jury member** — it reflects wheth
 
 **Per-jury scoping:** Two different jury members will see independent Pending/Assessed counts for the same set of registrants. Jury A may have scored 5 out of 8, while Jury B has scored 3 out of 8 — each sees their own progress.
 
+**Reminder safety:** The backend deadline reminder treats the Firestore `users` document ID as the canonical jury UID and also accepts the stored `users.uid` field as a legacy fallback when counting submitted scores. A stale `users.uid` field must not cause reminders to be sent to a jury who has already completed all required assessments.
+
 ### Dashboard Summary Cards
 
 The three summary stat cards on the Jury Dashboard derive from this logic:
@@ -83,4 +85,3 @@ The three summary stat cards on the Jury Dashboard derive from this logic:
 | `registrantName` | string | Name of the scored registrant |
 | `timestamp` | Timestamp | Server timestamp of submission |
 | `isFinalized` | boolean | Whether the score has been admin-finalized |
-
