@@ -2,6 +2,36 @@
 
 This document tracks features and changes made to the APCS project over time.
 
+## 🎨 Comment Sheet CSV Export & Illustrator CSV Error Resolution (ScoringRecap.js)
+
+**Date:** 2026-09-12
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Root Cause Analysis of Illustrator "The incoming variable library is invalid" Error:**
+   - **Cause 1: UTF-8 BOM (`\uFEFF`)**: The previous system prepended `\uFEFF` for Excel encoding. Adobe Illustrator's CSV parser treats `\uFEFF` as an illegal character in the first header name (`\uFEFFname` or `\uFEFFno`), causing variable validation to fail immediately.
+   - **Cause 2: Underscores in Header Names**: Adobe Illustrator Variables do not permit underscores (`_`) or hyphens in variable names. Previous headers like `participants_details` and `performance_feedback_<slug>` were rejected.
+   - **Cause 3: Multiline Comments (Newlines inside cells)**: Raw `\r\n` or `\n` line breaks in jury feedback broke Illustrator's line-by-line CSV parser, leading to mismatched column counts.
+2. **Comment Sheet CSV Format on 2nd Button (`ScoringRecap.js`):**
+   - Configured the 2nd export button as **"Export Comment Sheet CSV"** outputting the exact creative team format:
+     `name,award,category,score,feedback1,feedback2,feedback3...`
+   - **Omitted BOM (`\uFEFF`)** for the design team export to ensure Illustrator reads `name` cleanly.
+   - **Sanitized Newlines**: Replaces `[\r\n]+` with a single space so every participant record is strictly 1 line.
+   - **Formatted Values**:
+     - `award`: Formatted in uppercase with suffix (e.g. `GOLD AWARD`, `SILVER AWARD`, `FAIL`).
+     - `category`: Formatted in uppercase (e.g. `PRIMARY`, `FREE CHOICE`, `ENSEMBLE - ONE PIANO MULTIPLE HANDS`, `ENSEMBLE-TWO PIANOS MULTIPLE HANDS`).
+     - `score`: Formatted with `.0` for whole numbers and up to 2 decimal places for fractions (e.g. `87.0`, `87.33`).
+     - `feedback1`, `feedback2`, `feedback3`...: Dynamically numbered columns matching sorted juries for template reusability.
+3. **Streamlined UI in Scoring Recap (`ScoringRecap.js`):**
+   - Maintained clean 2-button interface:
+     1. **Export CSV**: Standard audit recap with `no,participants_details,performance_feedback_<slug>...,final_score,award,agecategory`.
+     2. **Export Comment Sheet CSV**: Variable-ready CSV for Adobe Illustrator / InDesign.
+4. **Unit Tests & Quality Assurance:**
+   - All 202 unit tests across all 5 test suites in `apcs_web` pass with zero failures.
+
+---
+
 ## 📝 Admin Note Display & Quick Edit in Scoring Recap (ScoringRecap.js)
 
 **Date:** 2026-09-11
@@ -1399,3 +1429,11 @@ A self-service, public-facing ticket booking flow for the APCS 2026 Gala Concert
 - **Robust Jury Deletion**: Handled the edge case where a jury member was previously deleted directly from the Firebase Authentication console but their Firestore document remained. The deletion logic now catches the `auth/user-not-found` error and gracefully proceeds to clean up the orphaned Firestore document.
 - **Robust Jury Reminders & Startup Execution (`JuryDeadlineReminder.js`)**: Fixed a critical infinite loop bug where the cron job crashed due to corrupted jury data (missing `uid`), which prevented the reminder sent flag from saving and caused duplicate emails. Wrapped the jury evaluation block in a `try-catch` and added explicit data checks so the loop safely skips corrupted accounts. Additionally, refactored the script to run immediately upon server startup instead of waiting 30 minutes for the first `setInterval` tick.
 - **Jury Email Locale Fix**: Updated the date formatting in the deadline reminder email to use `en-GB` locale to properly format the date and time in English, preventing the appearance of the Indonesian word "pukul" in communications for international jury members.
+
+### Fixed & Enhanced (Sep 12, 2026)
+- **Comment Sheet CSV Export Adjustments (`ScoringRecap.js`, `csvVariableSafeUtil.js`)**:
+  - **Award Column Suffix Removal**: Updated `formatCommentSheetAward` to strip any "Award" / "Awards" text (case-insensitive) from award outputs, returning clean tier names (e.g. `Gold`, `Silver`, `Diamond`, `Sapphire`, `Fail`) instead of `Gold Award` or `SILVER AWARD`.
+  - **Jury-Specific Feedback Headers**: Updated the feedback headers in the Comment Sheet CSV export from generic `header_1`, `header_2` (or `feedback1`, `feedback2`) to jury-specific headers prefixed with `header_` followed by the jury name slug (e.g., `header_jin_yun`, `header_livia_schweizer`, `header_sara_heng`).
+  - **Jury Slug Sanitization**: Added and exported `toJurySlug` which removes academic/professional honorifics (`Dr.`, `Prof.`, `Mr.`, `Ms.`, `Mrs.`), normalizes unicode diacritics/accents (`é`, `á`, etc.), and converts names to clean `snake_case`.
+  - **Jest Unit Tests**: Added and updated comprehensive test suites in `csvVariableSafeUtil.test.js` validating award string cleaning and jury slug generation. All 203 unit tests passing.
+
