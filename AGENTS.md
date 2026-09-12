@@ -3,6 +3,7 @@
 ## 🚫 Restricted Commands
 - **NEVER** run `npm run start`.
 - **NEVER** run `npm run build`.
+- **NEVER** create Git commits or push changes to any remote. Always leave changes uncommitted for the user to review and commit manually.
 - **ALWAYS** use `yarn` for installing dependencies in the frontend (`apcs_web`).
 - **ALWAYS** use `npm` for installing dependencies in the backend (`apcs_service`).
 
@@ -39,3 +40,42 @@
 - **Self-Review Checklist:** After completing any feature or significant edit, perform a self-review before reporting completion: (1) Standards — does the code follow project patterns and conventions? (2) Spec — does it match what was requested? (3) Hygiene — are there stale references, dead branches, or unused imports? (4) Consistency — do all conditional paths reference only defined variables? Report the self-review result in your summary.
 - **Systematic Bug Fixing:** When encountering any error (ESLint, runtime, logic bug), do NOT immediately propose a fix. First: (1) Read the FULL error message including line numbers, (2) Trace the root cause — what variable is undefined? Where was it supposed to come from? (3) Check if the error is a symptom of a larger incomplete edit. Only then apply the minimal targeted fix. Never apply "shotgun" fixes that change multiple things hoping one works.
 - **Conditional Branch Awareness:** When editing JSX with ternary/conditional rendering, you MUST audit ALL branches of the conditional, not just the one you're focused on. If removing a variable from one branch, verify it isn't used in the other branch. If both branches become identical after edits, collapse the conditional into a single unconditional render. Partial edits to multi-branch UI are the #1 source of stale-reference ESLint errors.
+
+<claude-mem-context>
+# Memory Context
+
+# [apcs_Project] recent context, 2026-09-10 10:53pm GMT+7
+
+Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
+Format: ID TIME TYPE TITLE
+Fetch details: get_observations([IDs]) | Search: mem-search skill
+
+Stats: 21 obs (7,323t read) | 489,187t work | 99% savings
+
+### Sep 7, 2026
+2598 12:39a 🔵 Masterclass Assignment component already integrated into admin dashboard
+2617 4:02p 🔴 Payment/expiry lifecycle refactored to hold inventory until provider confirmation
+### Sep 8, 2026
+2647 4:54p 🟣 Masterclass Assignment Enhancement: Paid and Complimentary Passes Combined
+2648 " 🔴 Seat Occupancy Lock Expiry: Respect Backend Lifecycle
+2649 " 🔴 Paper.id Delete Endpoint: Correct to Singular Path
+2650 " ✅ System Settings Configuration: Fail Explicit on Missing Setup
+2651 " 🔵 Paper.id Staging Environment Already Configured
+2655 9:55p 🔴 Paper.id Sales Invoice Cancellation Endpoint Corrected
+2656 " 🔵 Staging Credentials and Firebase Configuration Verified
+2657 " 🔵 Nine Test Failures Identified in Ticketing Follow-Up Audit Suite
+2658 " ⚖️ Firestore Emulator Strategy for Ticketing Launch Testing
+### Sep 10, 2026
+2813 10:21p 🔄 Retired Registrant Dashboard score finalization UI and lock
+2814 " 🟣 Award sync now processes all registrants including finalized assessments
+2815 " ✅ ScoringRecap now defaults to current event and handles config load errors
+2816 " 🔴 Fixed ES module import paths for Node.js compatibility
+2817 " ✅ Removed unused imports and ESLint warnings from core scoring modules
+2818 10:25p 🟣 Event-specific video duration penalty system with centralized scoring
+2819 " ⚖️ Jury assessment lock decoupled from award recalculation during finalization
+2820 " 🔵 All 40 Jest tests passing; video penalty rules and calculator fully validated
+2821 10:28p 🟣 Event-Specific Video Penalty Configuration System
+2822 " 🔵 Firestore APCS2026 Video Penalty Seed Verification Prepared
+
+Access 489k tokens of past work via get_observations([IDs]) or mem-search skill.
+</claude-mem-context>

@@ -2,6 +2,192 @@
 
 This document tracks features and changes made to the APCS project over time.
 
+## 📝 Admin Note Display & Quick Edit in Scoring Recap (ScoringRecap.js)
+
+**Date:** 2026-09-11
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Admin Note Direct Table Display (`ScoringRecap.js`):**
+   - Added `Admin Note` display directly under the `Teacher` row in the participant column of the Scoring Recap table.
+   - Allows administrators to view notes (styled in an amber badge with `pre-wrap` text formatting) immediately without navigating away or opening any separate registrant card.
+   - Shows a subtle "—" placeholder with an "Add Note" button when no note has been created yet.
+2. **Inline Edit Modal & Firestore Persistence:**
+   - Added an "Edit" / "Add Note" button opening an Ant Design Modal prefilled with the registrant's current admin note.
+   - Modal displays the participant's name in the header for clear context and provides a multi-line `Input.TextArea`.
+   - Saves directly to Firestore (`Registrants2025` collection) via `updateDoc({ adminNote })`.
+   - Instantly updates local component state (`registrants`), triggering reactive re-renders in the table, search index, and export data without needing a page refresh.
+3. **Filtering & Search Integration:**
+   - Added an **Admin Note filter** dropdown (`All Admin Notes`, `Has Admin Note`, `No Admin Note`) alongside existing status and jury filters.
+   - Integrated `adminNote` into the table search filter, enabling instant lookup by note text (e.g. searching "USD" or "complimentary").
+   - Automatically resets the admin note filter when switching competition categories or events.
+4. **CSV Export Inclusion:**
+   - Added `admin_note` column to the CSV export headers and data rows, ensuring notes are fully preserved in exported score recap sheets.
+
+---
+
+## 🏷️ Age Category Filter Tabs in Scoring Recap (ScoringRecap.js)
+
+**Date:** 2026-09-11
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Age Category Filter Tabs System (`ScoringRecap.js`):**
+   - Added age category filter tabs modeled after `JuryDashboard.js`, allowing administrators to filter participants by age category (or Ensemble) within any selected competition category.
+   - Dynamically derives all relevant age categories from registrants within the active competition category, with `Ensemble` placed at the end.
+   - Tabs display live registrant counts per age category and display a red badge alert for unscored participants when count > 0.
+   - Comprehensive dictionary mapping of age category keys across all instruments (`Piano`, `Strings`, `VocalChoir`, `Woodwinds`, `Percussions`, `Guitar`, `Brass`, `Electone`, `Harp`, `Guzheng`, and `Ensemble`).
+2. **Table & CSV Export Alignment:**
+   - Table displays formatted age category labels (`getAgeCategoryLabel`) instead of raw keys.
+   - CSV export dynamically respects the active age category filter and automatically includes the category slug in the downloaded filename (e.g. `scoring_recap_piano_poco_4_5_years_old_2026-09-11.csv`).
+   - Table empty state accurately informs the user when no registrants match the selected age category filter.
+3. **State Resets & Hygiene:**
+   - Automatically resets `activeCategory` to `'All'` when switching event or competition category, and handles edge cases where the selected age category no longer exists in a refreshed dataset.
+
+---
+
+## ⏱️ Event-Specific Video Penalties & Unified Award Synchronization
+
+**Date:** 2026-09-10
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. Added an event-scoped `videoPenaltyConfig` with a revision, one shared deduction, and 129 rules mapped to the exact category, performance, division, and age values saved by registration.
+2. Seeded `events/APCS2026` at revision 1 using the approved duration matrix and the existing 5-point deduction.
+3. Preserved the universal grace boundary: a configured limit is penalized only at the next whole second (`Math.floor(videoDuration) > maximumMinutes * 60`).
+4. Updated Scoring Recap, Registrant Dashboard displays/exports, and both award-sync paths to use the same event configuration and centralized calculator.
+5. Clarified finalization semantics: `JuryScores2025.isFinalized` locks jury input, while derived penalties and awards can still be recalculated and synchronized.
+6. Retired the Registrant Dashboard final-average override and stopped treating legacy `Registrants2025.isScoreFinalized` as a synchronization lock.
+7. Added Video Penalty Settings under Scoring Management, configuration revision tracking, missing-rule warnings, and Needs Award Sync indicators.
+
+### Verification
+
+- Added table-driven tests for all canonical mappings, every supported minute boundary, missing configurations, finalized assessments, manual penalty stacking, and synchronization drift.
+- Full frontend Jest suite passes with 177 tests.
+- Added one shared award-synchronization/export service so dashboard exports and both Sync Awards entry points consume the same jury-score set and calculator.
+- Kept admin score adjustments and manual penalties available after jury finalization while jury input remains locked.
+- Registration code and its DOM/selectors were not changed.
+- UI verification remains manual per project policy; no local browser or Playwright run was performed.
+
+---
+
+## 🧮 Centralized Scoring & Award Calculation Engine (Scoring Recap & Sync Awards Alignment)
+
+**Date:** 2026-09-10
+**Status:** ✅ Completed
+
+### What Was Built
+
+Centralized the scoring, penalty (manual + video duration auto-penalty), and award determination logic into a single dedicated module (`apcs_web/src/utils/scoringCalculator.js`) to guarantee 100% calculation parity between **Scoring Recap** and **Sync Awards**:
+
+1. **Centralized Scoring Module (`scoringCalculator.js`):**
+   - Single source of truth for extracting effective scores (`adminAdjustedScore` fallback to `score`), calculating unpenalized raw averages rounded to 2 decimal places, evaluating video duration penalties with sub-second grace period (`Math.floor(videoDuration) > thresholdSec`), calculating admin manual penalties, and resolving the final award tier (`calculateAward`: Sapphire, Diamond, Gold, Silver, and "Fail" for scores < 80).
+   - `calculateRegistrantScoreAndAward(scores, registrant, globalSettings)` encapsulates the complete calculation for a participant, returning `rawAverage`, `autoPenaltyScore`, `manualPenaltyScore`, `totalPenaltyScore`, `finalAverageScore`, and `finalAward`.
+2. **Scoring Recap, -5/-10 Manual Penalties & Standardized Jury Feedback CSV Export (`ScoringRecap.js`):**
+   - Refactored `tableData` to compute participant scores, penalties, and awards directly through `calculateRegistrantScoreAndAward`.
+   - Added support for applying either a **-5** or **-10** manual penalty (for reading sheet music during performance) with dedicated action buttons (`Penalize (-5)` and `Penalize (-10)`), along with instant one-click switching (`Change to -5` / `Change to -10`) and removal.
+   - Re-architected `handleExportCSV` to produce the standardized CSV format:
+     `no,participants_details,performance_feedback_<jury_slug>...,final_score,award,agecategory`
+     dynamically resolving all distinct juries in the category, converting jury names to snake_case headers (e.g. `performance_feedback_sara_heng`, `performance_feedback_yvonne_tay`), quoting comments with double quote escaping and newline preservation, and appending UTF-8 BOM (`\uFEFF`) for flawless Microsoft Excel rendering.
+3. **Database Sync Parity (`RegistrantDashboard.js` & `AdminContent.js`):**
+   - Previously, the "Sync Awards" button (`handleSyncScores`) only calculated the raw score average and completely omitted both manual penalties (`penaltyScore`) and automatic video duration penalties, causing discrepancies where a penalized participant showed as one award tier (e.g. Gold) in Scoring Recap but was saved into Firestore as an unpenalized tier (e.g. Diamond).
+   - Upgraded `handleSyncScores` to load system global settings and use `calculateRegistrantScoreAndAward` so the exact penalized score and award displayed in Scoring Recap are written to `Registrants2025` in Firestore.
+   - Converted batch execution loop to `for...of` with proper `await batch.commit()`.
+4. **Excel Export & Table Popover Alignment (`RegistrantDashboard.js`):**
+   - Upgraded `handleExportJuryComments` (bulk Excel zip export) to use `calculateRegistrantScoreAndAward`, and added `'Manual Penalty applied'` column alongside `'Auto Penalty applied'`.
+   - Updated `getScoreData` (hover popover breakdown and dynamic score badge) to delegate to `calculateRegistrantScoreAndAward`.
+5. **Backwards Compatibility (`Utils.js`):**
+   - Re-exported `calculateAward` from `./scoringCalculator` to maintain compatibility with all legacy imports.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/utils/scoringCalculator.js` | NEW | Centralized calculation engine for effective scores, raw average, auto/manual penalties, final penalized score, and award tiers. |
+| `src/utils/Utils.js` | MODIFIED | Re-exports `calculateAward` from `scoringCalculator` for complete backwards compatibility. |
+| `src/Pages/AdminDashboard/ScoringRecap.js` | MODIFIED | Uses `calculateRegistrantScoreAndAward` in `tableData` and added Award column to CSV export. |
+| `src/Pages/AdminDashboard/RegistrantDashboard.js` | MODIFIED | Aligned `handleSyncScores` ("Sync Awards"), `getScoreData` (popover), and `handleExportJuryComments` (Excel) with centralized calculator. |
+| `src/Pages/AdminDashboard/AdminContent.js` | MODIFIED | Aligned duplicate `handleSyncScores` with centralized calculator and global penalty settings. |
+
+---
+
+## 🔐 Session Management & Login Expiration Fix (Admin Dashboard)
+
+**Date:** 2026-09-10
+**Status:** ✅ Completed
+
+### What Was Built
+
+Fixed the session expiration race condition and overhauled session management across `DataContext.js` and `AdminDashboard.js`:
+1. **Root Cause Resolution (Login Race Condition):** Resolved an issue where logging in immediately flashed *"Session expired. Please log in again."* requiring a second login. This happened because `signInWithEmailAndPassword` / `signInWithPopup` triggered `onAuthStateChanged` before `sessionStart` could be updated, causing the listener to evaluate the user against a stale timestamp from a previous session.
+2. **Atomic Session Initialization:** Initialized fresh session timestamps in `localStorage` (`apcs_session_last_active`, `apcs_session_user_id`, and `sessionStart`) prior to authentication, and added an `isLoggingInRef` guard to prevent false expirations during active login attempts.
+3. **Sliding Inactivity & Activity Tracking:** Implemented a throttled user activity listener (`mousedown`, `keydown`, `scroll`, `touchstart` updated every 30s) so that active administrators are never abruptly logged out while working.
+4. **Active Session Timer & Auto-Logout:** Replaced the commented-out timer with an active interval loop in `DataContext.js` that checks inactivity every 2 seconds and safely signs out if inactivity exceeds 60 minutes (`SESSION_DURATION_MS`).
+5. **Admin Dashboard Header & Warning Modal:**
+   - **Header Session Indicator:** Added a persistent session timer badge in the `AdminDashboard` header displaying remaining time (`Session: 59m 40s`), with click-to-extend tooltip and logged-in user profile pill.
+   - **Expiration Warning Modal:** When remaining time drops to ≤ 3 minutes (`SESSION_WARNING_MS`), a modal prompts the administrator with an active countdown and "Stay Logged In" button to continue their session without interruption.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/context/DataContext.js` | MODIFIED | Atomic login session init, sliding activity tracker, active countdown timer loop, exposed `sessionRemainingMs` and `extendSession`. |
+| `src/Pages/AdminDashboard/AdminDashboard.js` | MODIFIED | Enhanced Header with section title, session countdown tag, quick refresh button, user profile info, and auto-logout warning modal. |
+
+---
+
+## ⏱️ Video Duration Penalty Sub-Second Grace Period
+
+**Date:** 2026-09-10
+**Status:** ✅ Completed
+
+### What Was Built
+
+Updated the automatic video duration penalty evaluation in the Admin Dashboard (`ScoringRecap.js` and `RegistrantDashboard.js`):
+1. **Sub-Second Grace Period:** HTML5 video metadata extracts video duration as a high-precision float (e.g., `600.23` seconds for a 10-minute video due to container/audio padding). The system now evaluates integer seconds via `Math.floor(videoDuration) > thresholdSec`. Any video within 10 minutes plus sub-second padding (e.g. 10:00.000 to 10:00.999 / up to 600.999s) is **not** penalized.
+2. **Strict Threshold Trigger:** Penalties only apply if the video reaches 10:01 (601s) or longer.
+3. **Descriptive Reason Formatting:** Formatted the penalty reason string to display exact minutes and seconds (`Video duration (10m 15s) exceeded 10 mins limit`) rather than misleading rounded minutes (`10 mins exceeded 10 mins limit`).
+4. **Consistency:** Synchronized this calculation across `ScoringRecap.js` (scoring table/csv/recap), `RegistrantDashboard.js` (Excel export & jury score popover calculation).
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/ScoringRecap.js` | MODIFIED | Implemented `Math.floor(videoDuration) > thresholdSec` check and improved penalty reason format. |
+| `src/Pages/AdminDashboard/RegistrantDashboard.js` | MODIFIED | Aligned Excel export and dynamic score calculations with the sub-second grace rule. |
+
+---
+
+## 👨‍🏫 Teacher Name in Scoring Recap (Admin Dashboard)
+
+**Date:** 2026-09-10
+**Status:** ✅ Completed
+
+### What Was Built
+
+Added the teacher name display for each registrant in the Admin Dashboard **Scoring Recap** (`ScoringRecap.js`):
+1. **Participant Column Display:** Added teacher name below the "Watch Video" button in the Participant column (or below the category tag if no video is present), formatted with clean secondary text and standard fallback (`—`).
+2. **Search Support:** Extended the participant search bar to also match against teacher names, enabling administrators to easily locate all students registered under a specific teacher.
+3. **CSV Export:** Added `Teacher Name` column to the exported scoring recap CSV.
+4. **Data Normalization:** Added `getTeacherName` helper to reliably resolve teacher names across `teacherName`, `teacher`, or `userType === 'Teacher'` profiles.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/ScoringRecap.js` | MODIFIED | Added `getTeacherName` helper, displayed teacher name in Participant table column below video button, enabled teacher search, and included in CSV export. |
+
 ---
 
 ## 👩‍⚖️ Jury Management Page
