@@ -457,6 +457,39 @@ Completed an end-to-end audit of the ticketing system and implemented 5 critical
 
 ---
 
+## 🏆 Scoring Recap: Batch Export Winner Comment Sheets by Award (ZIP)
+
+**Date:** 2026-09-14
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Batch Winner Export Across Categories:** Added an "Export Winner Comment Sheets by Award" button in `ScoringRecap.js` (placed in the top header next to the Event and Category selectors) that batch-processes all competition categories for the selected event.
+2. **Award Tier Subfolder Organization:** Splits finalized winners (`isFinalized === true`) into distinct CSV files for each award tier (`Sapphire`, `Diamond`, `Gold`, `Silver`) while strictly excluding unfinalized, unscored, N/A, and Fail (`<80`) entries.
+3. **Structured ZIP Extraction:** Packages all generated CSVs into a single ZIP archive (`WINNER_COMMENT_SHEETS_<EVENT>_<DATE>.zip`) structured with category folders and award tier subfolders:
+   ```
+   <Competition_Category>/
+   ├── Sapphire/
+   │   └── DESIGN_TEAM_<CATEGORY>_SAPPHIRE_<DATE>_COMMENT_SHEET.csv
+   ├── Diamond/
+   │   └── DESIGN_TEAM_<CATEGORY>_DIAMOND_<DATE>_COMMENT_SHEET.csv
+   ├── Gold/
+   │   └── DESIGN_TEAM_<CATEGORY>_GOLD_<DATE>_COMMENT_SHEET.csv
+   └── Silver/
+       └── DESIGN_TEAM_<CATEGORY>_SILVER_<DATE>_COMMENT_SHEET.csv
+   ```
+4. **Adobe Illustrator Variable-Safe Format:** Preserved exact compatibility with Adobe Illustrator variable data merges (`header_<jury>`, line breaks sanitized to spaces, RFC 4180 escaping, no UTF-8 BOM).
+
+### Files Modified
+
+#### Frontend (`apcs_website/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/ScoringRecap.js` | MODIFIED | Added `handleExportAllWinnersByAward` batch exporter, generalized `getExportJuries`, added `batchExporting` loading state, and integrated the new header action button. |
+
+---
+
 ## 🌍 International Registration Flow Update
 
 **Date:** 2026-07-25
