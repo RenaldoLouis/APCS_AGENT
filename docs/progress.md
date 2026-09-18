@@ -4,6 +4,183 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+## 🔓 Protected Locked-Booking Release from Seat Occupancy
+
+**Date:** 2026-09-18
+**Status:** ✅ Implemented locally
+
+### What Was Built
+
+- Locked seats with a `lockedByBookingId` are actionable from the Seat Occupancy layout and open the linked public booking.
+- The admin chooses a verified reason and may save an audit note. The no-response reason is blocked until one hour after booking creation.
+- The reason allowlist contains only customer declined and no response after one hour.
+- Known Paper.id invoices are cancelled through the backend before any inventory is released. A failed cancellation leaves the booking and seats locked.
+- Failed bookings without an invoice ID require an explicit confirmation that Paper.id has no paid or active invoice. Pending no-invoice checkouts are blocked because invoice creation may still be in flight.
+- Release is booking-wide and transactional: expected payment status and invoice identity are rechecked, then every expected seat lock, canonical ownership record, reserved ticket capacity, winner claim, and complimentary quota is validated before any local write. A late invoice or any inventory mismatch aborts the complete local release; paid bookings are rejected.
+- A confirmed Paper.id cancellation is saved before local cleanup, so an admin can repair inconsistent inventory and retry without sending a second provider cancellation.
+- The booking keeps its terminal `failed` or `expired` status and receives `adminRelease` audit metadata. Public Customers displays that release information from the same booking document.
+- The endpoint verifies a Firebase ID token and current whitelist membership before allowing reconciliation.
+- New release UI copy is localized in English and Indonesian, and the reconciliation surfaces use the APCS black/gold admin styling.
+
+### Verification
+
+- Backend ticketing audit: 72 tests passed, including known-invoice cancellation, unknown-invoice confirmation, pending and late-invoice race protection, strict atomic inventory validation and retry, exact reason enforcement, localized API error codes, one-hour enforcement, cancellation failure, paid-booking protection, and whitelist authentication.
+- Targeted frontend ESLint completed with no errors. Existing warnings remain in unrelated/pre-existing code paths.
+- UI behavior requires owner verification in the browser per project policy; no browser automation was used.
+
+---
+
+## 🎟️ Public Buyer Ticket Tier & Add-on Restriction in Public Ticket Booking
+
+**Date:** 2026-09-16
+**Status:** ✅ Completed
+
+### What Was Built
+
+Enforced strict public buyer tier and add-on restrictions on the public ticket booking page (`PublicTicketBookingPage.js`):
+1. **Tier Restriction (`isTierAllowedForBuyer`):**
+   - For `buyerType === 'public'`, buyers can **only select Presto and Allegro** ticket tiers.
+   - Non-eligible tiers (such as Lento) are filtered out from the selection UI and cannot be purchased by public buyers.
+   - Automatic cleanup effects purge any non-allowed tier quantities if switched to public mode.
+2. **Add-on Restriction:**
+   - Public buyers **cannot select any add-ons**.
+   - The entire `Add-ons (Optional)` section is hidden for public buyers.
+   - Any add-on items in `selectedAddOns` are strictly cleared whenever `buyerType === 'public'`.
+   - The checkout payload guarantees `addOnIds: []` for public checkout.
+   - Add-on rows are hidden in both the sidebar Order Summary and Step 3 Review & Pay for public buyers.
+3. **Presto Masterclass Benefit Retained:**
+   - Public buyers purchasing Presto tickets still receive their automatic complimentary Masterclass pass notice banner (`🎁 You receive N complimentary Masterclass passes automatically with your Presto tickets!`).
+4. **Venue Pricing Validation (`hasMissingPricing`):**
+   - Updated missing-pricing check to only evaluate applicable tiers for the current buyer type (Presto and Allegro for public buyers), preventing unconfigured pricing for Lento from blocking public checkouts.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/TicketBooking/PublicTicketBookingPage.js` | MODIFIED | Added `isTierAllowedForBuyer` helper, restricted ticket tiers to Presto/Allegro for public, hidden add-ons section for public buyers, and enforced empty add-on payloads. |
+
+---
+
+## 👥 Ensemble Kid Listing & Search in Admin Page (SessionAssignmentManager)
+
+**Date:** 2026-09-16
+**Status:** ✅ Completed
+
+### What Was Built
+
+Enhanced the Admin Page (`AdminContent.js` rendering `SessionAssignmentManager.js`) to comprehensively list each kid in every ensemble and enable search across individual performer/kid names in both the unassigned pool and assigned session columns:
+1. **Ensemble Detection & Performer Extraction:**
+   - Added `isEnsembleRegistrant(reg)`, `getPerformerNames(reg)`, `getDisplayName(reg)`, and `doesRegistrantMatchSearch(reg, term)` helpers.
+   - Detects ensembles from `PerformanceCategory`, `competitionCategory`, `performers` array, `performerNames`, or `totalPerformer > 1`.
+   - Extracts all individual kid names from `reg.performers` (`fullName` or `firstName` + `lastName`).
+   - Formats compound display titles for ensembles (e.g. `Alice & Bob`, `Alice, Bob & Charlie`).
+2. **Draggable Card Display (`DraggableCard`):**
+   - Displays an `Ensemble (N)` purple badge next to the title.
+   - Lists all individual kids with dedicated member tags (`👥 Kids: [Kid 1] [Kid 2]`).
+   - Dynamically highlights any kid tag that matches the active search term with a gold chip.
+3. **Session Columns & Search Highlighting (`SessionDropZone`):**
+   - Updated session cards to accept `searchTerm` and evaluate matches across all assigned registrants and ensemble kids.
+   - Displays a prominent `🔍 N matches` gold badge in the session header when a searched kid or teacher is assigned to that session.
+   - Accents matching session containers (`.search-match-session`) and matching cards (`.search-match`).
+4. **Unassigned Pool Filtering:**
+   - Updated `unassignedRegistrants` filter to match against all kid names in ensembles, display names, teacher names, repertoire, and category.
+   - Updated search input placeholder to `"Search kid, ensemble, or teacher..."`.
+5. **Overview Modal:**
+   - Added an embedded quick search input (`overviewSearchTerm`) to search kids across all venue sessions simultaneously.
+   - Renders `Ensemble (N)` badges and all member kid tags on each registrant card in the overview columns.
+   - Highlights matching cards and matching kid chips when searching in the overview.
+6. **Save & Excel Export:**
+   - Enriched assignment persistence (`apis.session.saveAssignments`) to include `displayName`, `isEnsemble`, `performerNames`, and `performanceCategory`.
+   - Enriched Excel export (`handleExport`) with a dedicated `Type` (Ensemble vs Solo) and `Performer Names` column listing all ensemble kids.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/components/molecules/AdminContentComponent/SessionAssignmentManager.js` | MODIFIED | Added ensemble kid detection, member tags, search matching for individual kids, session match badges, and overview search. |
+| `src/components/molecules/AdminContentComponent/SessionAssignmentManager.css` | MODIFIED | Added styles for `.sam-ensemble-badge`, `.sam-ensemble-members`, `.sam-ensemble-kid-tag`, `.highlighted`, `.search-match`, and `.sam-search-match-tag`. |
+
+---
+
+
+## 👥 Ensemble Registrant Names Display in Public Ticket Booking
+
+**Date:** 2026-09-16
+**Status:** ✅ Completed
+
+### What Was Built
+
+Enhanced the public ticket booking page (`PublicTicketBookingPage.js`) and eligible winners backend service (`PublicTicketRepository.js`) to display and list all registrant performer names when a winning participant is an ensemble:
+1. **Backend Enrichment (`PublicTicketRepository.getEligibleWinners`):**
+   - Detects whether a winner registrant is an ensemble by checking `data.PerformanceCategory`, `data.competitionCategory`, or if `data.performers` / `totalPerformer > 1`.
+   - Extracts and sanitizes the full list of performer names (`performerNames`) from `data.performers` objects (`fullName` / `firstName` + `lastName`).
+   - Returns `isEnsemble: boolean`, `performanceCategory: string`, and `performerNames: string[]` on each winner object.
+2. **Frontend Winner Selection (`PublicTicketBookingPage.js`):**
+   - **Search Filtering:** Updated `filteredWinners` search logic to check performer names so users can find an ensemble by searching for any member's name, not just the primary contact/first performer.
+   - **Step 0 Winner Cards:** Added an `Ensemble (N)` badge to the card header and a dedicated member tag list showing all registered ensemble member names.
+   - **Step 2 Details Step:** When an ensemble is selected, the registrant name defaults to all member names (`Member 1, Member 2, ...`), labels the field as `Paying for Registrant (Ensemble)`, and displays a pill tag list of all registered performers.
+   - **Step 3 Review & Pay Step:** Displays the ensemble badge and lists all ensemble member names under `Paying For (Registrant)`.
+3. **Styling (`PublicTicketBookingPage.css`):**
+   - Added styles for `.ptb-ensemble-badge`, `.ptb-ensemble-members`, `.ptb-ensemble-label`, `.ptb-ensemble-names`, `.ptb-ensemble-member-tag`, and `.ptb-ensemble-details-box`.
+4. **Automated Testing (`apcs_service/audit/public-ticket.audit.cjs`):**
+   - Added automated tests verifying that `getEligibleWinners` properly identifies ensemble winners and returns all performer names.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/TicketBooking/PublicTicketBookingPage.js` | MODIFIED | Added ensemble helpers, member search filter, ensemble tags, and member listings in Steps 0, 2, and 3. |
+| `src/Pages/TicketBooking/PublicTicketBookingPage.css` | MODIFIED | Added responsive styles for ensemble tags, labels, and member badges. |
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/repositories/PublicTicketRepository.js` | MODIFIED | Enriched `getEligibleWinners` with `isEnsemble`, `performanceCategory`, and `performerNames`. |
+| `audit/public-ticket.audit.cjs` | MODIFIED | Added test asserting that ensemble winner lookups return all performer names and ensemble flag. |
+
+---
+
+## 🪑 Developer Test Seat Occupancy Reset Utility
+
+**Date:** 2026-09-12
+**Status:** ✅ Completed
+
+### What Was Built
+
+Created a safe, automated backend CLI utility (`apcs_service/reset_test_occupancy.js`) to allow developers to clean up test seat occupancy, locks, bookings, and complimentary quota without exposing dangerous reset buttons in the admin UI:
+1. **Safety-first execution:** By default, runs in dry-run mode (`--dry-run` inspection) showing all booked seats, public bookings, and orchestra complimentary counters that would be affected. Requires `--confirm` to commit changes.
+2. **Granular filtering:** Supports filtering by session (`--session=<sessionId>`), venue (`--venue=<venueId>`), event (`--event=<eventId>`), and optionally retaining booking records (`--keep-bookings`).
+3. **Comprehensive cleanup:**
+   - Resets all booked/locked/reserved seats back to `status: 'available'` and removes assignment/lock metadata.
+   - Deletes test `publicBookings` to prevent ghost paid bookings from pointing to freed seats.
+   - Resets `complimentaryClaimed: 0` on `events/{eventId}.orchestraSessions`.
+   - Purges related `ticketSeatOwnership`, `ticketCapacity`, and `winnerOrchestraClaims` tracking collections.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `reset_test_occupancy.js` | ADDED | CLI developer utility for safe test seat occupancy and booking data reset. |
+| `package.json` | MODIFIED | Added `"reset-test-occupancy"` npm script. |
+
+#### Documentation (`docs/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `docs/SEAT_BOOKING_FLOW.md` | MODIFIED | Documented testing mode occupancy reset behavior and utility usage. |
+| `docs/TICKETING_SYSTEM_GUIDE.md` | MODIFIED | Added developer instructions for resetting test occupancy. |
+
+---
+
 ## 👩‍⚖️ Jury Management Page
 
 **Date:** 2026-09-04

@@ -28,8 +28,8 @@ These are owner-confirmed requirements. Implementation is partial; the current s
 | Orchestra Settings | Select venue/date/time; set complimentary quota and reserved rows | Supplies orchestra events and the free orchestra allowance for winner purchases. Creates seats for new entries. |
 | Masterclass Settings | Define standalone masterclass sessions | Allows quantity-only masterclass purchases. Sessions have no attendee limit for now. |
 | Masterclass Assignments | Fulfil paid add-on and complimentary Masterclass benefits | Lists eligible paid bookings and assigns their combined benefit passes to one session; assignment email remains pending. |
-| Admin Page | Sync awards and assign performers to competition sessions; save assignments | Supplies the eligible winner list and the winner's already assigned competition session. |
-| Seat Occupancy | Review generated inventory and seat layouts | Shows selected-seat states, not all sold/unassigned ticket demand. |
+| Admin Page | Sync awards and assign performers/ensembles to competition sessions; save assignments | Supplies the eligible winner list and the winner's already assigned competition session. Displays all ensemble member names, highlights matched kids in search, and exports full kid rosters. |
+| Seat Occupancy | Review inventory and reconcile a linked locked booking | Shows selected-seat states, not all sold/unassigned demand. A locked seat can open its booking for provider-verified cancellation and full inventory release. |
 
 **Public Customers** is a separate main-menu page. It displays bookings, lets staff resend confirmations, assigns missing paid seats, and provides Mark Paid/Delete actions. It is part of ticket fulfillment even though it is outside the Ticketing System submenu.
 
@@ -55,7 +55,7 @@ The customer enters contact details, reviews, and pays through Paper.id. The wai
 
 ### Registered winner
 
-The customer selects their winner profile. Their competition venue/date/time is derived from the assignment staff already saved. They separately choose the orchestra session they want to attend.
+The customer selects their winner profile. Their competition venue/date/time is derived from the assignment staff already saved. If the winning registration is an ensemble, the UI highlights it as an Ensemble and lists all registered performer names in the selection card, search, and checkout review. They separately choose the orchestra session they want to attend.
 
 The required allowance is **one per purchased ticket plus the personal winner ticket if not previously claimed, bounded by remaining quota and reserved-row capacity**. The backend now records the personal claim, but the UI still shows the older capped `P + 1` formula. Repeat selected-seat purchases encounter contradictory backend counts, and a quota-capped paid purchase is currently rejected; see the latest handover. The purchase UI requires at least one paid ticket before continuing, even though the displayed formula includes the winner's extra ticket.
 
@@ -83,11 +83,11 @@ Both the dedicated public webhook and the unified payment webhook can process pu
 
 ## Staff monitoring and fulfillment
 
-**Seat Occupancy:** refresh to view generated physical documents by venue/session. A low booked count does not imply equivalent unsold capacity when tickets are unassigned. Orchestra slots may appear twice under different labels. Pending buyer names are not fully wired into locked-seat tooltips.
+**Seat Occupancy:** refresh to view generated physical documents by venue/session. A low booked count does not imply equivalent unsold capacity when tickets are unassigned. Click a linked locked seat to review its booking. The cancellation dialog accepts only customer declined or no response after one hour, plus an optional note; the no-response option is enforced only after one hour from booking creation. Known Paper.id invoices are cancelled by the backend before release. A booking without an invoice ID can be manually confirmed only after checkout is terminal `failed`; a `pending` no-invoice checkout remains locked because invoice creation may still be in flight. Before any local release, the transaction rechecks that payment status and invoice identity did not change and requires every expected seat, ownership, capacity, winner-claim, and complimentary-quota record to be consistent. A late invoice or any inventory mismatch keeps all local inventory locked for repair and retry.
 
 **Public Customers:** inspect payment status, quantities, benefits and selected seats. Missing paid seats can be assigned manually only after payment; the transaction rechecks event, seat availability/ownership, session, tier, and remaining ticket quantity, and never treats an old local lock as available. Complimentary Masterclass passes are assigned from the separate **Masterclass Assignments** page. “Auto-Assigned” can merely mean labels are empty.
 
-**Failed checkout:** a known or unknown provider outcome keeps owned inventory held while the booking is retained as `FAILED`. Only confirmed cancellation releases it; failed/unknown cancellation requires reconciliation. Failed bookings cannot be marked paid or fulfilled automatically. If database cleanup fails, staff must use the booking ID in server logs; automatic recovery is not provided.
+**Failed checkout:** a known or unknown provider outcome keeps owned inventory held while the booking is retained as `FAILED`. Only confirmed cancellation or an explicit admin verification that no active invoice exists releases it. Failed bookings cannot be marked paid or fulfilled automatically. A Seat Occupancy release updates the same booking used by Public Customers, where the release reason, admin email, note, and resolved cancellation status are shown. A provider cancellation that precedes a local consistency failure is saved as `canceled`, so retrying after repair does not send another cancellation request.
 
 **Mark Paid/Delete:** Mark Paid is shown only for `pending` bookings and transactionally requires every selected seat to still be locked by that booking before booking it. It remains a staff fallback after independently verifying payment; webhook authenticity is still a release blocker. Delete is shown only for terminal records whose confirmed cancellation cleanup already released inventory and complimentary quota. Pending/paid/awaiting-reconciliation orders must go through the cancellation/reconciliation process instead.
 
@@ -137,7 +137,7 @@ The payment URL is persisted with the booking. Give customers the booking-status
 
 Use **Invoice Paid** as the normal ticket-fulfillment trigger. Staff may investigate Payment In details in the Paper dashboard; APCS does not need a second payment-event dependency. Callback authentication, invoice matching, missed-notification recovery, and verified unpaid cancellation remain mandatory engineering work. Provider registration guidance is documented separately in the handover.
 
-Combined paid/free Masterclass assignment is implemented; its email is not. Seat Occupancy remains read-only and does not show the complete paid/free quantity awaiting assignment. Existing Public Customers assignment must be repaired to share physical ownership protection before it can safely coexist with public sales.
+Combined paid/free Masterclass assignment is implemented; its email is not. Seat Occupancy now supports protected cancellation of a linked locked booking, but paid-seat assignment and complete paid/free quantities awaiting assignment remain separate work.
 
 ## Follow-up repair — 8 September 2026
 
@@ -145,6 +145,24 @@ The previously listed nine checkout safety regressions are repaired in the offli
 
 For winners, the screen now previews the current capped Orchestra allowance using the winner's active personal claims, the session quota, and reserved-row capacity. This is informational only: checkout recalculates it in its Firestore transaction. If capacity changed while the buyer was reviewing, the buyer must review the returned allowance before attempting payment again. Complimentary seat selection is valid only with the `seat_selection` add-on and for exactly the granted quantity.
 
-Do not reuse a checkout link after an expired or failed attempt. A matching retry restores the same pending attempt; a modified cart gets a new client attempt key and a server-side changed-cart conflict is rejected. Invoice Paid must carry the exact stored Paper invoice ID and the expected amount before fulfillment.
+These repairs are not a launch certificate. Paper callback authentication and recovery, verified cancellation semantics, backend whitelist enforcement for the remaining ticketing-admin routes, assignment email, configuration/migration protection, Firestore emulator contention evidence, the fresh-event 500-buyer rehearsal, and owner-run UI/entry checks are still outstanding. The Seat Occupancy release endpoint itself verifies a Firebase token and whitelist membership.
 
-These repairs are not a launch certificate. Paper callback authentication and recovery, verified cancellation semantics, backend whitelist enforcement, assignment email, configuration/migration protection, Firestore emulator contention evidence, the fresh-event 500-buyer rehearsal, and owner-run UI/entry checks are still outstanding.
+## Resetting Test Occupancy (Testing Mode Only)
+
+To prevent staff from inadvertently clearing live customer reservations, **Seat Occupancy** has no bulk reset or direct single-seat status toggle. Its booking cancellation action always processes the linked booking and its related capacity/claim records together. The **Regenerate Seats** action in Performer Sessions / Orchestra Settings preserves all active bookings.
+
+To safely reset test data during developer testing, use the developer CLI script in `apcs_service`:
+```bash
+# Safe preview (dry-run mode, no changes made)
+node reset_test_occupancy.js
+
+# Safe preview for a specific session
+node reset_test_occupancy.js --session=2026-07-01_08:00-09:00
+
+# Execute reset across all sessions
+node reset_test_occupancy.js --confirm
+
+# Execute reset for a specific session only
+node reset_test_occupancy.js --session=2026-07-01_08:00-09:00 --confirm
+```
+This resets seats back to `available`, clears locks/assignments, removes test `publicBookings`, resets orchestra complimentary claim counters, and purges related capacity/claim records.
