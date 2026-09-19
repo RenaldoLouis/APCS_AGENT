@@ -2,6 +2,36 @@
 
 This document tracks features and changes made to the APCS project over time.
 
+## 🎼 Scoring Recap: Ensemble Names Joined with '&' & Fail Tier Included in Batch Export
+
+**Date:** 2026-09-16
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Ensemble Performer Name Joining:** Updated `getPerformerName` in `csvVariableSafeUtil.js` and integrated across `ScoringRecap.js` to automatically list and join all ensemble performers with ` & ` (e.g., `Performer 1 & Performer 2 & Performer 3`).
+2. **Fail Award Tier Included in Batch Comment Sheet Export:**
+   - Updated `handleExportAllWinnersByAward` in `ScoringRecap.js` to include the `Fail` tier alongside `Sapphire`, `Diamond`, `Gold`, and `Silver` (`targetTiers = ['Sapphire', 'Diamond', 'Gold', 'Silver', 'Fail']`).
+   - Generates a dedicated `Fail/DESIGN_TEAM_<CATEGORY>_FAIL_<DATE>_COMMENT_SHEET.csv` inside each competition category folder when finalized participants with a Fail result exist.
+3. **Comprehensive Coverage Across Exports:**
+   - **Export CSV**: Lists all ensemble members joined with ` & `.
+   - **Export Comment Sheet CSV**: Lists all ensemble members joined with ` & ` in the `name` column for the creative team's Illustrator variable merge.
+   - **Export Winner Comment Sheets by Award (Batch ZIP)**: All generated award tier CSVs across all competition categories format ensemble names with ` & ` and include `Fail` tier files.
+   - **Dashboard Table & Modals**: Shows full ensemble member lists joined with ` & `.
+4. **Unit Tests**: Added unit tests in `csvVariableSafeUtil.test.js` covering solo vs. ensemble, case-insensitive `PerformanceCategory`, single-performer ensemble, and name fallbacks (26/26 tests passing).
+
+### Files Modified
+
+#### Frontend (`apcs_website/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/utils/csvVariableSafeUtil.js` | MODIFIED | Exported centralized `getPerformerName` with ensemble detection and ` & ` joining. |
+| `src/Pages/AdminDashboard/ScoringRecap.js` | MODIFIED | Imported `getPerformerName` from `csvVariableSafeUtil` and used as reliable fallback for all export formats. |
+| `src/utils/csvVariableSafeUtil.test.js` | MODIFIED | Added 6 test cases for `getPerformerName`. |
+
+---
+
 ## 🎨 Comment Sheet CSV Export & Illustrator CSV Error Resolution (ScoringRecap.js)
 
 **Date:** 2026-09-12
