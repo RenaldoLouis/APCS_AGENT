@@ -1,178 +1,94 @@
 # Seat Booking and Ticketing Flow Architecture
 
-Last checked against local code: **8 September 2026**.
+Current local implementation: **19 September 2026**. The free-seating business rules below supersede the earlier orchestra reserved-row and Masterclass checkout rules. Historical audits remain linked for payment/inventory findings; this document does not certify deployment or live-provider behavior.
 
-For continuation priorities, confirmed decisions, and remaining work, see the [AI handover](TICKETING_HANDOVER_2026-09-07.md).
+## Business rules
 
-**Latest implementation re-review (8 September):** see [the current AI handover](TICKETING_IMPLEMENTATION_REVIEW_HANDOVER_2026-09-08.md). The baseline has 49 passing offline checks, but nine additional safety checks fail, including staff/public double allocation, duplicate cleanup refunds, winner entitlement validation, checkout retry, and invoice identity. The [approved launch plan](TICKETING_LAUNCH_READINESS_PLAN_2026-09-08.md) remains historical scope; it is not a readiness certificate.
+- A winner selects their winning performance. Competition venue/date/time comes from the internal team's existing assignment; checkout must validate it.
+- A winning performance's orchestra attendance is **all its paid ticket quantities for the event plus its performer count once**. A solo winner contributes one performer; an ensemble contributes its registered members. Four ensemble members with purchases of three and two tickets produce nine attendees, even when different parents buy.
+- Pending, failed and expired purchases do not contribute paid attendance. A paid callback replay does not count a booking again because the group is derived from persisted paid bookings, not incremented by callbacks.
+- Staff assign the entire paid winner group to one orchestra session after payment. Orchestra attendance uses free seating; customers and admins do not select numbered orchestra seats.
+- Direct public orchestra buyers select their session and Presto/Allegro quantities. They receive no winner-member allowance and no numbered seat-selection option.
+- Masterclass sales, add-ons, and complimentary Presto benefits are outside this system for new purchases. Existing records retain their historical entitlements.
+- Numbered competition tickets retain the existing optional performer seat-selection add-on and paid-only manual assignment.
 
-> The integration is incomplete. Read [the ticketing audit](TICKETING_AUDIT_2026-09-06.md) before changing or operating the flow. This document describes current behavior; it does not certify safe allocation, expiry, or payment handling.
+## Ownership and configuration
 
-## Confirmed business rules — follow-up to the 6 September audit
+| Component | Responsibility |
+| --- | --- |
+| System Settings | Active event and eligibility schedule |
+| Venue Settings | Named venues, tier/row capacity blueprint and images |
+| Performer Sessions | Competition schedules and numbered competition seat generation |
+| Ticket Settings | Prices, active ticket tiers, remaining competition add-ons and sale dates; hides/rejects retired Masterclass/orchestra-seat products |
+| Orchestra Settings | Venue/date/time and winner headcount quota; shows paid public attendance, held public demand, assigned winners and separate legacy allocations; never generates seats |
+| Orchestra Assignments | Paid winner groups, full attendee quantity, session assignment/reassignment and assignment-email retry |
+| Seat Occupancy | Numbered competition inventory and historical orchestra seat records; provider-confirmed cancellation of linked locked bookings |
+| Admin Page | Awards and saved competition performer assignments |
+| Public Customers | Booking status, existing competition seat assignment, Mark Paid, reconciliation details and confirmation resend; new free-seating orchestra bookings cannot receive numbered seats |
 
-These are owner-confirmed requirements. Implementation is partial; the current status and remaining defects are described below:
+Masterclass Settings/Assignments have been removed from the active Ticketing System menu. Their legacy source files and data remain available for historical maintenance.
 
-- When a buyer does not purchase the corresponding seat-selection add-on, an admin must be able to assign the seat from **Seat Occupancy**. The current page is read-only; the existing Public Customers paid-seat assignment is not the complete requested workflow.
-- The winner's extra **one complimentary orchestra ticket** is available **once per winner per orchestra session**, across separate purchases. This clarification concerns the extra winner ticket; it does not remove the existing per-purchased-ticket benefit. An ensemble counts as one winning performance: it receives one extra winner ticket per orchestra session, not one per member. An unpaid booking that expires does not consume this extra ticket entitlement; the winning performance may claim it again when retrying. Restoring eligibility does not guarantee that session quota or reserved-row capacity remains available.
-- Orchestra **reserved rows are for winners' complimentary tickets**. Ordinary paid-ticket buyers must not gain access merely by purchasing seat selection. All complimentary orchestra seats must stay within these reserved rows, including customer-selected seats and admin assignments from Seat Occupancy; they must not spill into ordinary paid rows.
-- Admin assignment and inventory protection are separate: unassigned tickets still need capacity protection to prevent overselling. Admins may assign seats from Seat Occupancy only after payment is confirmed. Pending, expired, or failed bookings are not eligible for admin seat assignment.
+## Identifiers and records
 
-## Configuration and ownership
+- Active event: `systemSettings/global.currentEventId`.
+- Competition assignment key: `{venueId}_{date}_{timeRange}` in `sessionAssignments/{eventId}.assignments`.
+- Physical seats: `seats{eventId}`, scoped by venue and `sessionId = {date}_{timeRange}`. Canonical physical identity is `(event, venue, session, row, number)` across legacy seat-document aliases.
+- New booking: `publicBookings/{id}` with `ticketingVersion: 2`, `venueName`, `performerCount`, `orchestraAttendanceTickets`, and `seatingMode` (`numbered` or `free`). Performer count is a snapshot from `Registrants2025.performers`, with solo fallback one. Client counts are ignored.
+- Winner group: `(eventId, registrantId)`. Paid ticket totals come from persisted paid version-2 bookings for that group. The maximum recorded performer count is added once; an administrator must reconcile intentional roster corrections separately.
+- Saved orchestra assignment: `orchestraAssignments/{encodeURIComponent(eventId + '|' + registrantId)}`. It stores session/venue/date/time, paid and performer counts, total quantity, booking IDs, revision, admin identity/timestamp, delivered booking IDs and a short notification lease.
+- `events/{eventId}.orchestraSessions[].freeSeatingAssigned` stores assigned version-2 winner headcount. `complimentaryClaimed` remains the separate legacy quota counter.
+- `winnerOrchestraClaims` is retained for legacy cancellation/fulfillment. New purchases do not create personal claims or decrement session orchestra quota at checkout.
 
-| Component | Writes | Consumers |
-| --- | --- | --- |
-| System Settings | `systemSettings/global.currentEventId` | Admin context and backend active-event lookup |
-| Venue Settings | `events/{eventId}.venues` including row/tier/count `seatConfig` | Scheduling, generators, pricing, maps |
-| Performer Sessions | `venues[].sessions` and generated seat documents | Assignment manager, public sessions, orchestra/masterclass time options |
-| Ticket Settings | Event `ticketTiers`, venue prices, `addOns`; global `ticketEligibility` | Public UI and backend pricing/eligibility |
-| Orchestra Settings | Event `orchestraSessions`, quota, reserved rows, generation flags and seats | Public orchestra sales and winner complimentary selection |
-| Masterclass Settings | Event `masterclassSessions` | Standalone masterclass selection without physical seat picking |
-| Masterclass Assignments | `publicBookings/{bookingId}.masterclassAssignment` | Paid-only staff assignment of combined paid add-on and complimentary passes from one booking to one Masterclass session; email pending |
-| Admin Page / SessionAssignmentManager | `sessionAssignments/{eventId}.assignments` | Eligible-winner lookup and assigned competition venue/date/time. Shows all ensemble kids, highlights matched kids in search, and saves enriched ensemble performer rosters |
-| Seat Occupancy | Seat queries plus protected booking reconciliation | Inventory counts/layout inspection; clicking a locked seat opens its linked booking and can cancel/release the whole booking after provider verification. Paid-seat assignment remains pending. |
-| Public Customers | Booking and seat updates | Manual paid-seat assignment, paid override, deletion, email resend |
+See [architecture](architecture.md) for field/API details and [the agreed implementation plan](TICKETING_FREE_SEATING_PLAN_2026-09-19.md).
 
-`Admin Page` is menu key `2`, and handles awards/performer assignment. `Public Customers` is separate menu key `16`. The old `SeatEvent` booking screen has a hidden menu entry; its exported seat-generation function is still used by Performer Sessions.
+## Customer data path
 
-## Identifiers and storage
+1. Load event config, sale eligibility and eligible assigned winners. Historical Masterclass slots are excluded from ordinary session sales as well as the explicit Masterclass list.
+2. Winner selection supplies the already assigned competition venue/date/time and ensemble roster. Public buyers select a sale session.
+3. Choose quantities and, for competition winners, any remaining add-ons/numbered competition seats. The checkout has four steps: entry, tickets, details, review/payment. There is no winner orchestra dropdown, quota banner or free-orchestra-seat step.
+4. Submit buyer details, winning-performance ID where applicable, paid session, ticket quantities, selected competition seats and active add-ons. Checkout rejects supplied winner orchestra sessions, orchestra seat IDs, retired seat-selection add-ons and Masterclass products.
+5. Backend verifies event, winner eligibility/competition assignment, session type, server pricing, quantities, physical ownership and paid capacity. New orchestra products accept only Presto/Allegro and no numbered seats/add-ons.
+6. The checkout transaction reads inventory and the idempotency record before writes. Selected competition seats lock physically; all purchased quantities reserve paid capacity even without a selected seat.
+7. Create/save Paper.id invoice and URL. The waiting page polls server payment status. A repeated matching pending checkout key reuses its booking; changed carts and terminal attempts do not silently reuse a payable invoice.
+8. Payment confirmation includes the named booked venue, date/time, ticket summary, selected competition seats and unassigned competition quantities. Winner orchestra assignment is pending until staff save it. Public orchestra confirmations say free seating within the purchased category.
 
-- Event: selected through `systemSettings/global.currentEventId`; public checkout now fails if the active event is missing or unreadable.
-- Assignment key: `{venueId}_{date}_{timeRange}` in `sessionAssignments/{eventId}`. Values contain `registrantId`, display name/email, order, and category metadata.
-- Seat query: collection `seats{eventId}`, filtered by `venueId` and `sessionId = {date}_{timeRange}`.
-- Orchestra/masterclass session IDs: separate generated IDs in the event arrays; these are not the seat `sessionId` or assignment key.
-- Generation flag: `sessionsSeatsGenerated[{venueId}_{date}_{timeRange}]`; some paths also read/write a legacy key without venue.
-- Booking: auto-ID document in the unified `publicBookings` collection, with an `eventId` field.
-- Registrant source: shared multi-year `Registrants2025`, with event filtering necessary.
+## Capacity and assignment transactions
 
-### Existing seat ID incompatibility
+Public orchestra tier limits use the venue's tier seat counts. The overall public limit is total venue capacity **minus the configured winner quota**, rather than a set of reserved rows. Pending public payments retain capacity; a local timeout is not a release.
 
-The code currently contains two incompatible seat ID formats:
+Staff winner assignment derives the full paid group inside a transaction and reads the event, prior assignment and paid session capacity. Assignment rejects insufficient quota instead of truncating attendee entitlement. The transaction removes the group's previous assigned count and adds the new count exactly once. It preserves the legacy `complimentaryClaimed` counter and checks `assigned + legacy claims <= winner quota` and `winner quota + paid reservations <= venue capacity`.
 
-```text
-SeatEvent / Performer Sessions: {venueId}-{areaType}-{row}{number}_{eventId}_{sessionId}
-Orchestra Settings:            {venueId}-{areaType}-{row}-{number}_{eventId}_{sessionId}
-```
+Later paid purchases increase group demand without silently changing the previously confirmed assignment. Example: four performers plus three paid tickets are assigned as seven; another two tickets make current demand nine, with seven still assigned and two awaiting a staff update. Saving again assigns all nine and notifies every covered booking buyer. The performer allowance remains shared once across the group.
 
-The performer generator also recognizes a legacy ID without the venue prefix. It does not recognize the orchestra row-number format. Running both can duplicate a physical chair. Do not describe regeneration as universally safe: new-orchestra creation overwrites matching documents, while both regeneration implementations can race with purchases. A future format change requires inventory reconciliation and preserving booking references; merely changing the string is insufficient.
+Orchestra Settings saves through an authenticated backend transaction. It reads fresh session counters and paid reservations, rejects a quota below existing allocations or above available capacity, and prevents deleting/moving an active session or converting a competition slot with assigned performers/active bookings. New orchestra sessions create no physical seat documents.
 
-### Seat and booking statuses
+## Assignment communication
 
-Normal public fulfillment writes seats `available → locked → booked`. Legacy seats may use `reserved`; Seat Occupancy counts `booked` and `reserved`. A hold has `lockedAt` and `lockedByBookingId`; a finalized seat has `bookingId` and `assignedTo` with `userName`, `userEmail`, and `registrantName`.
+All new orchestra-admin endpoints require a Firebase ID token and current whitelist membership. Group discovery scans paid bookings in pages of 25 and loads purchases only for each visible winning performance. Session overview queries are scoped to the event/venue/date/time. No full registrant collection scan was added.
 
-Bookings use `pending`, `PAID`, `expired`, and terminal `failed` for checkout failure. Stored `createdAt` / `lockExpiresAt` are Firestore timestamps. The API serializes the expiry to ISO text. These states alone do not guarantee all purchased quantities have assigned seats.
+Saving an assignment sends a separate bilingual email to each covered booking's saved buyer email. It includes the orchestra venue/date/time, that booking's ticket quantity, the shared group headcount, and free-seating instructions. It replaces earlier orchestra assignment details. Payment-confirmation resends include an assignment only if that booking is covered by the saved assignment snapshot.
 
-## Public buyer flow
+Successful deliveries are tracked by assignment revision and booking ID. Failed deliveries remain retryable from Orchestra Assignments. A two-minute lease prevents concurrent sends and reassignment while a send is active. An acknowledged delivery is not resent by Retry email. SMTP delivery and persistence cannot be atomic: a crash after send but before acknowledgement can still cause a duplicate on retry. There is no new background email worker.
 
-1. Load event configuration, eligible winners, and global eligibility through the backend.
-2. Public Buyer visibility follows today's `Public` schedule entry in Asia/Jakarta when eligibility is enabled. Backend checkout now enforces the sale window and fails closed on settings read errors.
-3. Select a competition, orchestra, or standalone masterclass session. Special-session base slots are now excluded from the ordinary competition list.
-4. Choose ticket quantities. A masterclass session shows only the `masterclass` tier; other sessions show the non-masterclass tiers.
-5. Optionally add `seat_selection_performer` once per manually chosen paid seat. It is represented by repeated IDs in `addOnIds`. The UI limits manual selections by ticket tier and add-on quantity.
-6. Enter buyer name/email/phone; review and submit. The API recalculates total using event venue prices and add-on prices.
-7. Open Paper.id and navigate to `/waiting-payment/{bookingId}` to poll payment state.
+Venue names for confirmations use the booking-time `venueName` snapshot, or its stored event for legacy bookings; neither callback route nor resend uses the current active event to name an old booking's venue.
 
-## Winner flow and existing assigned information
+## Payment, cancellation and historical records
 
-1. `getEligibleWinners` joins the active event's session assignments with registrants and their awards, applying the date schedule. For ensembles, it marks `isEnsemble: true` and extracts the full list of registered performer names (`performerNames`).
-2. Selecting a winner supplies the **already assigned competition venue/date/time**. The user is not asked to choose that competition slot again. If the winner is an ensemble, all registrant performer names are displayed in the selection card, searchable via the search bar, defaulted into the details form, and shown in the checkout review.
-3. The user chooses an **additional orchestra session** for complimentary tickets.
-4. Purchased quantities refer to the assigned competition session. The UI still displays `min(purchased quantity + 1, remaining complimentary quota)`. The backend now considers prior personal claims but rejects insufficient quota instead of capping the benefit, and its two selected-seat validations disagree for repeat winners. These are open defects, not the intended business rule.
-5. If the allowance is positive, show a separate orchestra step. The flat `seat_selection` add-on lets the buyer choose all complimentary orchestra seats manually.
-6. Checkout includes the paid competition slot and, for winners only, the separate `orchestraSessionId` / `orchestraSelectedSeatIds`. A public buyer attending an Orchestra session uses its venue/date/time as the paid session but sends no complimentary orchestra-session claim.
+Existing payment safety remains in force:
 
-Checkout validates the winner's existence/event/assigned competition session. Switching buyer type, winner, or session clears ticket quantities, paid/free seat selections, and add-ons before a new purchase is configured. New bookings track the personal claim in `winnerOrchestraClaims`, with an ensemble counted as one winning performance. Repeat purchases with seat selection still fail conflicting validation, and legacy claims are not comprehensively migrated.
+- Fulfillment checks stored invoice ID, amount/currency, booking state, event and selected-seat ownership before marking paid. Both public and unified webhook routes use this path.
+- Paper.id cancellation must be confirmed before unpaid inventory release. Thirty minutes is a cancellation-request point, not permission to unlock.
+- Timer, sweeper and failure cleanup release only the booking's owned capacity/seats and legacy winner claims/quota. Failed or unknown invoice outcomes stay held for reconciliation.
+- Seat Occupancy's protected cancellation action validates the complete booking-owned inventory set. Missing/inconsistent ownership, capacity or legacy quota aborts the local release; a late invoice change prevents unsafe release.
+- Manual Mark Paid remains paid-state/ownership checked. Because winner groups derive persisted paid records, manually marked version-2 purchases appear in assignment demand without a separate counter update.
+- Deletion remains restricted to reconciled terminal bookings. Numbered competition seat assignment cannot alter a free-seating orchestra booking.
 
-## Masterclass benefits
+Version-1/unversioned bookings are not silently converted. They keep original seats, Masterclass benefits, invoices and legacy cancellation rules. A winner with an existing paid legacy complimentary orchestra allocation is flagged and cannot be assigned a new version-2 group until staff reconcile that historical allocation. No live migration/reset is performed by this change.
 
-Presto purchases produce a stored `freeMasterclassCount`; duplicate tier entries still need normalization so this count agrees with total purchased quantity. The `allegro_masterclass` add-on records additional purchases. Standalone paid Masterclass tickets remain attached to the session selected by the customer. The Admin Dashboard's **Masterclass Assignments** section lists paid bookings with complimentary or paid add-on passes and assigns every benefit pass from one booking to the same specific Masterclass session; the customer does not choose that later benefit session during checkout. Masterclass sessions have no attendee limit for now. The assignment is stored on the booking as `masterclassAssignment`.
+Legacy seat generators still have different document-ID formats; regeneration is not a migration. Do not regenerate historical orchestra seats to implement free seating. The new Orchestra Settings workflow has no generation action.
 
-**Assignment implemented; email pending:** Masterclass Assignments now includes paid `allegro_masterclass` add-on passes, complimentary passes, and add-on-only bookings. Staff assign all benefit passes from one paid booking to one Masterclass session; the saved assignment includes paid/free component counts. Standalone Masterclass tickets retain the customer-selected session. Assignment-email dispatch is still missing.
+## Verification
 
-## Checkout, payment, and expiration
+Run `node --test --test-reporter=spec apcs_service/audit/*.audit.cjs` from the project root. The suite includes checkout/failure boundaries, historical quota release, staff ownership, new ensemble/repeat-purchase attendance, assignment/reassignment, quota, pagination, notifications and venue email regressions.
 
-### Checkout
-
-`PublicTicketController → PublicTicketService → DatabaseUtil → PublicTicketRepository`:
-
-1. Read active event and pricing; perform current eligibility checks.
-2. Recalculate ticket/add-on totals.
-3. Transaction reads the checkout key, paid capacity, explicit selected seats and physical ownership, and (for winners) personal claim and orchestra quota; updates reservations/ownership and creates `publicBookings/{id}`. These protections still have the cross-writer, entitlement, and retry defects recorded in the latest handover.
-4. Create Paper.id invoice and save `invoiceId` and `paymentUrl`; return payment URL and expiry.
-5. Controller awaits the holding email before responding, but treats email failure as non-fatal.
-
-Only explicitly selected seats are physically locked. Every seated ticket quantity is also checked against configured tier capacity in the checkout transaction, so an unselected ticket reserves sellable capacity without receiving an automatic physical-seat assignment. Public Orchestra buyers cannot select configured winner-reserved rows in either the map or checkout transaction. Public Customers can manually assign missing paid seats only after payment; its transaction rechecks the booking event, paid state, existing ownership, selected seat availability, and venue/session/tier counts. It does not fulfil missing complimentary orchestra seats. The requested assignment interface is Seat Occupancy.
-
-### Payment
-
-Both the dedicated public webhook and unified `/payment/webhooks/paper-id` route can call public fulfillment. The unified handler checks whether the invoice number is a public booking ID before falling back to competition registration.
-
-Fulfillment uses the booking's saved event in a Firestore transaction, validates the reported amount and current lock ownership, then writes selected paid/free seats as `booked` and marks the booking `PAID`. A local deadline does not reject a still-held pending callback. Callback authenticity and idempotent confirmation-email dispatch remain open.
-
-### Expiry and rollback
-
-**Implemented lifecycle repair (7 September):** a local deadline requests Paper.id cancellation but does not itself release or take over inventory. The timer, sweeper, checkout-failure cleanup, seat reads, and payment fulfillment retain inventory until confirmed payment or a truthy cancellation result. Failed or unknown cancellation outcomes remain held for reconciliation.
-
-The per-booking timer, five-minute sweeper started by `index.js`, and checkout-failure path use the same cancellation-first rule. They read the booking's saved event, owned seat locks, and quota before transaction writes. A local timeout does not make a lock available; lazy checkout takeover and client-side availability conversion were removed. If Paper.id cancellation succeeds, the transaction releases only locks still owned by that booking and refunds complimentary quota once. Failed or unknown cancellation retains inventory and records reconciliation information. The invoice due date may be later than the local deadline, so a local deadline is not proof of external cancellation.
-
-`PublicTicketFailureRepository.failPublicTicketBooking` applies the same rule to invoice/save errors. A nonexistent booking (including a rejected transaction) causes no mutation. A completed cleanup is not repeated, including when cancellation is retried. The automated failure path remains tolerant: missing seats do not block other owned-seat releases, while missing or inconsistent quota configuration is flagged for reconciliation. The manual Seat Occupancy action is stricter and aborts before every local write when any expected inventory record is missing or inconsistent.
-
-Known invoice IDs survive an invoice/save error. Cancellation runs after the local transaction and records `pending`, `canceled`, or `failed`; an invoice attempt with no returned ID records `unknown`, never a cancellation claim. Failed bookings cannot be fulfilled by the payment handler or manual Mark Paid. Manual Mark Paid accepts only a current `pending` booking and requires every explicitly selected seat to still be locked by that booking; it cannot overwrite another booking's locks. Deletion is restricted to already-reconciled terminal bookings, whose confirmed cleanup has already released seats and quota. The public waiting page stops polling on `failed` and directs customers with a payment to contact APCS; the admin order details show cancellation and quota reconciliation status.
-
-**Seat Occupancy reconciliation (18 September):** a whitelisted Firebase admin may click a `locked` seat to inspect the linked `publicBookings` record and cancel the entire booking. The two supported reasons are customer declined and no response after one hour; the latter is rejected until one hour after booking creation. For a known `invoiceId`, the backend calls Paper.id first and releases nothing unless cancellation succeeds. A booking without an invoice ID is eligible only after it is terminal `failed`, and the admin must explicitly confirm that Paper.id has no paid or active invoice; a `pending` no-invoice checkout is blocked because invoice creation may still be in flight. The release transaction rechecks the expected payment status and invoice identity, then preflights every expected seat lock, canonical ownership record, tier-capacity reservation, winner claim, and complimentary quota before the first local write. A late invoice ID or any inventory mismatch aborts the whole local release. A successful transaction releases the complete booking-owned inventory and writes `adminRelease` audit metadata. If Paper.id cancellation succeeded before a local consistency failure, the saved `canceled` status lets the admin repair the data and retry without cancelling the provider invoice again. The action is authenticated by Firebase ID token and current whitelist membership.
-
-If Firestore cleanup itself fails, the transaction leaves allocations intact and the original checkout error is returned through the callback. The booking ID and cleanup error are logged for recovery; automatic retry/reconciliation is not implemented. Existing payment/expiry races, historical bookings, and unknown remote invoice outcomes remain outside this repair. See audit findings A–G for historical evidence and current repair status.
-
-## Monitoring, communication, and verification
-
-Seat Occupancy aggregates generated physical documents but does not represent every capacity-reserved, unselected ticket as an assignment demand. For a selected locked seat carrying `lockedByBookingId`, it loads the linked booking on demand and offers the protected booking-level reconciliation action. It remains a refresh-based view and does not automatically update while another admin changes data.
-
-Confirmation emails contain a booking ID, the main venue/date/time, and selected seat labels. They do not currently include the separate orchestra schedule, unassigned complimentary quantity, full masterclass/add-on benefits, or a public-ticket QR. Legacy registrant-token check-in is separate.
-
-For findings, offline test invocation, confirmed business decisions and remaining repairs, and a user-run browser checklist, see [the audit](TICKETING_AUDIT_2026-09-06.md). No live data or UI behavior was certified by the static checks.
-
-## Owner answers after handover review
-
-Confirmed: Seat Occupancy should show the number of seats still needing assignment; assignment remains paid-only. Booking-ID/manual entry verification is sufficient and public-ticket QR check-in is not required. Whitelist membership intentionally grants all ticketing-admin powers; backend authorization must enforce that membership. Later Masterclass assignment details should be sent by email; that communication integration is still pending.
-
-Public buyers enter their email. Winner selection defaults the editable buyer email to the registrant’s stored email; confirmation uses the saved booking `userEmail`. Keep public winner name selection without email verification. Confirmation email is communication, not identity proof. Backend winner eligibility and personal-claim records now exist; repeat-purchase selection and quota-capped benefits still require repair.
-
-**Implemented locally:** keep seats held until Paper.id confirms payment or successful cancellation, even beyond 30 minutes. Confirmed payment finalizes the booking and retains its inventory; successful cancellation permits unpaid inventory release. Failed cancellation or an unknown invoice outcome keeps inventory unavailable for reconciliation. Provider contract/deployment verification and recovery automation remain open.
-
-**Assignment implemented; email pending:** Masterclass Assignments now includes paid `allegro_masterclass` add-on passes, complimentary passes, and add-on-only bookings. Staff assign all benefit passes from one paid booking to one Masterclass session; the saved assignment includes paid/free component counts. Standalone Masterclass tickets retain the customer-selected session. Assignment-email dispatch is still missing.
-
-These owner decisions are resolved. Provider contract verification, recovery automation, and remaining fulfillment work remain engineering work; see the handover for the preserved original answers and repair priorities.
-
-## Launch-hardening update — 8 September 2026
-
-Public checkout now fails closed when the active-event or sale-eligibility settings cannot be read. The server derives the session type from the saved event catalogue; client product flags are checked against that type, and amount/add-on validation uses configured prices. Raw client ticket metadata and seat-label arrays are still persisted and need server normalization. A Masterclass product cannot be used to bypass seated capacity, and paid Orchestra capacity excludes winner-reserved rows.
-
-For new checkouts, `ticketSeatOwnership` stores the canonical physical identity `(event, venue, session, row, number)`. This blocks competing new public checkouts that both use the ledger. Staff/legacy writers and preexisting occupied aliases can bypass it; a staff/public double-allocation check currently fails. `ticketCapacity` keeps transactional paid-pool reservations per session/tier; manual physical assignment must not decrement this reservation again. `winnerOrchestraClaims` keeps the one personal winner benefit per event, winning performance, and Orchestra session; confirmed unpaid cancellation releases only that booking's active claim.
-
-The checkout client sends an idempotency key. A simple identical retry returns the original booking/invoice. The current implementation does not bind that key to the cart or reject canceled invoice replay; those follow-up checks fail. The booking persists its payment URL, and `/waiting-payment/:id` can discover public-booking status and the payment link without router state. A local deadline displays `00:00` but continues polling until the backend reports a confirmed paid, canceled, or failed state.
-
-**Fulfillment follow-up:** Masterclass Assignments now includes both `freeMasterclassCount` and `allegro_masterclass` add-on passes in one paid-booking assignment. It records the complimentary and paid components alongside the total, always assigning them to the same selected Masterclass session. Seat Occupancy no longer treats locally old locks as available and avoids duplicating Orchestra slots as competition sessions.
-
-## Implementation review limits — 8 September 2026
-
-The current [handover and diagnostic tests](TICKETING_IMPLEMENTATION_REVIEW_HANDOVER_2026-09-08.md) supersede broad safety claims in historical updates. Canonical ownership is only effective where every writer participates. Public Customers assignment/Mark Paid and legacy inventory writes have not been integrated with that boundary; generators can still reset raw seat records. Capacity/complimentary refunds are not exactly-once under overlapping failed-booking cleanup.
-
-Winner benefits need one authoritative, quota/capacity-capped calculation shared by checkout and the UI. Current pretransaction and transactional selected-seat counts disagree for repeat winners; without the add-on a forged request can supply excess complimentary seats. The paid/free assignment interface in Seat Occupancy and its unassigned demand counts remain missing.
-
-**Payment scope:** Invoice Paid is the sole normal fulfillment signal. Payment In details may remain in Paper's dashboard; do not require both event types before fulfillment. Provider callback registration requirements are separate from processing. Authenticate and match the invoice, recover missed/failed callbacks and unknown outcomes, and verify cancellation semantics before releasing inventory. Both callback routes currently lack complete verification/reliable delivery recovery.
-
-Verification: 49 existing checks pass; 9 new expected-safety checks fail. These are offline mocked-data checks, not Firestore contention, provider integration, browser, or 500-buyer acceptance evidence. No application repair was made during this re-review.
-
-## Follow-up repair — 8 September 2026
-
-The nine re-review regressions now pass in the offline fixture (**58 passed, 0 failed** across the three ticketing audit files). `ticketSeatOwnership` is now written and checked by public checkout, Public Customers paid-seat assignment/Mark Paid, and the legacy token-seat confirmation writer. Each checks existing physical aliases with the same event/venue/session/row/number before reserving a seat; a manual physical assignment does not alter `ticketCapacity`, because paid quantity was reserved at checkout.
-
-Winner allowance is calculated transactionally as the available reserved-row/quota capacity, then per-purchased-ticket benefit, then the still-unclaimed personal benefit. The public winner response includes active claimed Orchestra sessions so the client can preview that calculation; checkout remains authoritative and can require the buyer to review a changed cart under concurrent demand. Complimentary seat IDs require the complimentary seat-selection add-on and must exactly equal the awarded allowance.
-
-These repairs are not a launch certificate. Paper callback authentication and recovery, verified cancellation semantics, backend whitelist enforcement for the remaining ticketing-admin routes, assignment email, configuration/migration protection, Firestore emulator contention evidence, the fresh-event 500-buyer rehearsal, and owner-run UI/entry checks are still outstanding. The Seat Occupancy release endpoint itself verifies a Firebase token and whitelist membership.
-
-## Developer Testing & Occupancy Reset Utility — 12 September 2026
-
-During development and testing mode:
-- **Seat Occupancy UI:** has no bulk reset. Its only inventory-removal action is the protected, booking-level cancellation flow for a linked locked seat; it cannot directly flip an individual seat to available.
-- **Seat Regeneration Guard:** `uploadFullSeatLayout` and `handleGenerateSeats` intentionally preserve existing seats with `status !== 'available'`.
-- **Reset Script (`apcs_service/reset_test_occupancy.js`):** A dedicated developer CLI utility was introduced for resetting test occupancy. By default, it runs in safe `--dry-run` inspection mode. When executed with `--confirm`, it resets booked/locked/reserved seats back to `available`, cleans test `publicBookings` records, resets `events/{eventId}.orchestraSessions[].complimentaryClaimed` counters, and purges `ticketSeatOwnership`, `ticketCapacity`, and `winnerOrchestraClaims` records. Supports `--session`, `--venue`, `--event`, and `--keep-bookings` filters.
+Local evidence is recorded in [progress](progress.md). Follow the [manual walkthrough](TICKETING_FREE_SEATING_WALKTHROUGH_2026-09-19.md) for owner UI acceptance. No browser, build/start command, live Firestore mutation, provider payment or real email is part of local verification. Firestore index deployment, contention, live provider behavior, callback authentication/recovery and browser acceptance remain deployment checks; prior audit findings are preserved in the [historical audit](TICKETING_AUDIT_2026-09-06.md).

@@ -6,6 +6,51 @@ This document describes the Firestore data model, API contracts, and system flow
 
 ---
 
+## Current ticketing contract — 19 September 2026
+
+The free-seating sections in [SEAT_BOOKING_FLOW.md](SEAT_BOOKING_FLOW.md) and [TICKETING_SYSTEM_GUIDE.md](TICKETING_SYSTEM_GUIDE.md) supersede older numbered-orchestra and Masterclass checkout examples later in this document. Those older sections describe historical records and audit history, not new-sale behavior.
+
+### New booking fields and ownership
+
+New `publicBookings` use `ticketingVersion: 2`, `venueName` (booking-time venue label), `seatingMode: 'numbered' | 'free'`, `performerCount` (authoritative registered roster size, solo fallback one), and `orchestraAttendanceTickets` (winner paid ticket quantity, zero for public buyers). They store no new Masterclass benefit, complimentary seat claim, winner-claim ID or selected orchestra seats. Numbered competition capacity/ownership fields and idempotency keys remain in use. Saved ticket names/prices and competition seat labels are derived by the backend.
+
+`orchestraAssignments/{encodeURIComponent(eventId + '|' + registrantId)}` is the new assignment collection. Each document contains:
+
+- `eventId`, `registrantId`, `sessionId`, `venue`, `venueName`, `date`, `time`.
+- `paidTicketCount`, `performerCount`, `quantity`, `bookingIds` (the covered paid snapshot).
+- `revision`, `assignedBy`, `assignedAt`, `notifiedBookingIds`.
+- Optional `notificationLease: { token, bookingId, expiresAt }`, where `expiresAt` is epoch milliseconds; completed/failed sends clear it.
+
+`OrchestraAssignmentRepository.readGroup` derives current demand from paid version-2 bookings grouped by event and winning performance: sum of paid ticket quantities + maximum snapshotted performer count once. It also detects paid historical complimentary allocations and blocks silent mixed-version reassignment. Later purchases produce additional pending assignment demand; they do not overwrite the existing assignment snapshot.
+
+`events/{eventId}.orchestraSessions[]` retains venue/date/time and `complimentaryQuota` but adds `freeSeatingAssigned` and `seatingMode: 'free'`. Historical `complimentaryClaimed`/`reservedRows` values remain for legacy records. New assignments atomically decrement the old session headcount and increment the target headcount, preserving the legacy counter. Public free-seating checkout keeps tier capacity and limits total paid demand to venue capacity minus the configured winner quota.
+
+`winnerOrchestraClaims` remains a legacy collection; new checkouts do not write it. New Masterclass purchases are rejected even if historical configuration remains. Existing invoices and legacy cleanup are unchanged.
+
+### New admin APIs
+
+All are POST under `/api/v1/apcs/public-ticket/admin/orchestra/`, with `requireTicketingAdmin` Firebase-token/whitelist middleware:
+
+| Suffix | Input | Result |
+| --- | --- | --- |
+| `list` | `eventId`, optional booking-ID `cursor` | 25-booking discovery page, complete paid winner groups and next cursor |
+| `assign` | `eventId`, `registrantId`, `sessionId` | Transactional assignment, then per-booking notification attempts; failed IDs remain retryable |
+| `notify` | `eventId`, `registrantId` | Retry missing emails for the saved revision |
+| `sessions` | `eventId` | Session configuration plus paid public, held public and assigned winner counts |
+| `session` | `eventId`, `session` or `deleteSessionId` | Protected settings mutation preserving fresh counters and checking capacity/active allocations |
+
+Group reads are event/registrant-scoped; discovery is paginated. Session overview and settings validation queries are event/venue/date/time-scoped. The new event/registrant composite index is checked in to `apcs_web/firestore.indexes.json`; the existing event/status index serves discovery. Actual deployed index availability and database edition were not verified locally.
+
+`OrchestraAssignmentController` sends notifications only after an assignment commits. SMTP and persistence are not atomic; a crash after successful SMTP and before delivery acknowledgement can result in a retry duplicate. A short lease limits overlapping requests; no background outbox worker is introduced.
+
+`EmailService.sendPublicBookingConfirmationEmail` resolves a saved venue name or the booking's event, never the current event. `OrchestraEmailDetails` generates escaped free-seating/group instructions. Covered assignments appear in confirmation resends; new purchases outside the assignment snapshot show pending. Assignment emails go to each covered booking's stored buyer email.
+
+### Historical and rollout boundary
+
+No live migration is performed. Unversioned/version-1 orders retain original numbered seats, Masterclass entitlements, quota, provider invoice and cleanup semantics. Reconcile an old winner allocation before assigning its new group. New Orchestra Settings does not generate physical seats; old seat generators and direct admin database access remain historical operational concerns.
+
+Deploy the backend, frontend and indexes together and complete [manual acceptance](TICKETING_FREE_SEATING_WALKTHROUGH_2026-09-19.md). Existing payment authentication/recovery and Firestore contention limitations remain; offline tests are not deployment certification.
+
 ## Tech Stack & UI/UX Guidelines
 
 *   **Frontend:** React.js + Ant Design (antd).

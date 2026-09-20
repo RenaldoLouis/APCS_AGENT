@@ -1,34 +1,30 @@
-# APCS Business Perspective
+# APCS Ticketing Business Process
 
-## Overview
+Updated: 19 September 2026. These rules replace the previous fixed complimentary-ticket and reserved-orchestra-seat description.
 
-This document outlines the core business logic and user flow philosophy for the APCS (Asia Pacific Choral Summit) ticketing and registration system. It serves to clarify the distinct purposes of the two main user journeys: Registrants and Public Buyers.
+## Winners and ensembles
 
-## The Registrant Flow
+Winners buy competition tickets for the performance venue and session already assigned by the internal team. They may use the remaining competition add-ons and seat-selection options. They do not select an orchestra session or orchestra seats during checkout.
 
-**Core Purpose:** Showcasing Talent & Competition
-**Primary Audience:** Participants (kids), Parents, Teachers, and Family Members.
+Orchestra attendance is all paid tickets purchased using the same winning performance within the event, plus its registered performers once. A solo performer adds one place; an ensemble of four adds four places. Purchases of three and two tickets for that ensemble therefore entitle nine people to attend. Failed or pending purchases do not contribute paid attendance.
 
-The registrant flow is focused on the participants who are competing or showcasing their skills. The events they participate in are generally of high interest to their immediate circle (parents and teachers) who want to see their performance.
+After payment, the internal team assigns the whole paid winner group to an orchestra session. Orchestra admission uses free seating. The initial payment email confirms the competition venue and ticket/seat details; a separate email communicates the assigned orchestra venue, date and time. Later purchases show additional attendees awaiting an updated assignment; staff must fit the whole group into its chosen session.
 
-*   **Incentive:** To reward their participation and encourage attendance at the main event, registrants are provided with **2 complimentary tickets** to watch the Orchestra sessions.
-*   **Seating:** These complimentary tickets are automatically assigned seating from reserved areas (e.g., the front 3 rows of the venue) which are determined on the spot by the staff on the day of the event.
+## Public buyers
 
-## The Public Flow (Orchestra Sessions)
+Public orchestra customers choose a session and Presto or Allegro quantities. They do not select numbered orchestra seats and receive no extra performer allowance. Their receipt names the selected venue/session and explains free seating in the purchased category. Configured public competition sales remain available.
 
-**Core Purpose:** Entertainment & Revenue
-**Primary Audience:** The General Public, Music Enthusiasts.
+## Capacity and staff operations
 
-The public flow is specifically tailored for the Orchestra sessions. From a business perspective, the Orchestra is the primary entertainment draw for the general public who may not have a personal connection to any specific registrant but want to enjoy a high-quality musical performance.
+Orchestra Settings defines a winner attendance quota within the venue's total capacity. Remaining capacity supports direct public ticket sales. Orchestra Assignments shows paid ticket totals, performers counted once, confirmed assignments and additional demand. Settings shows paid public attendance and assigned winners separately from pending holds and historical allocations.
 
-*   **Ticketing:** Public buyers purchase tickets at the standard public price.
-*   **Seating:** They can select their seats from the digital map during the booking process. However, the reserved rows set aside for the registrants' complimentary tickets are blocked out and unavailable for public purchase.
+Free seating removes individual orchestra seat selection, not capacity management. Assignment must fit the complete paid winner group; it must not silently cap the group's entitlement. Payment holds remain protected until a confirmed provider outcome.
 
-## System Implications
+## Masterclass and historical records
 
-*   **Separation of Sessions:** The system distinguishes between general competition sessions (Registrants) and Orchestra sessions (Public).
-*   **Quota Management:** Admin dashboards must track and manage the quota of complimentary tickets given out for Orchestra sessions to ensure the reserved seating capacity is not exceeded.
-*   **Dynamic UI:** The booking interface adapts based on whether the user identifies as a Registrant (triggering the complimentary ticket flow) or a Public Buyer (triggering the standard purchase flow).
+Masterclass ticketing is outside this system for new purchases: no standalone sales, paid add-on or free Presto Masterclass pass. Its active admin menu entries are removed. Historical bookings retain their original entitlements and seats; migration requires explicit reconciliation rather than automatic data deletion or conversion.
+
+See [staff guide](TICKETING_SYSTEM_GUIDE.md) and [technical flow](SEAT_BOOKING_FLOW.md) for implementation details and operating limits.
 
 ## The Jury Scoring Flow
 

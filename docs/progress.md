@@ -4,6 +4,53 @@ This document tracks features and changes made to the APCS project over time.
 
 ---
 
+
+## Orchestra Free Seating and Post-Payment Assignment
+
+**Date:** 2026-09-20 (business decisions agreed 19 September)
+**Status:** Implemented locally; manual UI and deployed integration verification pending.
+
+- Simplified PublicTicketBookingPage to four steps. Removed winner orchestra-session selection, free-orchestra-seat selection, complimentary quota banners, all new Masterclass sales/add-ons and Presto Masterclass benefits. Kept winners' assigned competition venue/session and competition seat options.
+- Added version-2 bookings with server-derived performer count, paid orchestra attendance contribution, seating mode and venue-name snapshot. An ensemble of four with paid purchases of three and two produces nine attendees across the event; failed/pending orders do not consume performer places.
+- Added whitelisted Orchestra Assignments APIs/UI with paid groups, transactionally protected session assignment/reassignment, additional attendance awaiting assignment, and per-booking assignment-email delivery/retry. A short lease prevents simultaneous notification attempts; SMTP crash/retry duplicates remain possible.
+- Replaced Orchestra Settings seat generation/reserved-row controls with protected headcount settings. Public orchestra sales use free seating with Presto/Allegro tier and total venue capacity limits. Session overview separates paid public attendance, pending public holds, assigned winners and historical allocations.
+- Removed Masterclass menu entries; retired pricing options are hidden and cannot be newly added. Public Customers blocks numbered seat assignment for free-seating orders; Seat Occupancy labels historical orchestra seat records.
+- Payment confirmation uses the saved booking venue or booking's event, including after active-event switches. It shows free seating or competition seat details and pending orchestra assignment; subsequent assignment emails include orchestra venue/date/time and group counts.
+- Preserved existing bookings, Masterclass benefits and provider-confirmed cancellation/seat ownership semantics. Paid legacy complimentary allocations are flagged before any new group assignment; no live migration was performed.
+- Updated the glossary, business perspective, architecture, both ticketing guides, the [implementation plan](TICKETING_FREE_SEATING_PLAN_2026-09-19.md) and [manual walkthrough](TICKETING_FREE_SEATING_WALKTHROUGH_2026-09-19.md). Added the event/registrant booking index definition.
+- Verification: **92 offline checks passed, 0 failed**; all nine changed/new backend modules passed `node --check`; targeted frontend ESLint reported **0 errors and 8 existing warnings**. Self-review covered standards, requested behavior, removed-reference sweeps, declarations/imports and conditional rendering. Original mixed file line endings and unrelated root changes were preserved.
+- No browser, start/build, commit/push, deployment, live Firestore write, Paper.id call or email send occurred. No app terminal was attached, so no running dev-server compilation result was available. The offline Firebase CLI cache lacked firebase-tools; live database edition/index state remains unverified. Deploy backend/frontend/indexes together before manual acceptance.
+
+---
+
+## 🎵 Song Name Display in Scoring Recap Registrant List
+
+**Date:** 2026-09-18
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Song / Repertoire Name Utility (`getSongName`)**:
+   - Added `getSongName` in `csvVariableSafeUtil.js` (with comprehensive unit test coverage in `csvVariableSafeUtil.test.js`) to extract and trim song titles across possible schema properties (`repertoireTitle`, `repertoire`, `songTitle`, `songName`, `song`, `pieceTitle`, `piece`).
+2. **Scoring Recap Table UI**:
+   - In `ScoringRecap.js`, mapped `songName` for each registrant record.
+   - Rendered the song title cleanly under the `Participant` column in the main registrants table between the video action button and teacher name, adopting Ant Design typography consistent with existing fields.
+3. **Search & Filter Enhancement**:
+   - Added `row.songName` matching to the table search filter logic in `ScoringRecap.js`.
+   - Updated the search input placeholder to `"Search by participant, teacher, song, or admin note..."`.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/ScoringRecap.js` | MODIFIED | Displayed song name on participant list, updated table data mapping and search filtering |
+| `src/utils/csvVariableSafeUtil.js` | MODIFIED | Added `getSongName` helper with fallbacks for repertoire / song fields |
+| `src/utils/csvVariableSafeUtil.test.js` | MODIFIED | Added unit test coverage for `getSongName` |
+
+---
+
 ## 🔓 Protected Locked-Booking Release from Seat Occupancy
 
 **Date:** 2026-09-18
