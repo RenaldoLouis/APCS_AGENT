@@ -79,3 +79,6 @@ Stats: 21 obs (7,323t read) | 489,187t work | 99% savings
 
 Access 489k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
+
+Access 193k tokens of past work via get_observations([IDs]) or mem-search skill.
+</claude-mem-context>

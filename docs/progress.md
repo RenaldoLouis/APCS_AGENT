@@ -250,6 +250,230 @@ Added the teacher name display for each registrant in the Admin Dashboard **Scor
 
 ---
 
+
+## Orchestra Free Seating and Post-Payment Assignment
+
+**Date:** 2026-09-20 (business decisions agreed 19 September)
+**Status:** Implemented locally; manual UI and deployed integration verification pending.
+
+- Simplified PublicTicketBookingPage to four steps. Removed winner orchestra-session selection, free-orchestra-seat selection, complimentary quota banners, all new Masterclass sales/add-ons and Presto Masterclass benefits. Kept winners' assigned competition venue/session and competition seat options.
+- Added version-2 bookings with server-derived performer count, paid orchestra attendance contribution, seating mode and venue-name snapshot. An ensemble of four with paid purchases of three and two produces nine attendees across the event; failed/pending orders do not consume performer places.
+- Added whitelisted Orchestra Assignments APIs/UI with paid groups, transactionally protected session assignment/reassignment, additional attendance awaiting assignment, and per-booking assignment-email delivery/retry. A short lease prevents simultaneous notification attempts; SMTP crash/retry duplicates remain possible.
+- Replaced Orchestra Settings seat generation/reserved-row controls with protected headcount settings. Public orchestra sales use free seating with Presto/Allegro tier and total venue capacity limits. Session overview separates paid public attendance, pending public holds, assigned winners and historical allocations.
+- Removed Masterclass menu entries; retired pricing options are hidden and cannot be newly added. Public Customers blocks numbered seat assignment for free-seating orders; Seat Occupancy labels historical orchestra seat records.
+- Payment confirmation uses the saved booking venue or booking's event, including after active-event switches. It shows free seating or competition seat details and pending orchestra assignment; subsequent assignment emails include orchestra venue/date/time and group counts.
+- Preserved existing bookings, Masterclass benefits and provider-confirmed cancellation/seat ownership semantics. Paid legacy complimentary allocations are flagged before any new group assignment; no live migration was performed.
+- Updated the glossary, business perspective, architecture, both ticketing guides, the [implementation plan](TICKETING_FREE_SEATING_PLAN_2026-09-19.md) and [manual walkthrough](TICKETING_FREE_SEATING_WALKTHROUGH_2026-09-19.md). Added the event/registrant booking index definition.
+- Verification: **92 offline checks passed, 0 failed**; all nine changed/new backend modules passed `node --check`; targeted frontend ESLint reported **0 errors and 8 existing warnings**. Self-review covered standards, requested behavior, removed-reference sweeps, declarations/imports and conditional rendering. Original mixed file line endings and unrelated root changes were preserved.
+- No browser, start/build, commit/push, deployment, live Firestore write, Paper.id call or email send occurred. No app terminal was attached, so no running dev-server compilation result was available. The offline Firebase CLI cache lacked firebase-tools; live database edition/index state remains unverified. Deploy backend/frontend/indexes together before manual acceptance.
+
+---
+
+## 🎵 Song Name Display in Scoring Recap Registrant List
+
+**Date:** 2026-09-18
+**Status:** ✅ Completed
+
+### What Was Built
+
+1. **Song / Repertoire Name Utility (`getSongName`)**:
+   - Added `getSongName` in `csvVariableSafeUtil.js` (with comprehensive unit test coverage in `csvVariableSafeUtil.test.js`) to extract and trim song titles across possible schema properties (`repertoireTitle`, `repertoire`, `songTitle`, `songName`, `song`, `pieceTitle`, `piece`).
+2. **Scoring Recap Table UI**:
+   - In `ScoringRecap.js`, mapped `songName` for each registrant record.
+   - Rendered the song title cleanly under the `Participant` column in the main registrants table between the video action button and teacher name, adopting Ant Design typography consistent with existing fields.
+3. **Search & Filter Enhancement**:
+   - Added `row.songName` matching to the table search filter logic in `ScoringRecap.js`.
+   - Updated the search input placeholder to `"Search by participant, teacher, song, or admin note..."`.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/AdminDashboard/ScoringRecap.js` | MODIFIED | Displayed song name on participant list, updated table data mapping and search filtering |
+| `src/utils/csvVariableSafeUtil.js` | MODIFIED | Added `getSongName` helper with fallbacks for repertoire / song fields |
+| `src/utils/csvVariableSafeUtil.test.js` | MODIFIED | Added unit test coverage for `getSongName` |
+
+---
+
+## 🔓 Protected Locked-Booking Release from Seat Occupancy
+
+**Date:** 2026-09-18
+**Status:** ✅ Implemented locally
+
+### What Was Built
+
+- Locked seats with a `lockedByBookingId` are actionable from the Seat Occupancy layout and open the linked public booking.
+- The admin chooses a verified reason and may save an audit note. The no-response reason is blocked until one hour after booking creation.
+- The reason allowlist contains only customer declined and no response after one hour.
+- Known Paper.id invoices are cancelled through the backend before any inventory is released. A failed cancellation leaves the booking and seats locked.
+- Failed bookings without an invoice ID require an explicit confirmation that Paper.id has no paid or active invoice. Pending no-invoice checkouts are blocked because invoice creation may still be in flight.
+- Release is booking-wide and transactional: expected payment status and invoice identity are rechecked, then every expected seat lock, canonical ownership record, reserved ticket capacity, winner claim, and complimentary quota is validated before any local write. A late invoice or any inventory mismatch aborts the complete local release; paid bookings are rejected.
+- A confirmed Paper.id cancellation is saved before local cleanup, so an admin can repair inconsistent inventory and retry without sending a second provider cancellation.
+- The booking keeps its terminal `failed` or `expired` status and receives `adminRelease` audit metadata. Public Customers displays that release information from the same booking document.
+- The endpoint verifies a Firebase ID token and current whitelist membership before allowing reconciliation.
+- New release UI copy is localized in English and Indonesian, and the reconciliation surfaces use the APCS black/gold admin styling.
+
+### Verification
+
+- Backend ticketing audit: 72 tests passed, including known-invoice cancellation, unknown-invoice confirmation, pending and late-invoice race protection, strict atomic inventory validation and retry, exact reason enforcement, localized API error codes, one-hour enforcement, cancellation failure, paid-booking protection, and whitelist authentication.
+- Targeted frontend ESLint completed with no errors. Existing warnings remain in unrelated/pre-existing code paths.
+- UI behavior requires owner verification in the browser per project policy; no browser automation was used.
+
+---
+
+## 🎟️ Public Buyer Ticket Tier & Add-on Restriction in Public Ticket Booking
+
+**Date:** 2026-09-16
+**Status:** ✅ Completed
+
+### What Was Built
+
+Enforced strict public buyer tier and add-on restrictions on the public ticket booking page (`PublicTicketBookingPage.js`):
+1. **Tier Restriction (`isTierAllowedForBuyer`):**
+   - For `buyerType === 'public'`, buyers can **only select Presto and Allegro** ticket tiers.
+   - Non-eligible tiers (such as Lento) are filtered out from the selection UI and cannot be purchased by public buyers.
+   - Automatic cleanup effects purge any non-allowed tier quantities if switched to public mode.
+2. **Add-on Restriction:**
+   - Public buyers **cannot select any add-ons**.
+   - The entire `Add-ons (Optional)` section is hidden for public buyers.
+   - Any add-on items in `selectedAddOns` are strictly cleared whenever `buyerType === 'public'`.
+   - The checkout payload guarantees `addOnIds: []` for public checkout.
+   - Add-on rows are hidden in both the sidebar Order Summary and Step 3 Review & Pay for public buyers.
+3. **Presto Masterclass Benefit Retained:**
+   - Public buyers purchasing Presto tickets still receive their automatic complimentary Masterclass pass notice banner (`🎁 You receive N complimentary Masterclass passes automatically with your Presto tickets!`).
+4. **Venue Pricing Validation (`hasMissingPricing`):**
+   - Updated missing-pricing check to only evaluate applicable tiers for the current buyer type (Presto and Allegro for public buyers), preventing unconfigured pricing for Lento from blocking public checkouts.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/TicketBooking/PublicTicketBookingPage.js` | MODIFIED | Added `isTierAllowedForBuyer` helper, restricted ticket tiers to Presto/Allegro for public, hidden add-ons section for public buyers, and enforced empty add-on payloads. |
+
+---
+
+## 👥 Ensemble Kid Listing & Search in Admin Page (SessionAssignmentManager)
+
+**Date:** 2026-09-16
+**Status:** ✅ Completed
+
+### What Was Built
+
+Enhanced the Admin Page (`AdminContent.js` rendering `SessionAssignmentManager.js`) to comprehensively list each kid in every ensemble and enable search across individual performer/kid names in both the unassigned pool and assigned session columns:
+1. **Ensemble Detection & Performer Extraction:**
+   - Added `isEnsembleRegistrant(reg)`, `getPerformerNames(reg)`, `getDisplayName(reg)`, and `doesRegistrantMatchSearch(reg, term)` helpers.
+   - Detects ensembles from `PerformanceCategory`, `competitionCategory`, `performers` array, `performerNames`, or `totalPerformer > 1`.
+   - Extracts all individual kid names from `reg.performers` (`fullName` or `firstName` + `lastName`).
+   - Formats compound display titles for ensembles (e.g. `Alice & Bob`, `Alice, Bob & Charlie`).
+2. **Draggable Card Display (`DraggableCard`):**
+   - Displays an `Ensemble (N)` purple badge next to the title.
+   - Lists all individual kids with dedicated member tags (`👥 Kids: [Kid 1] [Kid 2]`).
+   - Dynamically highlights any kid tag that matches the active search term with a gold chip.
+3. **Session Columns & Search Highlighting (`SessionDropZone`):**
+   - Updated session cards to accept `searchTerm` and evaluate matches across all assigned registrants and ensemble kids.
+   - Displays a prominent `🔍 N matches` gold badge in the session header when a searched kid or teacher is assigned to that session.
+   - Accents matching session containers (`.search-match-session`) and matching cards (`.search-match`).
+4. **Unassigned Pool Filtering:**
+   - Updated `unassignedRegistrants` filter to match against all kid names in ensembles, display names, teacher names, repertoire, and category.
+   - Updated search input placeholder to `"Search kid, ensemble, or teacher..."`.
+5. **Overview Modal:**
+   - Added an embedded quick search input (`overviewSearchTerm`) to search kids across all venue sessions simultaneously.
+   - Renders `Ensemble (N)` badges and all member kid tags on each registrant card in the overview columns.
+   - Highlights matching cards and matching kid chips when searching in the overview.
+6. **Save & Excel Export:**
+   - Enriched assignment persistence (`apis.session.saveAssignments`) to include `displayName`, `isEnsemble`, `performerNames`, and `performanceCategory`.
+   - Enriched Excel export (`handleExport`) with a dedicated `Type` (Ensemble vs Solo) and `Performer Names` column listing all ensemble kids.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/components/molecules/AdminContentComponent/SessionAssignmentManager.js` | MODIFIED | Added ensemble kid detection, member tags, search matching for individual kids, session match badges, and overview search. |
+| `src/components/molecules/AdminContentComponent/SessionAssignmentManager.css` | MODIFIED | Added styles for `.sam-ensemble-badge`, `.sam-ensemble-members`, `.sam-ensemble-kid-tag`, `.highlighted`, `.search-match`, and `.sam-search-match-tag`. |
+
+---
+
+
+## 👥 Ensemble Registrant Names Display in Public Ticket Booking
+
+**Date:** 2026-09-16
+**Status:** ✅ Completed
+
+### What Was Built
+
+Enhanced the public ticket booking page (`PublicTicketBookingPage.js`) and eligible winners backend service (`PublicTicketRepository.js`) to display and list all registrant performer names when a winning participant is an ensemble:
+1. **Backend Enrichment (`PublicTicketRepository.getEligibleWinners`):**
+   - Detects whether a winner registrant is an ensemble by checking `data.PerformanceCategory`, `data.competitionCategory`, or if `data.performers` / `totalPerformer > 1`.
+   - Extracts and sanitizes the full list of performer names (`performerNames`) from `data.performers` objects (`fullName` / `firstName` + `lastName`).
+   - Returns `isEnsemble: boolean`, `performanceCategory: string`, and `performerNames: string[]` on each winner object.
+2. **Frontend Winner Selection (`PublicTicketBookingPage.js`):**
+   - **Search Filtering:** Updated `filteredWinners` search logic to check performer names so users can find an ensemble by searching for any member's name, not just the primary contact/first performer.
+   - **Step 0 Winner Cards:** Added an `Ensemble (N)` badge to the card header and a dedicated member tag list showing all registered ensemble member names.
+   - **Step 2 Details Step:** When an ensemble is selected, the registrant name defaults to all member names (`Member 1, Member 2, ...`), labels the field as `Paying for Registrant (Ensemble)`, and displays a pill tag list of all registered performers.
+   - **Step 3 Review & Pay Step:** Displays the ensemble badge and lists all ensemble member names under `Paying For (Registrant)`.
+3. **Styling (`PublicTicketBookingPage.css`):**
+   - Added styles for `.ptb-ensemble-badge`, `.ptb-ensemble-members`, `.ptb-ensemble-label`, `.ptb-ensemble-names`, `.ptb-ensemble-member-tag`, and `.ptb-ensemble-details-box`.
+4. **Automated Testing (`apcs_service/audit/public-ticket.audit.cjs`):**
+   - Added automated tests verifying that `getEligibleWinners` properly identifies ensemble winners and returns all performer names.
+
+### Files Modified
+
+#### Frontend (`apcs_web/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/Pages/TicketBooking/PublicTicketBookingPage.js` | MODIFIED | Added ensemble helpers, member search filter, ensemble tags, and member listings in Steps 0, 2, and 3. |
+| `src/Pages/TicketBooking/PublicTicketBookingPage.css` | MODIFIED | Added responsive styles for ensemble tags, labels, and member badges. |
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/repositories/PublicTicketRepository.js` | MODIFIED | Enriched `getEligibleWinners` with `isEnsemble`, `performanceCategory`, and `performerNames`. |
+| `audit/public-ticket.audit.cjs` | MODIFIED | Added test asserting that ensemble winner lookups return all performer names and ensemble flag. |
+
+---
+
+## 🪑 Developer Test Seat Occupancy Reset Utility
+
+**Date:** 2026-09-12
+**Status:** ✅ Completed
+
+### What Was Built
+
+Created a safe, automated backend CLI utility (`apcs_service/reset_test_occupancy.js`) to allow developers to clean up test seat occupancy, locks, bookings, and complimentary quota without exposing dangerous reset buttons in the admin UI:
+1. **Safety-first execution:** By default, runs in dry-run mode (`--dry-run` inspection) showing all booked seats, public bookings, and orchestra complimentary counters that would be affected. Requires `--confirm` to commit changes.
+2. **Granular filtering:** Supports filtering by session (`--session=<sessionId>`), venue (`--venue=<venueId>`), event (`--event=<eventId>`), and optionally retaining booking records (`--keep-bookings`).
+3. **Comprehensive cleanup:**
+   - Resets all booked/locked/reserved seats back to `status: 'available'` and removes assignment/lock metadata.
+   - Deletes test `publicBookings` to prevent ghost paid bookings from pointing to freed seats.
+   - Resets `complimentaryClaimed: 0` on `events/{eventId}.orchestraSessions`.
+   - Purges related `ticketSeatOwnership`, `ticketCapacity`, and `winnerOrchestraClaims` tracking collections.
+
+### Files Modified
+
+#### Backend (`apcs_service/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `reset_test_occupancy.js` | ADDED | CLI developer utility for safe test seat occupancy and booking data reset. |
+| `package.json` | MODIFIED | Added `"reset-test-occupancy"` npm script. |
+
+#### Documentation (`docs/`)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `docs/SEAT_BOOKING_FLOW.md` | MODIFIED | Documented testing mode occupancy reset behavior and utility usage. |
+| `docs/TICKETING_SYSTEM_GUIDE.md` | MODIFIED | Added developer instructions for resetting test occupancy. |
+
+---
+
 ## 👩‍⚖️ Jury Management Page
 
 **Date:** 2026-09-04
@@ -1500,3 +1724,118 @@ A self-service, public-facing ticket booking flow for the APCS 2026 Gala Concert
   - **Jury Slug Sanitization**: Added and exported `toJurySlug` which removes academic/professional honorifics (`Dr.`, `Prof.`, `Mr.`, `Ms.`, `Mrs.`), normalizes unicode diacritics/accents (`é`, `á`, etc.), and converts names to clean `snake_case`.
   - **Jest Unit Tests**: Added and updated comprehensive test suites in `csvVariableSafeUtil.test.js` validating award string cleaning and jury slug generation. All 203 unit tests passing.
 
+### Documentation (Sep 05, 2026)
+- **Codex Agent Guidance Clarification (`AGENTS.md`)**: Removed the temporary `CLAUDE.md` companion file after confirming Codex uses `AGENTS.md` as its native project instruction source. The root `AGENTS.md` remains the single active Codex rule file for this repository.
+
+### Fixed (Sep 06, 2026)
+- **Jury Deadline Reminder Completion Check (`JuryDeadlineReminder.js`)**: Fixed a false reminder bug where a fully scored jury could still receive a deadline email showing all assessments as pending if the `users.uid` field was stale or mismatched. The reminder job now counts scores using the Firestore user document ID as the canonical jury UID, with `users.uid` as a legacy fallback, and the jury flow docs were updated to document this safeguard.
+
+
+### Audit & Documentation (Sep 06, 2026)
+- **Ticketing integration audit:** Traced all eight Ticketing System pages, Public Customers, public checkout, winner assignments, Paper.id callbacks, expiry, and confirmation emails. Findings are recorded in `docs/TICKETING_AUDIT_2026-09-06.md`; application behavior was not changed.
+- **Reproducible offline diagnostics:** Added `apcs_service/audit/public-ticket.audit.cjs`, which loads real repository/sweeper code with isolated in-memory dependencies. The audit run has 19 targeted cases: 3 controls pass and 16 safety assertions fail. Confirmed risks include releasing another buyer's seats during rollback, missing capacity protection, broken complimentary expiry, bypassed eligibility, invalid seat relationships, and payment/event/ownership handling. These are unresolved findings, not completed fixes.
+- **Static verification:** 15 frontend files linted with 0 errors and 36 warnings; 10 backend files passed syntax checks. No browser, build, live database changes, invoices, or emails were used.
+- **Corrected ticketing documentation:** Updated `SEAT_BOOKING_FLOW.md`, `TICKETING_SYSTEM_GUIDE.md`, and relevant sections of `architecture.md` to distinguish current behavior from intended guarantees, document competing seat ID formats, and identify incomplete masterclass/complimentary fulfillment. Allocation timing and repeat complimentary entitlement questions remain open.
+
+
+### Ticketing Rule Clarifications (Sep 06, 2026 — audit follow-up)
+- Recorded owner-confirmed rules: admin seat assignment from Seat Occupancy for tickets without seat selection; one extra complimentary ticket per winner per orchestra session; reserved orchestra rows for winners' complimentary tickets. These requirements are not yet implemented.
+- Updated both ticketing guides, architecture notes, and audit open questions; added the root domain glossary. Remaining questions will be asked in ordinary chat and will wait for explicit answers without timeout-based assumptions.
+
+- **Reserved-row confinement confirmed:** All complimentary orchestra tickets must stay within reserved rows, whether selected by the customer or assigned by an admin in Seat Occupancy. Updated the glossary, both ticketing guides, architecture notes, and audit open questions; implementation remains pending.
+
+- **Ensemble entitlement confirmed:** An ensemble follows the same rule as one winning performance: one extra complimentary orchestra ticket per session, not one per member. Updated domain terms, both ticketing guides, architecture notes, and the audit; no application behavior changed.
+
+- **Paid-only admin assignment confirmed:** Seat Occupancy may assign seats only after payment is confirmed; pending, expired, and failed bookings cannot be assigned. Updated domain terms, both ticketing guides, architecture notes, and audit questions. This is a documented requirement, not an implemented fix.
+
+- **Retry entitlement confirmed:** An unpaid booking that expires does not consume the winning performance’s extra complimentary orchestra ticket; it can be claimed on retry, subject to current quota/capacity. Updated glossary, guides, architecture notes, and audit questions. Documentation only; implementation remains pending.
+- **Masterclass assignment confirmed:** Complimentary Masterclass passes earned from Presto tickets are assigned to a specific Masterclass session later by an admin; customers do not select that session during ticket checkout. Updated glossary, both ticketing guides, architecture notes, and audit questions. Documentation only; implementation remains pending.
+- **Paid Masterclass session confirmed:** Paid Masterclass tickets remain attached to the session selected by the customer; only complimentary passes are assigned later by an admin. Updated glossary, both ticketing guides, architecture notes, and audit questions. Documentation only; implementation remains pending.
+- **Masterclass assignment granularity confirmed:** All complimentary Masterclass passes from one booking must be assigned to the same Masterclass session. This rule will govern the new admin assignment section.
+- **Masterclass capacity clarified:** Masterclass sessions have no attendee limit for now. Removed capacity as an open business decision; complimentary pass assignment by admins remains to be implemented.
+- **Masterclass documentation consistency:** Clarified the architecture and audit that paid passes remain tied to the customer-selected session while free passes are assigned later by admins; no attendee limit applies for now.
+- **Masterclass Assignments admin section:** Added dashboard menu key `25` and `MasterclassAssignments.js`. It lists paid bookings with `freeMasterclassCount`, lets staff assign every complimentary pass from one booking to one configured Masterclass session, verifies paid status and pass count in a Firestore transaction, and stores `masterclassAssignment` on the booking. Paid Masterclass tickets remain customer-session based; no attendee limit is enforced.
+
+### Checkout Failure Repair (Sep 07, 2026)
+
+- Replaced unconditional checkout rollback with a saved-booking transaction. Rejected transactions/validation failures no longer release other customers' seats or subtract unclaimed quota. Cleanup releases only this booking's current locks in its stored event and refunds its recorded quota once.
+- Added retained terminal `failed` bookings with failure time, cleanup/quota status, and invoice-cancellation outcome. Missing quota configuration is flagged for reconciliation. Known invoice IDs survive invoice/save errors; cancellation occurs outside Firestore transactions. Unknown/failed cancellation is not presented as confirmed cancellation. Database cleanup errors are logged with booking IDs and preserve the original checkout error; automatic recovery remains deferred.
+- Moved eligibility reads inside the callback error boundary and caught rejected invoice promises. Failed bookings are blocked by shared public payment fulfillment and the Public Customers Mark Paid transaction/action. Administration shows failed status and reconciliation information. Public waiting pages stop polling on failed status and explain payment follow-up without claiming the invoice was canceled.
+- Added 17 offline regression cases, including Paper response-error ID preservation and stale admin Mark Paid. Full offline diagnostic: **36 tests, 23 passed, 13 deferred failures**. All three original batch failures are repaired and original controls remain passing. Backend syntax and frontend lint checks passed (0 errors, 3 existing warnings); no browser/start/build/deployment/live data changes.
+- Updated both ticketing guides, architecture, and audit, including manual UI verification guidance. Self-review: standards and approved scope checked; removed rollback references swept; imports and all changed JSX branches reviewed. Existing payment/expiry races, security hardening, and broader capacity/entitlement repairs remain open.
+
+### Ticketing AI Handover (Sep 07, 2026)
+
+- Added [TICKETING_HANDOVER_2026-09-07.md](TICKETING_HANDOVER_2026-09-07.md) with confirmed business decisions, implemented changes and limits, all 13 remaining diagnostic failures, additional review findings, suggested repair batches, open questions, test commands, nested Git/uncommitted-state precautions, and a receiving-AI prompt.
+- Cross-checked the handover against current source, repository status, audit, and progress. Corrected the audit's historical waiting-page cancellation statement to reflect the completed wording fix. Documentation only; no application changes or fresh runtime-readiness claim.
+
+### Owner Review of Ticketing Handover
+
+- Recorded confirmed requirements: display seats awaiting assignment, use booking-ID/manual entry verification, treat whitelisted users as ticketing administrators, and communicate later Masterclass assignments by email.
+- Preserved the owner's original handover answers and distinguished unresolved winner-authorization, payment/expiry, and paid Masterclass add-on allocation questions from confirmed decisions. Updated both ticketing guides; no implementation or test-result changes.
+
+
+### Ticketing Handover Decisions Finalized (Sep 07, 2026)
+
+- Preserved the owner's original handover answers and replaced provisional interpretations with confirmed rules: hold seats until Paper.id confirms payment or successful cancellation even beyond 30 minutes; public buyers enter email, winners default to an editable registrant email; retain winner name selection without email verification while enforcing backend eligibility and entitlement limits.
+- Clarified that admins assign paid Masterclass add-on passes together with complimentary passes from one booking to one session after payment and email the buyer. Standalone paid Masterclass tickets keep the customer-selected session. This supersedes earlier broad statements that only complimentary passes are admin-assigned.
+- Flagged the current checkout-failure helper's release-before-cancellation order as a required follow-up alongside timer/sweeper/lazy expiry and payment handling. The earlier ownership/idempotency/callback repairs remain completed; provider-confirmed holds, paid add-on assignment, and assignment emails are not implemented.
+- Aligned the handover, both ticketing guides, architecture, audit, and domain glossary; refreshed the portable handover copy. Retained historical log entries and the previous diagnostic baseline of **36 tests: 23 passed, 13 failed**. Tests were not rerun for this documentation-only update.
+- Documentation self-review covered confirmed versus implemented behavior, obsolete open-question wording, original-answer preservation, links, and copy consistency. No application code, browser/start/build, deployment, or customer-data changes.
+
+### Provider-Confirmed Ticket Lifecycle Repair (Sep 07, 2026)
+
+- Replaced local-timeout inventory release with a shared cancellation-first lifecycle for checkout failure, per-booking expiry, and the restart sweeper. Seats and complimentary quota are released only after Paper.id cancellation returns a successful result; failed or unknown outcomes remain locked for reconciliation.
+- Removed lazy expired-lock takeover and client-facing lazy availability release. Public payment fulfillment now uses the booking's saved event and a read-before-write transaction to validate the amount and lock ownership; late callbacks for still-held pending bookings can complete, while failed bookings remain reconciliation-only.
+- Updated customer invoice/hold-email wording and the ticketing guides/architecture. Offline audit now has **37 tests: 31 passed, 6 deferred failures**; no browser, deployment, live data, or provider call was performed.
+
+### Ticketing Checkout Validation and Capacity Repair (Sep 07, 2026)
+
+- Completed the six remaining reproduced checkout-audit repairs without changing the normal paid booking flow: server-side public sale-window enforcement; same-event winner and assigned-session validation; configured tier-capacity reservation for unselected seated tickets; strict ticket quantity/physical-seat uniqueness validation; paid-seat product/slot/tier validation; and complimentary orchestra-slot/reserved-row validation.
+- The capacity check derives limits from the event venue `seatConfig` and counts active `publicBookings` by event/venue/date/session (or event/orchestra session for complimentary capacity). Added the required composite index definitions to `apcs_web/firestore.indexes.json`; deployment remains an explicit release step.
+- Updated `SEAT_BOOKING_FLOW.md`, `TICKETING_SYSTEM_GUIDE.md`, `architecture.md`, `TICKETING_AUDIT_2026-09-06.md`, and the handover so historical failures are not presented as open. Current offline verification: **40 tests passed, 0 failed**, plus syntax checks for the changed backend modules. No browser, start/build, deployment, live database, customer-data change, provider call, or email send was performed.
+- Remaining documented work is intentionally separate from these reproduced defects: Paper.id callback/authentication verification, backend admin authorization, cancellation reconciliation/retry, durable once-per-performance winner claims, configuration/seat-ID migration, and assignment/email completion.
+
+### Ticketing Public Booking and Public Customers Safety Repair (Sep 07, 2026)
+
+- Fixed public Orchestra purchases so the selected session is submitted as the paid venue/date/time, while `orchestraSessionId` is reserved for a winner's complimentary claim. Reserved Orchestra rows are disabled in the public paid-seat map and rejected again by checkout, so bypassing the UI cannot grant paid access to winner rows.
+- Reset ticket quantities, add-ons, paid/free selections, and seat layouts when buyer type, winner, or session changes. The winner benefit message now reports purchased tickets rather than only manually clicked seats.
+- Removed Public Customers' client-side 30-minute lock expiry. Paid-seat assignment now rechecks the persisted paid booking, event, current selected-seat ownership, candidate seat availability, venue/session/tier, and per-tier quantity inside its transaction. Manual Mark Paid now permits only a pending booking whose explicit seats remain locked by that booking. Delete is limited to terminal records whose confirmed cleanup has already released seats and quota; it no longer performs unsafe client-side inventory cleanup.
+- Normalized `master_class` and `masterclass` handling in paid-seat assignment calculations. Added regressions for paid attempts to select Orchestra reserved rows and manual Mark Paid attempting to take another booking's lock. Current offline verification target is **42 tests, 0 failures**; frontend lint has 0 errors and 5 pre-existing warnings. No browser, start/build, deployment, live database, customer-data change, provider call, or email send was performed.
+
+### Ticketing Launch-Readiness Review and Approved Handoff (Sep 08, 2026)
+
+- Rechecked the nine Ticketing System menu connections, public checkout, Public Customers, payment callbacks, expiry, and setup/fulfillment dependencies. Reran the existing offline diagnostics: **42 tests passed, 0 failed**.
+- Additional in-memory probes reproduced five uncovered failures: two paid bookings for alias documents representing the same physical chair; seated-capacity bypass through a client Masterclass flag; unselected paid Orchestra demand accepted against exclusively reserved-row capacity; repeat personal winner bonus after a paid purchase; and local waiting-page expiry stopping payment polling without provider confirmation. These probes are not yet permanent regression tests, and no fixes were made in this review.
+- The owner confirmed a **fresh test event** and **500 concurrent buyers**, reviewed the proposed launch-readiness plan, and approved saving it for another task/model.
+- Added [TICKETING_LAUNCH_READINESS_PLAN_2026-09-08.md](TICKETING_LAUNCH_READINESS_PLAN_2026-09-08.md), preserving the approved plan and adding current evidence, source references, known verification limits, workspace precautions, suggested skills, and a starter prompt. Linked it from both ticketing guides.
+- Documentation-only handoff; implementation remains pending. No application edits, browser/start/build, deployment, live database mutation, payment, or email send occurred. Historical repairs and unrelated working changes are preserved.
+
+### Ticketing Launch-Hardening Foundation (Sep 08, 2026)
+
+- Added canonical public-seat ownership records keyed by event, venue, session, row, and number, preventing a legacy and canonical seat document for the same chair from both being sold.
+- Added transactional paid-pool capacity records and winner personal-claim records. Paid Orchestra capacity now excludes complimentary reserved rows; the personal winner benefit is once per event/winning performance/Orchestra session, while each purchased ticket's benefit remains available. Confirmed unpaid cancellation releases only the booking's active reservation/claim.
+- Made public checkout fail closed if active-event or sale-eligibility settings cannot be read. The backend derives session type from the event catalogue, rejects forged Masterclass/Orchestra flags and unknown add-ons, persists the Paper.id payment URL, and supports idempotent checkout retry.
+- The public flow now removes special sessions from ordinary competition choices, ignores stale seat-fetch responses, sends a checkout idempotency key, and restores a public payment link/status from a direct waiting-page URL. The local countdown no longer declares payment expired without backend confirmation.
+- Added six focused offline regression checks. Current offline diagnostic: **48 passed, 0 failed**. Backend syntax checks and frontend ESLint completed with no new lint errors (four existing warnings). No browser, deployment, live database, Paper.id call, email send, emulator run, or 500-buyer rehearsal was performed.
+
+### Ticketing Fulfillment Follow-up (Sep 08, 2026)
+
+- Extended Masterclass Assignments to allocate `allegro_masterclass` paid add-on passes together with complimentary passes from the same paid booking, persisting the combined total and component counts under one session assignment.
+- Corrected Seat Occupancy so old local locks remain unavailable until the provider-confirmed backend lifecycle releases them; removed duplicate Orchestra/competition rows.
+
+
+### Ticketing Implementation Re-review and Second AI Handover (Sep 08, 2026)
+
+- Reviewed the updated working tree against the approved launch plan across setup menus, public purchase/payment, staff assignment, inventory writers, and recovery. Retained the owner's decision to use Invoice Paid as the normal fulfillment signal; Payment In dashboard investigation is separate from required callback verification/recovery.
+- Existing offline suite: **49 passed, 0 failed** (supersedes the earlier 48-test count). Added `apcs_service/audit/ticketing-followup.audit.cjs` with nine expected-safety assertions, all currently failing: staff/public double allocation, occupied legacy aliases, duplicate failed-booking cleanup refunds, repeat winner seat selection, quota-capped purchase, excess complimentary selection, changed-cart replay, canceled-invoice replay, and mismatched provider invoice identity. The cleanup probe measured another pending order's paid capacity 1 → 0 and complimentary count 2 → 0.
+- Added [TICKETING_IMPLEMENTATION_REVIEW_HANDOVER_2026-09-08.md](TICKETING_IMPLEMENTATION_REVIEW_HANDOVER_2026-09-08.md) with separate Standards/Spec findings, source references, repair acceptance criteria, all menu statuses, verification limits, suggested skills, and a starter prompt. Updated both ticketing guides and architecture to correct stale implementation claims and document the existing `ticketCheckoutKeys` collection. Linked the historical plan to the latest review without rewriting its original scope.
+- Backend syntax checks passed; the five reviewed frontend pages had **0 ESLint errors and 7 warnings**. The diagnostic assertions expose open defects and intentionally fail; no application repair was made. Independent review agents could not run due to account usage limits; review continued locally.
+- Documentation/test self-review covered standards, requested scope, source references, stale claims, fixture boundaries, and link consistency. No browser/start/build, emulator/load rehearsal, deployment, live data mutation, Paper payment/cancellation, or email send occurred. D-day readiness remains unverified and blocked by the documented defects.
+
+### Ticketing Re-review Blocker Repairs (Sep 08, 2026)
+
+- Repaired all nine deterministic failures from `TICKETING_IMPLEMENTATION_REVIEW_HANDOVER_2026-09-08.md`: canonical ownership now covers public checkout, Public Customers assignment/Mark Paid, and legacy token-seat reservation; existing physical aliases are rejected; duplicate failed-booking cleanup does not issue/release twice; winner benefits are quota/reserved-capacity capped; complimentary selected seats require the add-on and exact entitlement; checkout keys are cart-bound and terminal-safe; and paid fulfillment matches the stored Paper invoice ID.
+- Added active winner-claim session IDs to the existing eligible-winners response so the public flow previews the same capped allowance as checkout. The browser keeps a matching checkout attempt key in session storage across a reload and rotates it when the cart changes.
+- Verification: `node --test --test-reporter=spec apcs_service/audit/public-ticket.audit.cjs apcs_service/audit/checkout-failure-boundaries.audit.cjs apcs_service/audit/ticketing-followup.audit.cjs` → **58 passed, 0 failed**. `node --check` passed for all changed backend repositories. Targeted frontend ESLint had **0 errors, 5 existing warnings**. No browser/start/build, emulator, deployment, live Firestore mutation, Paper staging call, or email send was performed.
+- Remaining launch blockers are deliberately retained: verified Paper callback authentication/cancellation/recovery, backend whitelist enforcement, configuration protection/migration, durable assignment/confirmation email delivery, Firestore emulator contention tests, the fresh-event 500-buyer rehearsal, and owner-run UI/entry acceptance.

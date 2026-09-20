@@ -2,7 +2,54 @@
 
 This document describes the Firestore data model, API contracts, and system flows for the APCS project. It serves as the single source of truth for developers working on the codebase.
 
+> Ticketing was audited on 6 September 2026. Its current implementation has unresolved correctness and authorization defects; see [the audit](TICKETING_AUDIT_2026-09-06.md), [technical flow](SEAT_BOOKING_FLOW.md), and [staff guide](TICKETING_SYSTEM_GUIDE.md). Configuration examples are illustrative, not confirmation of deployed data.
+
 ---
+
+## Current ticketing contract — 19 September 2026
+
+The free-seating sections in [SEAT_BOOKING_FLOW.md](SEAT_BOOKING_FLOW.md) and [TICKETING_SYSTEM_GUIDE.md](TICKETING_SYSTEM_GUIDE.md) supersede older numbered-orchestra and Masterclass checkout examples later in this document. Those older sections describe historical records and audit history, not new-sale behavior.
+
+### New booking fields and ownership
+
+New `publicBookings` use `ticketingVersion: 2`, `venueName` (booking-time venue label), `seatingMode: 'numbered' | 'free'`, `performerCount` (authoritative registered roster size, solo fallback one), and `orchestraAttendanceTickets` (winner paid ticket quantity, zero for public buyers). They store no new Masterclass benefit, complimentary seat claim, winner-claim ID or selected orchestra seats. Numbered competition capacity/ownership fields and idempotency keys remain in use. Saved ticket names/prices and competition seat labels are derived by the backend.
+
+`orchestraAssignments/{encodeURIComponent(eventId + '|' + registrantId)}` is the new assignment collection. Each document contains:
+
+- `eventId`, `registrantId`, `sessionId`, `venue`, `venueName`, `date`, `time`.
+- `paidTicketCount`, `performerCount`, `quantity`, `bookingIds` (the covered paid snapshot).
+- `revision`, `assignedBy`, `assignedAt`, `notifiedBookingIds`.
+- Optional `notificationLease: { token, bookingId, expiresAt }`, where `expiresAt` is epoch milliseconds; completed/failed sends clear it.
+
+`OrchestraAssignmentRepository.readGroup` derives current demand from paid version-2 bookings grouped by event and winning performance: sum of paid ticket quantities + maximum snapshotted performer count once. It also detects paid historical complimentary allocations and blocks silent mixed-version reassignment. Later purchases produce additional pending assignment demand; they do not overwrite the existing assignment snapshot.
+
+`events/{eventId}.orchestraSessions[]` retains venue/date/time and `complimentaryQuota` but adds `freeSeatingAssigned` and `seatingMode: 'free'`. Historical `complimentaryClaimed`/`reservedRows` values remain for legacy records. New assignments atomically decrement the old session headcount and increment the target headcount, preserving the legacy counter. Public free-seating checkout keeps tier capacity and limits total paid demand to venue capacity minus the configured winner quota.
+
+`winnerOrchestraClaims` remains a legacy collection; new checkouts do not write it. New Masterclass purchases are rejected even if historical configuration remains. Existing invoices and legacy cleanup are unchanged.
+
+### New admin APIs
+
+All are POST under `/api/v1/apcs/public-ticket/admin/orchestra/`, with `requireTicketingAdmin` Firebase-token/whitelist middleware:
+
+| Suffix | Input | Result |
+| --- | --- | --- |
+| `list` | `eventId`, optional booking-ID `cursor` | 25-booking discovery page, complete paid winner groups and next cursor |
+| `assign` | `eventId`, `registrantId`, `sessionId` | Transactional assignment, then per-booking notification attempts; failed IDs remain retryable |
+| `notify` | `eventId`, `registrantId` | Retry missing emails for the saved revision |
+| `sessions` | `eventId` | Session configuration plus paid public, held public and assigned winner counts |
+| `session` | `eventId`, `session` or `deleteSessionId` | Protected settings mutation preserving fresh counters and checking capacity/active allocations |
+
+Group reads are event/registrant-scoped; discovery is paginated. Session overview and settings validation queries are event/venue/date/time-scoped. The new event/registrant composite index is checked in to `apcs_web/firestore.indexes.json`; the existing event/status index serves discovery. Actual deployed index availability and database edition were not verified locally.
+
+`OrchestraAssignmentController` sends notifications only after an assignment commits. SMTP and persistence are not atomic; a crash after successful SMTP and before delivery acknowledgement can result in a retry duplicate. A short lease limits overlapping requests; no background outbox worker is introduced.
+
+`EmailService.sendPublicBookingConfirmationEmail` resolves a saved venue name or the booking's event, never the current event. `OrchestraEmailDetails` generates escaped free-seating/group instructions. Covered assignments appear in confirmation resends; new purchases outside the assignment snapshot show pending. Assignment emails go to each covered booking's stored buyer email.
+
+### Historical and rollout boundary
+
+No live migration is performed. Unversioned/version-1 orders retain original numbered seats, Masterclass entitlements, quota, provider invoice and cleanup semantics. Reconcile an old winner allocation before assigning its new group. New Orchestra Settings does not generate physical seats; old seat generators and direct admin database access remain historical operational concerns.
+
+Deploy the backend, frontend and indexes together and complete [manual acceptance](TICKETING_FREE_SEATING_WALKTHROUGH_2026-09-19.md). Existing payment authentication/recovery and Firestore contention limitations remain; offline tests are not deployment certification.
 
 ## Tech Stack & UI/UX Guidelines
 
@@ -143,8 +190,8 @@ apcs_service/
 
 ### 2.1 `events` collection
 
-**Document ID:** `APCS2026`
-**Purpose:** Single source of truth for event configuration, pricing tiers, add-ons, and session schedules.
+**Document ID:** Active event ID from `systemSettings/global.currentEventId` (for example, `APCS2026`).
+**Purpose:** Event configuration, pricing tiers, add-ons, venue/session blueprints, `orchestraSessions`, `masterclassSessions`, and `sessionsSeatsGenerated`. Current ticket pricing uses `ticketTiers[].venuePrices[venueId]`; the flat `price` examples below are historical and insufficient for current public checkout.
 **Used by:** `PublicTicketRepository.getPublicTicketEventData`, `PublicTicketRepository.createPublicTicketBooking` (server-side price validation).
 
 ```json
@@ -222,14 +269,14 @@ apcs_service/
   "assignments": {
     "Venue1_2026-11-01_10:00-12:25": [
       {
-        "id": "reg123",
+        "registrantId": "reg123",
         "competitionCategory": "Piano Solo",
         "email": "user@example.com"
       }
     ],
     "Venue2_2026-11-02_14:40-16:50": [
       {
-        "id": "reg456",
+        "registrantId": "reg456",
         "competitionCategory": "Violin Solo",
         "email": "user2@example.com"
       }
@@ -242,8 +289,12 @@ apcs_service/
 
 ### 2.3 `seatsAPCS2026` collection
 
-**Document ID format:** `{areaType}-{seatLabel}_{eventId}_{sessionId}`
-Example: `presto-A1_APCS2026_2026-11-01_10:00-12:25`
+**Current incompatible document ID formats:**
+- Performer generator: `{venueId}-{areaType}-{row}{number}_{eventId}_{sessionId}`.
+- Orchestra generator: `{venueId}-{areaType}-{row}-{number}_{eventId}_{sessionId}`.
+- Older records may omit the venue prefix.
+
+These formats can coexist for the same physical seat and create duplicate inventory. There is no enforced canonical format yet; see audit finding H before generation or migration.
 
 **Purpose:** One document per physical seat per session. Tracks availability in real-time.
 **Seeded by:** Admin dashboard `SeatEvent.js` → `uploadFullSeatLayout`.
@@ -264,7 +315,7 @@ Example: `presto-A1_APCS2026_2026-11-01_10:00-12:25`
 }
 ```
 
-**Locked** (user clicked "Pay Now", waiting for payment — max 30 min):
+**Locked** (user clicked "Pay Now", waiting for payment — current timer targets 30 min; approved hold may extend beyond it):
 ```json
 {
   "...same base fields...",
@@ -274,28 +325,33 @@ Example: `presto-A1_APCS2026_2026-11-01_10:00-12:25`
 }
 ```
 
-**Reserved** (payment confirmed via Paper.id webhook — permanent):
+**Booked** (status written by the public payment handler; legacy `reserved` is also counted by occupancy):
 ```json
 {
   "...same base fields...",
-  "status": "reserved",
+  "status": "booked",
   "bookingId": "abc123def456",
   "assignedTo": {
-    "name": "Budi Santoso",
-    "email": "budi@example.com"
+    "userName": "Budi Santoso",
+    "userEmail": "budi@example.com",
+    "registrantName": ""
   }
 }
 ```
 
-#### State transitions
+#### Current ticket-lock state transitions
 
 ```
-available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]──► reserved
+available ──[Pay Now (Firestore txn)]──► locked ──[verified paid callback]──► booked
                                            │
-                                    [30 min, no payment]
+                         [local deadline: request cancellation]
                                            │
-                                           ▼
-                                       available (cleanup job)
+                     ┌─────────────────────┴─────────────────────┐
+                     ▼                                           ▼
+      [cancellation succeeds]                             [unknown / failed]
+                     │                                           │
+                     ▼                                           ▼
+                 available                              locked for reconciliation
 ```
 
 ---
@@ -303,7 +359,15 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
 ### 2.4 `publicBookings` collection
 
 **Document ID:** Auto-generated by Firestore
-**Purpose:** One document per public ticket booking. Created at checkout, updated on payment.
+**Purpose:** One document per public ticket booking. Created at checkout, updated on payment. Additional current fields include `buyerName`, `registrantId`, `registrantName`, `orchestraSessionId`, `orchestraSelectedSeatIds`, `performanceSeatLabels`, `orchestraSeatLabels`, `complimentaryTickets`, `freeMasterclassCount`, `masterclassAssignment`, `isOrchestra`, `isMasterclass`, and `invoiceId`. `masterclassAssignment` is a nested `{ sessionId, sessionLabel, quantity, freePassCount, paidAddOnPassCount, assignedAt }` written by the Admin Dashboard after payment. The Masterclass Assignments page reads paid bookings with a bounded `eventId` + `paymentStatus` query; its composite index is defined in `apcs_web/firestore.indexes.json`. Checkout bootstraps a missing `ticketCapacity` record from active booking quantities by `eventId` + venue/date/session; subsequent checkouts update that counter transactionally. Unselected seated quantities reserve capacity without receiving a physical seat. Legacy bookings included in this bootstrap do not receive per-booking reservation metadata, leaving their later release/migration incomplete. Complimentary orchestra quantity is similarly bounded by the configured reserved-row capacity for `eventId` + `orchestraSessionId`. The two required composite indexes are defined in `apcs_web/firestore.indexes.json` and must be deployed with the normal Firestore-index release process. `paymentUrl` is now persisted alongside the provider invoice ID for status-link recovery. Stored `createdAt` and `lockExpiresAt` are Firestore timestamps; ISO text below illustrates serialization.
+
+**Checkout failure fields (7 September repair):** `paymentStatus: "failed"`, `failedAt` (server timestamp), and `checkoutFailure: { reason, cleanupStatus, quotaRefundStatus, reconciliationReasons, invoiceCancellationStatus }`. Before provider cancellation succeeds, failure cleanup uses `cleanupStatus: "awaiting_cancellation"` and `quotaRefundStatus: "held"`; after successful cancellation it records the completed release/refund state. Other quota status is `not_applicable` or `reconciliation_required`; cancellation status is `not_requested`, `unknown`, `pending`, `canceled`, `failed`, or `manually_verified_no_active_invoice`. The manual value is written only by the authenticated Seat Occupancy reconciliation endpoint after an admin explicitly confirms there is no paid or active Paper.id invoice. A returned `invoiceId` is preserved even when saving the successful invoice response fails. No new collection was introduced; the checkout capacity queries require the two documented indexes.
+
+**Admin release fields (18 September):** a booking reconciled from Seat Occupancy receives `adminRelease: { reason, note, providerConfirmation, releasedByUid, releasedByEmail, releasedAt }`. Supported reasons are exactly `customer_declined` and `no_response_after_one_hour`. The no-response reason requires the booking to be at least one hour old. Known invoices must return a successful Paper.id cancellation before the transaction runs. A no-invoice booking must already be `failed` and requires `manualProviderConfirmation: true`; a `pending` no-invoice booking is rejected to avoid racing invoice creation. The transaction refuses paid/terminal bookings, rechecks the expected payment status and invoice identity, and preflights every expected seat, physical ownership, capacity reservation, winner claim, and complimentary quota before writing. A late invoice or any inventory inconsistency aborts all local inventory changes. A successful provider cancellation is stored before that transaction, so a repaired retry can skip a duplicate Paper.id cancellation.
+
+**Failure data path:** `PublicTicketRepository` catches checkout/eligibility errors and awaits the Promise-returning `PublicTicketFailureRepository`. That helper uses the booking's saved event and recorded quantities, marks the booking failed, then attempts known-invoice cancellation outside Firestore. Only a truthy cancellation result enters the all-reads-before-writes release transaction, which checks current seat ownership and refunds recorded quota. The latest review reproduced duplicate capacity/quota refunds when two failed-booking cleanups overlap; exactly-once release is not yet guaranteed. Unknown or failed cancellation retains inventory for reconciliation. Missing quota configuration is flagged rather than inferred. Cleanup transaction failure is logged with the booking ID and does not replace the original callback error. There is no automated recovery worker in this batch. Both public payment webhook routes share the failed-booking guard; Public Customers independently rereads status before manual Mark Paid. Existing rules/whitelist permissions remain unchanged, so these are application guards, not newly enforced Firestore authorization.
+
+**Lifecycle/fulfillment repair (7 September):** failure cleanup now retains inventory while provider cancellation is pending or unknown; only a truthy cancellation result releases booking-owned locks and refunds quota. Timer and sweeper use the same all-reads-before-writes release path, checkout cannot lazily take over locks, and public seat reads keep them unavailable. Payment fulfillment now uses the saved event and transactionally validates amount and lock ownership. Callback authenticity, a recovery worker, and Masterclass assignment email remain open; combined paid/free pass assignment is implemented.
 
 **On creation (Pay Now clicked):**
 ```json
@@ -342,11 +406,12 @@ available ──[Pay Now (Firestore txn)]──► locked ──[Webhook: paid]�
 }
 ```
 
-**After lock expires (cleanup):**
+**Expiry after confirmed unpaid cancellation:**
 ```json
 {
   "...all above fields...",
-  "paymentStatus": "expired"
+  "paymentStatus": "expired",
+  "checkoutFailure": { "cleanupStatus": "complete", "quotaRefundStatus": "refunded", "invoiceCancellationStatus": "canceled" }
 }
 ```
 
@@ -484,11 +549,12 @@ const performerNames = (record.performers || [])
 | `finalizedBy` | string\|null | Email of admin who finalized |
 
 > **⚠️ Finalization behavior:** When `isFinalized` is `true`, the jury's AssessmentForm disables all inputs and shows a "Finalized" banner. The jury can still view their score/feedback but cannot save changes. Admins can unfinalize to re-open editing.
-```
 
 ---
 
-### 2.8 `systemSettings/global` — Jury Deadlines & Exchange Rate
+### 2.8 `systemSettings/global` — Event, Ticket Eligibility, Jury Deadlines & Exchange Rate
+
+Ticketing additionally reads `currentEventId` and `ticketEligibility: { enabled, schedule: [{ date, allowedTiers }] }`. Eligibility uses Asia/Jakarta calendar dates and is edited in Ticket Settings. The supported ticket schedule values are Sapphire, Diamond, Gold, Silver, and Public. Enabled schedules without a matching date yield no allowed tiers; backend enforcement for public checkout is currently missing. The registration-enabled setting does not disable ticket sales.
 
 **Field:** `juryDeadlines` (added to existing `systemSettings/global` document)
 **Purpose:** Per-competition-category deadlines for jury scoring. After the deadline passes, jury members for that category are blocked from logging in via email/password and can no longer submit scores.
@@ -521,6 +587,7 @@ const performerNames = (record.performers || [])
 **Behavior:**
 - **24 hours before deadline (H-1):** 
   - A backend cron job (`JuryDeadlineReminder.js`) queries jury members with pending assessments and sends urgent email reminders. It sends reminders in three stages: 1 week before, 3 days before, and 24 hours before the deadline. To ensure idempotency, it writes a flag to `juryDeadlineReminderSent` keyed by `Category_DeadlineTimestamp_ReminderWindow` (e.g. `_1w`, `_3d`, `_24h`).
+  - Reminder completion checks use the jury user document ID as the canonical UID, with the stored `users.uid` field accepted as a legacy fallback. This prevents stale or migrated `uid` fields from making fully scored juries look pending.
   - A warning modal is shown to jury on login. Deadline text in dashboard nav turns red with pulsing animation.
 - **After deadline:** Jury email login is blocked in `DataContext.signInWithEmail()` — user is signed out and shown "The scoring period for [category] has ended". Google login and admin login remain unaffected.
 - **No deadline set:** No restrictions applied; jury can score at any time.
@@ -532,188 +599,89 @@ const performerNames = (record.performers || [])
 
 ## 3. Public Ticket Booking Flow
 
-### Step-by-step (frontend)
+Confirmed requirements from the audit follow-up: admins assign tickets without seat selection from Seat Occupancy only after confirmed payment; standalone paid Masterclass tickets remain attached to the customer-selected session; admins assign all complimentary Masterclass passes from one booking to the same specific session after booking through the Masterclass Assignments page; Masterclass sessions have no attendee limit for now; the extra winner orchestra ticket is allowed once per winning performance per orchestra session, with an ensemble counted as one performance regardless of member count; reserved orchestra rows are exclusively for winners’ complimentary tickets, and all complimentary seats must remain within these rows for both customer selection and admin assignment. See [the flow document](SEAT_BOOKING_FLOW.md) for confirmed decisions and remaining implementation work. An unpaid booking that expires must restore eligibility to claim the extra winner ticket on retry, subject to remaining quota and reserved-row capacity. No new collection is introduced for Masterclass assignments; the nested booking field is used.
 
-```
-Step 1 — Venue & Session
-   User picks Venue1/Venue2, a date, and a time slot.
+The detailed, code-verified flow is maintained in [SEAT_BOOKING_FLOW.md](SEAT_BOOKING_FLOW.md). The connections below replace the former seat-click-only description.
 
-Step 2 — Select Seats & Add-ons (Fused Flow)
-   Live seat map (CustomSeatPicker). Users implicitly build their cart
-   by clicking seats. Ticket tiers and total prices are calculated 
-   automatically. Add-ons are selected here as well.
+- Public buyers select a competition/orchestra/masterclass session, then explicit ticket quantities. A public Orchestra purchase uses the selected venue/date/time as its paid session; only a winner sends `orchestraSessionId` for a complimentary claim.
+- Winners select a registrant whose competition slot is already assigned in `sessionAssignments/{eventId}` and separately select an orchestra session for complimentary tickets.
+- `seat_selection_performer` is repeated in `addOnIds` once per manually chosen paid seat. `seat_selection` is a flat add-on for selecting complimentary orchestra seats.
+- Presto quantities produce `freeMasterclassCount`; the existing admin page assigns those complimentary passes after payment. **Assignment implemented; email pending:** Masterclass Assignments now includes paid `allegro_masterclass` add-on passes, complimentary passes, and add-on-only bookings. Staff assign all benefit passes from one paid booking to one Masterclass session; the saved assignment includes paid/free component counts. Standalone Masterclass tickets retain the customer-selected session. Assignment-email dispatch is still missing. Masterclass sessions have no attendee limit for now.
+- Details/review submit to checkout, which recalculates totals from venue-specific event prices, locks explicitly supplied seats, blocks paid access to winner-reserved Orchestra rows, increments applicable winner orchestra quota, and creates `publicBookings` in a transaction. Changing buyer type, winner, or session clears purchase selections and quantities.
+- Paper.id invoicing follows the transaction. `invoiceId` is persisted; payment URL/ISO expiry are returned. The controller awaits a non-fatal holding email before sending its response.
+- The waiting page polls booking status when router state identifies a public booking. Independently opening the URL loses that classification/payment-link state.
 
-Step 3 — Your Details
-   Name, email, phone. These are used for the booking record and emails.
-
-Step 4 — Review & Pay
-   Order summary. "Pay Now" triggers the backend call.
-```
-
-### Backend sequence (on "Pay Now")
-
-```
-1. POST /public-ticket/booking
-2. Backend fetches events/APCS2026 → gets authoritative prices
-3. Backend recalculates totalAmount server-side (never trusts client)
-4. Firestore Transaction:
-   a. For each selectedSeatId → read seat doc
-   b. If any seat status !== 'available' → THROW (race condition caught)
-   c. Lock all seats → status: 'locked', lockedAt, lockedByBookingId
-   d. Create publicBookings doc
-5. Call PaperRepository.createInvoice → get paymentUrl
-6. Return { bookingId, paymentUrl, lockExpiresAt }
-7. Send seat-hold email to user (non-blocking)
-```
-
-### Webhook sequence (Paper.id payment confirmed)
-
-```
-1. Paper.id calls POST /public-ticket/webhook
-2. Extract bookingId from invoice.number
-3. Fetch publicBookings/{bookingId}
-4. Guard: if already PAID, skip (idempotency)
-5. Firestore Batch:
-   a. For each selectedSeatId → update: locked → reserved, assignedTo
-   b. Update booking: paymentStatus → PAID, paidAt, amountPaid
-6. Send confirmation email to user
-7. Respond 200 to Paper.id
-```
-
----
+There is currently no automatic physical-seat allocator for unselected ticket quantities. Checkout nevertheless protects configured tier capacity by summing active booking quantities before accepting a new booking. The manual Public Customers workflow covers missing paid seats only. See the audit for frontend state retention and duplicated session listing defects.
 
 ## 4. API Endpoints
 
-### Public Ticket Booking
+| Method | Path (under `/api/v1/apcs`) | Current purpose / trust boundary |
+| --- | --- | --- |
+| GET | `/public-ticket/event-data` | Active event config; public |
+| GET | `/public-ticket/seats?venueId=...&sessionId=...` | Venue/session seats; removes owner fields and keeps provider-unresolved locks unavailable |
+| GET | `/public-ticket/eligible-winners` | Assigned eligible winners, including display names/emails; public |
+| POST | `/public-ticket/booking` | Create pending booking/invoice; server pricing but incomplete entitlement/inventory validation |
+| GET | `/public-ticket/booking-status/:bookingId` | Payment status, attempted payment URL, ISO expiry |
+| POST | `/public-ticket/webhook` | Dedicated paid callback; no authenticity middleware wired in local code |
+| POST | `/public-ticket/resend-email` | Resend a paid public booking email; no admin middleware wired |
+| POST | `/public-ticket/admin/release-booking` | Firebase-token and whitelist-protected booking cancellation; cancels a known Paper.id invoice or accepts manual no-invoice confirmation for a failed booking, then atomically releases the complete validated inventory set |
+| GET/POST | `/systemSettings/global` | Read/update global configuration; write route lacks admin middleware |
+| GET | `/getSessionAssignments/:eventId` | Read saved assignment map |
+| POST | `/saveSessionAssignments` | Replace event assignment map; write route lacks admin middleware |
+| POST | `/payment/webhooks/paper-id` | Unified callback: look up public booking, otherwise process competition registration; no authenticity middleware wired |
 
-| Method | Path | Auth | Purpose |
-|---|---|---|---|
-| `GET` | `/api/v1/apcs/public-ticket/event-data` | None | Returns event config (tiers, add-ons, sessions) |
-| `POST` | `/api/v1/apcs/public-ticket/booking` | None | Creates booking, locks seats, returns paymentUrl |
-| `POST` | `/api/v1/apcs/public-ticket/webhook` | Paper.id | Webhook callback on payment |
+Checkout requires `buyerName`, `userEmail`, `userPhone`, `venue`, `date`, `session`, and `tickets`. Current frontend payload also includes the winner and orchestra fields, explicit paid/free seat IDs and labels, add-on IDs, and product flags. Client totals/benefit values are not authoritative; nevertheless the backend still stores some client product metadata and does not validate all relationships.
 
-#### `POST /public-ticket/booking`
+Example (one selected paid ticket; matching prices/add-on must exist):
 
-**Request:**
 ```json
 {
-  "userName": "Budi Santoso",
-  "userEmail": "budi@example.com",
+  "buyerName": "Audit Buyer",
+  "userEmail": "buyer@example.com",
   "userPhone": "+6281234567890",
   "venue": "Venue1",
   "date": "2026-11-01",
   "session": "10:00-12:25",
-  "tickets": [{ "id": "presto", "name": "Presto", "quantity": 2 }],
-  "selectedSeatIds": ["presto-A1_APCS2026_2026-11-01_10:00-12:25"],
-  "addOnIds": ["merchandise"]
+  "tickets": [{ "id": "presto", "name": "Presto", "quantity": 1 }],
+  "selectedSeatIds": ["Venue1-Presto-A1_APCS2026_2026-11-01_10:00-12:25"],
+  "performanceSeatLabels": ["A1"],
+  "orchestraSelectedSeatIds": [],
+  "addOnIds": ["seat_selection_performer"]
 }
 ```
 
-**Response (201):**
-```json
-{
-  "bookingId": "auto-generated-firestore-id",
-  "paymentUrl": "https://pay.paper.id/...",
-  "lockExpiresAt": "2026-11-01T10:30:00.000Z"
-}
-```
+Checkout returns `{ bookingId, paymentUrl, lockExpiresAt }`, where the expiry is ISO text. Legacy `/saveSeatBookProfileInfo`, `/verify-seat-token`, and `/confirm-seats` remain separate from public checkout.
 
-**Error (race condition):**
-```json
-{
-  "message": "Seat A2 is no longer available. Please go back and re-select."
-}
-```
+## 5. Race Conditions and Seat Locking
 
-### Legacy Endpoints (unchanged)
+Browsing does not lock inventory; Pay Now locks only explicit selected seat IDs. A local deadline requests provider cancellation but never independently releases or takes over inventory. The timer, sweeper, checkout-failure helper, seat reads, and public fulfillment now follow this provider-confirmed hold policy:
 
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/api/v1/apcs/saveSeatBookProfileInfo` | Admin creates booking + generates JWT token |
-| `POST` | `/api/v1/apcs/verify-seat-token` | Validates token on /select-seat page load |
-| `POST` | `/api/v1/apcs/confirm-seats` | Confirms seat selection (legacy flow) |
-| `POST` | `/api/v1/apcs/payment/createInvoice` | Creates Paper.id invoice (competition reg) |
-| `POST` | `/api/v1/apcs/payment/webhooks/paper-id` | Webhook for competition registration payments |
+- Checkout failure cleanup is tied to the saved booking and retains inventory until provider cancellation succeeds; rejected booking transactions leave other inventory untouched.
+- Unselected seated quantities reserve configured tier capacity; selected IDs are checked for unique physical seats, matching venue/session/tier, complimentary entitlement, and winner-reserved Orchestra rows.
+- Fulfillment transactionally rechecks seat ownership, amount, and state against the stored booking event; callback authenticity remains unresolved.
+- The per-booking timer and five-minute `PublicTicketSweeper` request cancellation, then use a shared all-reads-before-writes release path only after success.
+- Lazy takeover is removed. A local timeout does not make a lock available.
+- Invoice-creation failure records terminal `failed`. Known invoices remain locked until cancellation succeeds; unknown outcomes are recorded for reconciliation. No recovery worker exists.
+- A whitelisted admin can reconcile a linked lock from Seat Occupancy. The action never mutates only the clicked seat: it validates the owning booking, all selected seats, canonical ownership, tier-capacity reservation, winner claim, and complimentary quota before any local write, then processes them together. Pending no-invoice bookings are blocked. Public Customers reads the same updated booking and displays the audit details.
 
----
-
-## 5. Race Condition & Seat Locking
-
-### Principle
-Browsing the seat map does **not** lock any seats. Locking only happens inside a **Firestore transaction** the instant "Pay Now" is clicked.
-
-### What happens when two users compete
-
-| Scenario | Result |
-|---|---|
-| User A clicks Pay Now first (same seat) | A's transaction succeeds, seat locked |
-| User B clicks Pay Now 1ms later | B's transaction reads seat as `locked` → throws → B sees error |
-| User A never pays (abandons) | After 30 min, cleanup releases the seat back to `available` |
-
-### Lock TTL: 30 minutes
-
-The deadline is communicated in:
-1. Paper.id invoice `notes` field
-2. Seat-hold email sent immediately after Pay Now
-
-### Cleanup: Lazy Expiry (no cron/Cloud Function needed)
-
-Instead of a separate scheduled job, expired locks are cleaned up **lazily inside the booking transaction itself**. When a new user tries to book a seat that is `locked` but `lockedAt` is older than 30 minutes:
-
-1. The transaction treats the seat as **available** (allows re-locking for the new user)
-2. The old abandoned booking is automatically marked `paymentStatus: 'expired'`
-
-This happens atomically inside `PublicTicketRepository.createPublicTicketBooking`:
-
-```js
-// Inside the Firestore transaction:
-const isAvailable = seatData.status === 'available';
-const isExpiredLock = seatData.status === 'locked'
-    && seatData.lockedAt
-    && (Date.now() - seatData.lockedAt.toDate().getTime()) > LOCK_DURATION_MS;
-
-if (!isAvailable && !isExpiredLock) {
-    throw new Error(`Seat ${seatData.seatLabel} is no longer available.`);
-}
-
-// If reclaiming an expired lock, also expire the old booking
-if (isExpiredLock && seatData.lockedByBookingId) {
-    transaction.update(oldBookingRef, { paymentStatus: 'expired' });
-}
-```
-
-**Trade-off:** Stale lock data remains in Firestore until another user books the same seat. This is acceptable because:
-- Seats are only locked for popular events where re-booking is likely
-- The UI already shows locked seats as "taken" (no visual difference)
-- No infrastructure overhead (no Cloud Functions billing)
-
----
+A next-day Paper.id due date is configured separately from the 30-minute local hold. An expiry display cannot establish gateway cancellation. These defects are reproduced or traced in [the audit](TICKETING_AUDIT_2026-09-06.md); the original documentation's blanket race-safety and lazy-cleanup guarantees are withdrawn.
 
 ## 6. Email Notifications
 
-### Seat Hold Email (sent after "Pay Now")
+Public buyers enter their email. Winner selection defaults the editable buyer email to the registrant’s stored email; confirmation uses the saved booking `userEmail`. Keep public winner name selection without email verification. Confirmation email is communication, not identity proof. Backend winner eligibility and new personal-claim records exist, but repeat selected-seat purchases and historical claim migration remain incomplete. Later Masterclass assignment emails for combined paid/free benefit passes are approved but not implemented.
 
-| Field | Value |
-|---|---|
-| **Trigger** | `PublicTicketController.createPublicTicketBooking` (non-blocking) |
-| **Subject** | "Your APCS 2026 Seat is Held – Complete Payment Within 30 Minutes" |
-| **Contains** | Venue, date, session, payment link (CTA button), 30-min deadline |
-| **Style** | APCS dark theme (`#0a0a0a` bg, `#111` card, `#EBBC64` gold) |
+- Holding email: name, main venue/date/time, invoice URL, and deadline. Controller awaits sending; failure is caught and does not invalidate the booking.
+- Confirmation: booking ID, main venue/date/time, ticket summary, selected competition/orchestra labels, and total. Both webhook routes can trigger it.
+- Missing from current confirmation: a separate orchestra schedule, unassigned complimentary count, and full add-on/masterclass benefits. Public-booking QR verification is not required; booking-ID/manual entry verification is sufficient.
+- Duplicate paid callbacks can return booking data without its document ID while controllers send another confirmation. The unified route tracks `emailSent`; the dedicated route does not consistently do so.
 
-### Payment Confirmation Email (sent after webhook)
-
-| Field | Value |
-|---|---|
-| **Trigger** | `PublicTicketController.handlePublicTicketWebhook` (after batch write) |
-| **Subject** | "Payment Confirmed — Your APCS 2026 Gala Concert Tickets" |
-| **Contains** | Booking ID, venue, date, session, seat labels, total paid, green success badge |
-| **Style** | Same APCS dark theme |
+The template instructs customers to present their email or booking ID for manual verification. Legacy registrant JWT check-in is not public-booking check-in.
 
 ---
 
 ## 7. Legacy Admin Flow (Reference)
 
-The admin flow is preserved and works independently:
+The legacy admin/token flow remains separate from public booking payment records, but can share physical seat collections. It was not fully regression-tested in the September ticketing audit:
 
 ```
 Admin (SeatEvent.js) → picks registrant → fills venue/session/tickets
@@ -747,3 +715,31 @@ To survive high-concurrency events (e.g., hundreds of users logging on simultane
 
 3. **Database Offloading**:
    - The heavy lifting of concurrency and database scaling is strictly offloaded to **Firebase Firestore**. The Node.js server acts merely as a lightweight orchestrator for payload validations, atomic transactions, and Paper.id webhook integrations.
+
+### 8 September 2026 ticket-inventory records
+
+New public checkouts use four Firestore collections in addition to `publicBookings` and `seats{eventId}`:
+
+- `ticketSeatOwnership/{encoded physical key}`: one active owner for `(eventId, venueId, sessionId, row, number)`, independent of any legacy display label or seat document ID.
+- `ticketCapacity/{event-venue-date-session-paid}`: transactional `capacityByTier` and `reservedByTier` for the paid pool. Orchestra reserved rows are excluded before this record is created.
+- `winnerOrchestraClaims/{event-registrant-orchestra session}`: active personal winner claim tied to the booking that created it. Unpaid confirmed cancellation deactivates only that claim.
+- `ticketCheckoutKeys/{encoded event-and-key}`: maps an event-scoped checkout attempt key to a booking. The current implementation lacks a normalized request fingerprint and safe terminal/in-progress replay semantics.
+
+Bookings persist `physicalSeatKeys`, `capacityReservation`, `personalWinnerBonus`, `winnerClaimId`, `idempotencyKey`, and `paymentUrl`. The first checkout for a legacy session migrates its existing active booking count into the capacity record inside the checkout transaction; later checkouts read the bounded record rather than scanning all session bookings.
+
+
+### Implementation re-review — 8 September 2026
+
+See [the current handover](TICKETING_IMPLEMENTATION_REVIEW_HANDOVER_2026-09-08.md) for source references, nine failing follow-up checks, and remaining work. These four records describe the new public checkout path, not a completed migration or a universally enforced inventory boundary. Public Customers and legacy writers can bypass physical ownership; existing occupied aliases are not all represented. Duplicate failed-booking cleanup can subtract another booking's capacity and quota. Current cached configuration writes can invalidate reservations and reset seat documents.
+
+Invoice Paid is the normal fulfillment signal; Payment In processing is outside the required APCS fulfillment scope. Provider callback registration is a separate configuration concern. Both paid callback routes still require authentication, stored invoice matching, reliable notification/reconciliation handling, and deduplicated delivery. Only verified provider cancellation permits unpaid inventory release; a truthy API return alone has not been validated against the live provider contract.
+
+No collections or application data flow were changed by this review. Documentation now includes the existing fourth collection (`ticketCheckoutKeys`) and corrects earlier broad ownership, exactly-once refund, Masterclass assignment, and payment-URL statements. Measured offline result: 49 baseline passes plus 9 failing follow-up safety checks.
+
+### Follow-up implementation — 8 September 2026
+
+The implementation repair changes the existing ticketing records, not the collection set. `ticketCheckoutKeys` now additionally stores `requestFingerprint`, a normalized event-scoped cart identity. A key can replay only its matching pending checkout; terminal attempts and changed carts do not return a payment URL as a successful new checkout.
+
+`ticketSeatOwnership` is now maintained by the public checkout, Public Customers manual assignment/Mark Paid, and legacy `TicketRepository.confirmSeatSelection` paths. Writers query matching seat documents for the canonical physical identity before updating raw seat status, then write the ownership record in the same transaction. `winnerOrchestraClaims` is also exposed as claimed session IDs on eligible-winner responses for UI allowance preview; it remains enforced only by the checkout transaction. Invoice Paid fulfillment requires the stored provider `invoiceId` and amount.
+
+The offline audit now has 58 passing checks (including the nine review regressions). This does not establish deployed Firestore rules/transactions, provider authentication, or external payment/cancellation behavior.

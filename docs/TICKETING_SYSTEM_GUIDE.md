@@ -1,116 +1,111 @@
 # APCS Ticketing System Guide
 
-This document serves as a guideline for internal staff and administrators to understand and manage the APCS ticketing system effectively.
+Updated for the owner-confirmed business process on **19 September 2026**. This guide supersedes earlier instructions to select orchestra seats or sell Masterclass tickets. Implementation is local; deployment and owner UI acceptance are separate.
 
-## 1. Overview
-The APCS ticketing system manages public ticket bookings and complimentary tickets for the Gala Concert and other public performances. The system is designed around specific "Orchestra Sessions" and integrates with an interactive seat map for ticket buyers to choose their seats.
+## Ticketing System menu
 
-## 2. Key Concepts & Flow
-Before any tickets can be sold, the following administrative settings must be configured in order:
+| Page | Staff responsibility |
+| --- | --- |
+| System Settings | Choose the active event and maintain sale eligibility |
+| Venue Settings | Maintain venue labels (for example Behring Theatre or Titan Theatre), images and tier capacity |
+| Performer Sessions | Set competition dates/times and generate numbered competition seats |
+| Ticket Settings | Set ticket prices and remaining competition add-ons; Masterclass and orchestra seat-selection products are hidden and cannot be newly added |
+| Orchestra Settings | Configure orchestra venue/date/time and winner attendance quota; view session headcounts |
+| Orchestra Assignments | Assign paid winning performances to orchestra sessions and send/retry assignment emails |
+| Seat Occupancy | Inspect numbered competition seats and historical orchestra seats; reconcile linked locked bookings |
+| Admin Page | Save winners' competition performance assignments |
 
-### A. Venue Settings
-- **What it does**: Defines the physical layout of a venue.
-- **Action**: Administrators must set up the seating layout by defining rows (e.g., Row A, Row B) and specifying how many seats are in each row, as well as their `areaType` (e.g., Presto, Allegro, Lento). This acts as the "blueprint".
-- **Location**: Admin Dashboard > Ticketing System > Venue Settings
+Masterclass Settings and Masterclass Assignments are removed from this menu. Public Customers remains a separate main-menu page for booking status, paid competition seat assignment, Mark Paid, cancellation audit details and email resend.
 
-### B. Performer Sessions Settings
-- **What it does**: Defines available time slots for a venue on a specific date (e.g., 09:00-11:00).
-- **Action**: Create the time slots before configuring performances.
-- **Location**: Admin Dashboard > Ticketing System > Performer Sessions
+## Setup
 
-### Ticket Pricing Settings
+1. Select the correct event in System Settings.
+2. Check venue labels carefully: these names appear in buyer emails. Configure tier/row capacity and competition time slots.
+3. Set competition and public ticket prices. Public orchestra tickets use `presto` and `allegro`; new Masterclass sales and Presto Masterclass benefits are disabled.
+4. Add orchestra sessions from venue/date/time options. Each needs a **winner attendance quota**. Orchestra Settings no longer generates numbered seats or asks for reserved rows.
+5. The winner quota reserves part of the overall venue capacity. The remaining capacity is available for direct public orchestra sales, still constrained by Presto/Allegro tier quantities. Do not treat free seating as unlimited attendance.
+6. Save winners' competition assignments in Admin Page. They do not need an orchestra assignment before purchasing tickets.
 
-**File:** `TicketPricingSettings.js`
+The backend prevents reducing a quota below assigned/legacy demand, exceeding the venue capacity with paid reservations, moving/deleting sessions with active attendance, or reusing a competition slot with active bookings/performers. Other older configuration pages and live database access still require care; these checks are not a general migration tool.
 
-This defines the available ticket types (tiers) and their **venue-specific prices**. It controls the color of the seats on the public map and what prices users pay.
+## Winner purchases
 
-### Requirements:
-- The **Tier ID** configured here MUST EXACTLY MATCH the `areaType` configured in Venue Settings.
-- If they do not match, seats assigned to that `areaType` will fail to find a color and price, rendering them unbookable.
-- **Venue-Specific Pricing:** Each tier contains a `venuePrices` map (e.g. `{"venue1": 729000, "venue2": 789000}`). If a price is not configured for a specific venue, the system blocks checkout for that session.
+The winner selects their name/winning performance, then buys tickets for the competition venue/date/time already assigned by the internal team. Ensemble member names remain visible. Competition seat selection and remaining add-ons retain their existing behavior.
 
-### Example Tier Configuration:
-```json
-{
-  "id": "presto",
-  "name": "Presto Tier",
-  "venuePrices": {
-    "venue1": 729000,
-    "venue2": 789000
-  },
-  "color": "#EBBC64"
-}
-```
+The customer does **not** select an orchestra session or numbered orchestra seats. The checkout has four steps: entry, tickets, details, review/payment. There is no complimentary quota banner, free-orchestra-seat step, Masterclass add-on or complimentary Masterclass notice.
 
-### C. Ticket Settings
-- **What it does**: Configures pricing and availability.
-- **Action**: 
-  - Define "Ticket Tiers" which match the `areaType` defined in Venue Settings to assign a price.
-  - Define optional "Add-Ons" like merchandise.
-  - Set the "Ticket Eligibility Schedule" to determine when the public booking form becomes available to different user types.
-- **Location**: Admin Dashboard > Ticketing System > Ticket Settings
+After payment, the orchestra group headcount is:
 
-### D. Orchestra Settings
-- **What it does**: Schedules a public performance and generates the selectable seats in the database.
-- **Action**:
-  - Select the Date, Venue, and Time.
-  - Define `complimentaryQuota` (free tickets given automatically to registered winners).
-  - Define `reservedRows` (rows blocked from public selection on the map, typically for VIPs or staff).
-  - **Important**: Saving a *new* session automatically generates the actual seat records in the database based on the venue blueprint.
-- **Location**: Admin Dashboard > Ticketing System > Orchestra Settings
+**all paid tickets bought using the winning performance + registered performers once per event**.
 
-## 3. Public Ticket Booking Process
-Once settings are configured, users access the Public Ticket Booking page.
+| Example | Orchestra attendance |
+| --- | --- |
+| Solo winner buys three tickets | 3 + 1 = 4 |
+| Same solo winner later buys two more | 3 + 2 + 1 = 6 |
+| Four-member ensemble buys three tickets | 3 + 4 = 7 |
+| Another parent uses that ensemble and buys two more | 3 + 2 + 4 = 9 |
 
-1. **Identity Selection**: Users specify if they are a Public Buyer or a Registered Winner.
-2. **Session Selection**: Users select the Orchestra Session they wish to attend.
-3. **Ticket Quantities & Add-ons**:
-   - Users specify the quantity of Presto, Allegro, or Masterclass tickets they wish to buy. Masterclass tickets do not require seat selection.
-   - Users can optionally select the `seat_selection_performer` add-on, specifying how many of their tickets they want to place manually on the seating map. This add-on charges a per-seat dynamic fee (quantity * price).
-   - Any tickets without a seat explicitly selected on the map will be randomly assigned by the system.
-4. **Seat Selection (Performance)**: 
-   - An interactive seat map loads ONLY if the user purchased the `seat_selection_performer` add-on.
-   - Greyed-out seats indicate `reservedRows` or already sold/locked seats.
-   - If the user is a Registered Winner, they are granted a calculated amount of complimentary tickets based on the remaining quota (1 free ticket + 1 free ticket per paid performance seat). 
-   - They will always proceed to a secondary step ("Select Free Orchestra Seats") where they can choose to pay an additional add-on fee to physically select their free orchestra seats, or choose to have them auto-assigned for free.
-5. **Checkout**: 
-   - The user proceeds to checkout.
-   - The backend *lazily* locks the selected seats for 30 minutes to prevent double-booking.
-   - An invoice is created via Paper.id and the user is redirected to the payment gateway.
-   - An initial "Seat Held" email is dispatched to the user.
+Pending, failed and expired purchases do not count as paid attendance. The performer allowance is shared across the ensemble, not repeated per buyer or booking. The initial payment email confirms the competition venue and ticket/seat details and states that the orchestra session will be assigned later.
 
-## 4. Payment & Webhooks
-- The ticketing system uses **Paper.id** for payment processing.
-- When a user successfully pays within 30 minutes, Paper.id sends a webhook to the APCS server.
-- The APCS server verifies the payment, permanently marks the seats as `sold`, and updates the booking status in the `publicBookings` collection.
-- A final "Booking Confirmation" email with seat details and QR/Booking ID is dispatched to the user. If the user booked both paid Competition Seats and free Orchestra Seats, the email format will distinctly separate them into two different lists to prevent confusion regarding venue and session times.
-- **Expiration Logic**: If a user fails to pay within 30 minutes, their seat lock expires. The system automatically voids the invoice on Paper.id, ensuring the user cannot pay late, and returns the seats to `available` status for others to purchase. Delayed webhooks for expired bookings are automatically rejected to prevent race conditions.
+## Public orchestra purchases
 
-## 5. Monitoring & Troubleshooting
-### Public Customers List
-- **Purpose**: View all public bookings, their payment status (Paid, Pending, Expired), selected seats, and total amounts.
-- **Location**: Admin Dashboard > Ticketing System > Public Customers
-- **Action**: Use this screen to verify if a customer's payment went through or if their booking expired. If a user did not receive their confirmation email, administrators can click the "Resend Email" button to manually dispatch the ticket QR and seat details again.
+The buyer chooses an orchestra session, then Presto or Allegro quantities and contact details, and pays. There is no numbered seat map, seat-selection charge or Masterclass benefit. The payment confirmation names the orchestra venue/date/time and explains free seating within the purchased category. Public purchases do not receive extra performer places.
 
-### Rollback / Failed Invoices
-- If the system successfully locks seats but fails to generate a Paper.id invoice due to an API error, the system performs an automatic rollback, releasing the seats immediately and automatically refunding any complimentary orchestra quota that was claimed so the user can try again without waiting 30 minutes.
+Public competition purchases remain available where configured; this change does not convert competition performances to free seating.
 
-### Seat Occupancy Dashboard
-- **Purpose**: A centralized real-time view of all sessions and their seating statistics (total, available, locked, booked).
-- **Location**: Admin Dashboard > Ticketing System > Seat Occupancy
-- **Action**: Use this screen to track how many seats have been sold for each session. You can also visually inspect the exact layout of any session by clicking "View Layout" to see which seats are taken and the name/email of the person occupying them.
+## Assign paid winners after payment
 
-### Non-Destructive Seat Generation
-- **Purpose**: Safely adding seats to a session or recalculating the layout after a venue change.
-- **Action**: When you click "Generate Seats" for a session that already has seats, the system will automatically preserve any seats that are currently `booked` or `locked`. It will only overwrite seats that are currently `available`. This guarantees you will not accidentally overwrite active customer reservations.
+1. Open **Orchestra Assignments**. Refresh to load current paid groups. Use **Load more** when more paid-booking pages are available; a page may have no eligible winners.
+2. Review each winning performance's paid ticket count, performer count, total attendance and already assigned quantity. The group total includes all its eligible paid purchases, even if its bookings span pages.
+3. Select one orchestra session for the whole group. Remaining quota shown in the option excludes current allocations; re-saving the group's own session correctly credits its existing allocation before checking the new total.
+4. Click **Assign & email**. The server rechecks the paid group and session capacity. It rejects insufficient quota rather than reducing the group entitlement.
+5. Each covered booking buyer receives their booking reference, orchestra venue/date/time, own purchased quantity and shared group headcount. Seating is free; no seat numbers are assigned.
+6. If delivery fails, the assignment stays saved. **Retry email** sends only missing deliveries for the current assignment revision. Refresh before retrying a busy send.
 
----
+A later purchase does not invalidate existing confirmed places. For an ensemble that grows from seven to nine attendees, the table shows nine total and seven assigned. Staff must update the assignment to cover all nine. If the session cannot fit the additional attendees, choose another session that fits the entire group; all covered buyers receive the revised details.
 
-**Note to Administrators**: When altering the database structure or troubleshooting logic, always refer to `SEAT_BOOKING_FLOW.md` for the technical data flow. This guide and the flow document must be kept in sync.
+Session changes produce a new assignment revision and fresh notifications to all covered bookings. Re-saving an unchanged assignment does not consume quota again. The email-send lease prevents simultaneous retries; after a crash during SMTP delivery, a retry can still duplicate an email if its success was not saved. There is no automatic background retry worker.
 
-### Webhook Routing Architecture
-Because third-party payment gateways (e.g. Paper.id) often only allow a **single webhook URL** per account, we use `PaperController.handlePaperWebhook` as a **Unified Webhook Router**:
-- The router receives the webhook payload (which is dynamically parsed to support both flat Production payloads and nested Development payloads).
-- It first checks if the `invoiceNumber` (or `externalId`) exists in the `publicBookings` collection.
-- If it does, the payload is dynamically routed to `PublicTicketService.handlePublicTicketWebhookPaid` to fulfill the public ticket booking and send the confirmation email.
-- If it doesn't, it falls back to standard processing, assuming the invoice belongs to the `Registrants2025` collection for competition registration.
+## Track event-day attendance
+
+**Orchestra Settings** shows, per session:
+
+- Paid public ticket quantity.
+- Public quantities held pending payment/reconciliation, separately from confirmed attendance.
+- Assigned winner group headcount.
+- Confirmed attendance = paid public tickets + assigned version-2 winner headcount.
+- Legacy complimentary allocations separately, because the historical counter includes holds and does not alone prove paid attendance.
+
+Unassigned winner demand is shown in Orchestra Assignments. A session's confirmed attendance excludes those groups until staff assign them. Seat Occupancy is not the orchestra headcount report: its historical numbered seat documents do not represent new free-seating purchases.
+
+## Confirmation and resend
+
+Payment emails include the named booked venue, date/time, booking ID, paid ticket summary, competition seat labels and competition tickets still awaiting seat assignment. Free-seating orchestra confirmations do not imply a numbered seat reservation.
+
+For winners, the initial email says orchestra assignment is pending. Once assigned, the separate assignment email includes the orchestra venue (such as Titan), date and time. Resending payment confirmation includes the saved orchestra assignment only when that booking is covered by it.
+
+Venue names use the booking-time snapshot for new purchases and the booking's own event for older records. Switching the active sale event must not relabel an older booking's venue. Booking-ID/manual entry verification remains the admission method; no public-booking QR workflow is added.
+
+## Historical bookings and payment safety
+
+Existing bookings retain their seats and original Masterclass entitlements. Legacy source pages remain in the repository but are no longer active menu options. Do not delete historical data or regenerate orchestra seats to adopt free seating.
+
+A winner with paid legacy complimentary orchestra allocations is explicitly flagged in Orchestra Assignments. Staff must reconcile that allocation before assigning a new version-2 group; the system does not silently move old seats or count performer places twice. No automatic historical migration is included.
+
+Payment safety is unchanged:
+
+- A local 30-minute deadline requests provider cancellation; it never independently frees inventory.
+- Failed/unknown Paper.id outcomes retain holds until payment or cancellation is confirmed.
+- Seat Occupancy cancellation operates on the whole linked booking, checks admin identity and complete owned inventory, and records an audit trail.
+- Pending no-invoice checkouts cannot be manually released while invoice creation may still be in flight. A terminal failed no-invoice booking needs explicit provider verification.
+- Only paid bookings receive numbered competition seat assignment. New free-seating orchestra bookings have no Assign Missing Seats action.
+- Mark Paid remains a staff fallback after payment verification. New paid winner records appear in grouped attendance automatically.
+- Delete remains restricted to reconciled terminal bookings. Use the cancellation/reconciliation flow for active records.
+
+## Rollout and verification
+
+Deploy the backend and frontend together, and include `apcs_web/firestore.indexes.json` (including the event/registrant booking index). Existing project authentication and Firestore access configuration remain in force; orchestra-admin APIs independently verify the Firebase token and whitelist.
+
+Follow the [manual walkthrough](TICKETING_FREE_SEATING_WALKTHROUGH_2026-09-19.md). Local offline tests cover the rules and failure paths, but do not prove browser rendering, live Firestore contention/index availability, Paper.id behavior, or actual email delivery. No live bookings, invoices, assignments or emails were changed during implementation.
+
+See [technical flow](SEAT_BOOKING_FLOW.md), [architecture](architecture.md), [progress](progress.md), and [the historical ticketing audit](TICKETING_AUDIT_2026-09-06.md) for the preserved payment/recovery limitations. Never use the test occupancy reset utility against customer bookings.
