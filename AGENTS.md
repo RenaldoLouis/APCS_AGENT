@@ -44,13 +44,13 @@
 <claude-mem-context>
 # Memory Context
 
-# [apcs_Project] recent context, 2026-09-10 10:53pm GMT+7
+# [apcs_Project] recent context, 2026-09-23 9:31pm GMT+7
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 21 obs (7,323t read) | 489,187t work | 99% savings
+Stats: 31 obs (11,327t read) | 632,163t work | 98% savings
 
 ### Sep 7, 2026
 2598 12:39a 🔵 Masterclass Assignment component already integrated into admin dashboard
@@ -76,8 +76,19 @@ Stats: 21 obs (7,323t read) | 489,187t work | 99% savings
 2820 " 🔵 All 40 Jest tests passing; video penalty rules and calculator fully validated
 2821 10:28p 🟣 Event-Specific Video Penalty Configuration System
 2822 " 🔵 Firestore APCS2026 Video Penalty Seed Verification Prepared
+2823 10:54p 🟣 Unified Award Synchronization Service
+2824 " 🟣 Event-Specific Video Penalty Configuration with Atomic Revision Management
+2825 " 🔴 Jury Name Deduplication Performance Optimization
+2826 " ✅ Test Coverage Expansion and Boundary Validation
+2827 " ✅ Architecture and Business Documentation Updated
+2828 " ✅ Translation Keys Added for Video Penalty Settings UI
+### Sep 23, 2026
+3860 9:14p 🔴 Fixed Paper.id webhook payload field name mismatch between staging and production
+3861 9:21p 🔵 APCS Winner Booking Flow with Paper.id Payment Integration
+3862 9:25p 🔵 Paper.id staging invoice verification and webhook testing preparation
+3863 9:29p 🔵 Firestore fallback verification deployed after Paper.id endpoint timeout
 
-Access 489k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 632k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
 
 Access 193k tokens of past work via get_observations([IDs]) or mem-search skill.

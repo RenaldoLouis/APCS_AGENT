@@ -100,12 +100,15 @@ Payment safety is unchanged:
 - Pending no-invoice checkouts cannot be manually released while invoice creation may still be in flight. A terminal failed no-invoice booking needs explicit provider verification.
 - Only paid bookings receive numbered competition seat assignment. New free-seating orchestra bookings have no Assign Missing Seats action.
 - Mark Paid remains a staff fallback after payment verification. New paid winner records appear in grouped attendance automatically.
+- Paper.id's Invoice Paid callback accepts the staging `data.invoice.total_amount` and production `invoice.amount` forms when the invoice ID and amount match the saved booking. A pending status after Paper.id shows paid requires payment reconciliation; do not mark paid solely from a local timer or a copied callback example.
 - Delete remains restricted to reconciled terminal bookings. Use the cancellation/reconciliation flow for active records.
 
 ## Rollout and verification
 
 Deploy the backend and frontend together, and include `apcs_web/firestore.indexes.json` (including the event/registrant booking index). Existing project authentication and Firestore access configuration remain in force; orchestra-admin APIs independently verify the Firebase token and whitelist.
 
-Follow the [manual walkthrough](TICKETING_FREE_SEATING_WALKTHROUGH_2026-09-19.md). Local offline tests cover the rules and failure paths, but do not prove browser rendering, live Firestore contention/index availability, Paper.id behavior, or actual email delivery. No live bookings, invoices, assignments or emails were changed during implementation.
+Follow the [manual walkthrough](TICKETING_FREE_SEATING_WALKTHROUGH_2026-09-19.md). The 19 September implementation was offline-tested. A separate 23 September staging rehearsal created one public and one eligible-winner test booking against the shared APCS Firestore project and Paper.id staging. The owner completed both payments in their browser; both genuine staging callbacks reached the local backend, both bookings became `PAID`, and both recorded a successful confirmation-email send to the saved test address. The production flat callback shape is covered by offline regression, not a real production payment. Inbox delivery, Paper.id's internal notification recipient, live contention/index availability, and deployed behavior remain unverified; see [progress](progress.md) for the test IDs and evidence.
+
+The two paid staging bookings are linked to the current event, including one real eligible winning performance. Treat them as test records when interpreting attendance or reports. Do not delete a paid booking through an unpaid-inventory release shortcut; reconcile the test records with the normal administrative process.
 
 See [technical flow](SEAT_BOOKING_FLOW.md), [architecture](architecture.md), [progress](progress.md), and [the historical ticketing audit](TICKETING_AUDIT_2026-09-06.md) for the preserved payment/recovery limitations. Never use the test occupancy reset utility against customer bookings.

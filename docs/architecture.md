@@ -45,6 +45,10 @@ Group reads are event/registrant-scoped; discovery is paginated. Session overvie
 
 `EmailService.sendPublicBookingConfirmationEmail` resolves a saved venue name or the booking's event, never the current event. `OrchestraEmailDetails` generates escaped free-seating/group instructions. Covered assignments appear in confirmation resends; new purchases outside the assignment snapshot show pending. Assignment emails go to each covered booking's stored buyer email.
 
+### Paper.id paid callback amounts
+
+Both public-ticket callback routes normalize the nested staging `data.invoice` form and the flat production `invoice` form before using the shared fulfillment transaction. The transaction requires the provider invoice ID to equal the booking's stored `invoiceId` and accepts `invoice.total_amount` or `invoice.amount` as the invoice total. If both totals are supplied, both must match the booking's server-calculated `totalAmount`; `amount_due` is not a paid-total substitute. The stored `paymentCurrency` must also match when the callback includes a currency. The production `amount` branch was added on 23 September 2026; a backend process started before that edit must be restarted before it can use the change.
+
 ### Historical and rollout boundary
 
 No live migration is performed. Unversioned/version-1 orders retain original numbered seats, Masterclass entitlements, quota, provider invoice and cleanup semantics. Reconcile an old winner allocation before assigning its new group. New Orchestra Settings does not generate physical seats; old seat generators and direct admin database access remain historical operational concerns.
@@ -261,6 +265,8 @@ apcs_service/
 
 **Purpose:** Tracks which performers/registrants are assigned to which performance timeslots.
 **Used by:** `SessionAssignmentManager.js` (Admin Dashboard > Performer Sessions).
+
+The assignment screen reads each registrant's numeric `videoDuration` from `Registrants2025`, shows it on the card, and sums known video durations for each session against the time range in `events/{eventId}.venues[].sessions`. An overrun is a warning only; saving assignments remains allowed. Missing durations are marked unknown and omitted from the known total. Scoring Recap also shows the registrant's video duration.
 
 ```json
 {
