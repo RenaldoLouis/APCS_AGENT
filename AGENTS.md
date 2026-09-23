@@ -23,6 +23,7 @@
 - **State Management:** Prioritize clean, modular state handling.
 - **Naming:** Use camelCase for variables and functions, and PascalCase for components.
 - **Backend Error Handling:** NEVER `throw` errors directly inside asynchronous repository functions that are wrapped by `DatabaseUtil.executeDatabaseOperation()`. Because `executeDatabaseOperation` expects a callback, throwing an error directly causes an Unhandled Promise Rejection which crashes the Node.js server. Instead, ALWAYS return the error via the callback (e.g., `return callback(new AppError(...))`). You may only `throw new AppError(...)` inside standard async Promise-returning functions that do not use callbacks and are properly `await`ed and caught by the controller.
+- **User-Facing Language:** Write new and edited UI text, notices, buttons, and email content in English only. Never append Indonesian translations with a slash, second sentence, or line break in the same rendered message. If multilingual support is requested later, implement it through the project's proper translation feature and language selection rather than mixed-language copy. This instruction overrides any skill guidance suggesting inline EN/ID text.
 
 ## 🤖 Agent Behavior
 - **Passive Constraints:** Always check these conventions before suggesting or executing code changes.

@@ -6,26 +6,40 @@ This document describes the Firestore data model, API contracts, and system flow
 
 ---
 
-## Current ticketing contract — 19 September 2026
+## Current ticketing contract — 23 September 2026
 
 The free-seating sections in [SEAT_BOOKING_FLOW.md](SEAT_BOOKING_FLOW.md) and [TICKETING_SYSTEM_GUIDE.md](TICKETING_SYSTEM_GUIDE.md) supersede older numbered-orchestra and Masterclass checkout examples later in this document. Those older sections describe historical records and audit history, not new-sale behavior.
 
 ### New booking fields and ownership
 
-New `publicBookings` use `ticketingVersion: 2`, `venueName` (booking-time venue label), `seatingMode: 'numbered' | 'free'`, `performerCount` (authoritative registered roster size, solo fallback one), and `orchestraAttendanceTickets` (winner paid ticket quantity, zero for public buyers). They store no new Masterclass benefit, complimentary seat claim, winner-claim ID or selected orchestra seats. Numbered competition capacity/ownership fields and idempotency keys remain in use. Saved ticket names/prices and competition seat labels are derived by the backend.
+New `publicBookings` use `ticketingVersion: 2`, `bookingType` (`winner`, `public_competition`, `public_orchestra`, or `public_competition_legacy` for an older request without a performance), `paymentMode` (`paper_id` or `manual`), `venueName` (booking-time venue label), `seatingMode: 'numbered' | 'free'`, `performerCount`, and `orchestraAttendanceTickets`. A new public competition booking stores the selected performance's `registrantId`, zero performer count and its paid ticket quantity as orchestra places; a winner booking stores the authoritative performer count and its paid quantity; a direct orchestra or older competition booking stores zero linked orchestra places. `bookingType`, not presence of `registrantId`, controls entitlement. Saved ticket names/prices and competition seat labels are backend-derived. No new Masterclass benefit, personal winner claim, or numbered orchestra seat is created.
 
 `orchestraAssignments/{encodeURIComponent(eventId + '|' + registrantId)}` is the new assignment collection. Each document contains:
 
 - `eventId`, `registrantId`, `sessionId`, `venue`, `venueName`, `date`, `time`.
-- `paidTicketCount`, `performerCount`, `quantity`, `bookingIds` (the covered paid snapshot).
+- `paidTicketCount`, `publicTicketCount`, `winnerTicketCount`, `performerCount`, `quantity`, `bookingIds` (the covered paid snapshot).
 - `revision`, `assignedBy`, `assignedAt`, `notifiedBookingIds`.
 - Optional `notificationLease: { token, bookingId, expiresAt }`, where `expiresAt` is epoch milliseconds; completed/failed sends clear it.
 
-`OrchestraAssignmentRepository.readGroup` derives current demand from paid version-2 bookings grouped by event and winning performance: sum of paid ticket quantities + maximum snapshotted performer count once. It also detects paid historical complimentary allocations and blocks silent mixed-version reassignment. Later purchases produce additional pending assignment demand; they do not overwrite the existing assignment snapshot.
+`OrchestraAssignmentRepository.readGroup` derives current demand from paid version-2 public competition and winner bookings grouped by event and selected performance: sum of both paid ticket quantities + maximum snapshotted performer count from paid winner bookings once. A public-only group adds no performers. It detects paid historical complimentary allocations and blocks silent mixed-version reassignment. Later purchases produce additional pending assignment demand without overwriting the existing assignment snapshot.
 
-`events/{eventId}.orchestraSessions[]` retains venue/date/time and `complimentaryQuota` but adds `freeSeatingAssigned` and `seatingMode: 'free'`. Historical `complimentaryClaimed`/`reservedRows` values remain for legacy records. New assignments atomically decrement the old session headcount and increment the target headcount, preserving the legacy counter. Public free-seating checkout keeps tier capacity and limits total paid demand to venue capacity minus the configured winner quota.
+`events/{eventId}.orchestraSessions[]` retains venue/date/time and the existing `complimentaryQuota` field, now labeled performance-linked attendance quota. `freeSeatingAssigned` counts assigned public competition, winner ticket, and eligible performer places. Historical `complimentaryClaimed`/`reservedRows` remain for legacy records. Assignment moves the entire group atomically; direct public orchestra checkout keeps tier capacity and limits its paid demand to venue capacity minus the performance quota.
 
 `winnerOrchestraClaims` remains a legacy collection; new checkouts do not write it. New Masterclass purchases are rejected even if historical configuration remains. Existing invoices and legacy cleanup are unchanged.
+
+### Manual-payment state and APIs
+
+The review checkbox sends `manualPayment: true` for the optional PayNow/bank-transfer flow. Checkout stores `paymentMode: 'manual'`, `paymentStatus: 'pending'`, a server-priced IDR total, capacity reservation, and any locked competition seats. It creates no Paper.id invoice or 30-minute `lockExpiresAt`; the sweeper therefore does not expire it. The checkout idempotency fingerprint includes booking type and payment mode. The buyer receives a ticket-specific payment email using the existing PayNow/bank details and the booking ID as reference, then sees `/ticket-payment-instructions/:bookingId`. Failed instruction delivery is retryable with the same checkout key or by staff.
+
+All manual staff endpoints are under `/api/v1/apcs/public-ticket/admin/` and use `requireTicketingAdmin` (Firebase ID token plus whitelist):
+
+| Suffix | Input | Effect |
+| --- | --- | --- |
+| `mark-manual-paid` | `bookingId` | Transactionally checks pending manual state, no invoice/link, capacity and selected-seat ownership; books seats, records actor/payment, then attempts normal confirmation email |
+| `resend-manual-instructions` | `bookingId` | Sends payment instructions only for a pending manual booking |
+| `release-booking` | `bookingId`, `reason: manual_payment_unpaid`, `paymentNotReceivedConfirmed: true` | Confirms no invoice/link, atomically releases all owned inventory and audits staff cancellation |
+
+Paper.id bookings retain provider-ID/amount checks and provider-confirmed cancellation. A pending Paper.id checkout with no invoice is still blocked from manual release because an invoice may be in flight. Manual bookings remain reserved until staff confirm payment or cancel; pending reservations do not add confirmed orchestra attendance.
 
 ### New admin APIs
 

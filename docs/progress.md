@@ -2,6 +2,17 @@
 
 This document tracks features and changes made to the APCS project over time.
 
+## Public Performance Tickets and International Manual Payment
+
+**Date:** 2026-09-23
+**Status:** Local implementation complete; owner browser acceptance, live Firestore/provider/email checks and deployment remain unverified.
+
+- Public competition buyers choose an assigned winning performance; direct orchestra buyers retain the session dropdown. Each paid public competition ticket contributes one orchestra place with no extra performer allowance. Paid winner tickets contribute their quantity plus registered performers once per performance group. Admin assignment, quota labels, emails and headcount display include mixed public/winner groups.
+- The review step offers PayNow/bank transfer via email. Manual bookings reserve capacity and any selected seats without a Paper.id invoice or automatic expiry. Protected staff actions confirm verified payment, resend instructions or cancel a verified unpaid booking; confirmation email is attempted after settlement.
+- Preserved existing public competition checkout requests as competition-only legacy purchases. The user-owned `apcs_web/src/config/development.config.js` edit was left untouched. No commits, pushes, local browser, dev server or build were used.
+- Offline evidence: `node --test --test-reporter=spec apcs_service/audit/*.audit.cjs` passed **105/105** after new public five-for-five, mixed ensemble, public-only sale eligibility, manual payment and cancellation regressions. Focused frontend ESLint reported zero errors and five existing warnings across the touched files. This does not prove live Firestore transaction contention/rules, SMTP inbox delivery, Paper.id callbacks, or browser appearance; use the [manual walkthrough](TICKETING_PUBLIC_PERFORMER_MANUAL_PAYMENT_WALKTHROUGH_2026-09-23.md).
+
+
 ## 🎼 Scoring Recap: Ensemble Names Joined with '&' & Fail Tier Included in Batch Export
 
 **Date:** 2026-09-16
@@ -1851,3 +1862,13 @@ A self-service, public-facing ticket booking flow for the APCS 2026 Gala Concert
 - Through the existing local API, created public booking `qFEQMmLi4KishjZqS52H` / staging invoice `f98277b4-5e9e-4c34-b33b-d02a8aeed08e` and eligible-winner booking `skBtP0yODkFYO33VUOVQ` / staging invoice `37e132fd-af4a-4327-a1b5-9c3702f3486f`, each for one Rp729,000 Presto ticket. Both requests supplied only the owner's designated test email and phone; the saved bookings retain those values. Paper.id returned staging payment links and each invoice number matched its booking ID.
 - The owner completed both staging payments in their browser. Real Invoice Paid callbacks marked both Firestore bookings `PAID`, with invoice ID, number and Rp729,000 `total_amount` matching the saved records, and both show `emailSent: true`. The local booking-status endpoint also returned `PAID` for both. This proves the nested staging callback path for these records; the flat production callback remains offline-tested only. The email flag records a successful application send, not inbox delivery proof. Paper.id's invoice-detail `customer` metadata showed staging `paper.id` contact fields rather than the exact request contact, so its internal delivery recipient was not independently confirmed. No browser agent, real production payment, deployment, or production callback was used.
 - These paid test bookings remain in the shared APCS Firestore project and are linked to a real eligible winning performance. Do not delete or release them through an unpaid-inventory shortcut; reconcile them explicitly before using paid winner attendance or reports as customer totals. Restart the existing backend through the owner's normal process before expecting the new production `invoice.amount` branch to run locally.
+## 2026-09-24 — Branded orchestra assignment email
+
+- Routed the orchestra assignment email through the shared APCS email layout so it includes the logo header and copyright footer used by ticket confirmation emails. The booking, session, and attendance details remain in the email.
+- Added an offline regression assertion for the full HTML document, shared wrapper, logo, and copyright footer. The complete backend audit passed **105/105**; syntax and diff checks passed. No live email or browser verification was performed.
+
+## 2026-09-24 — English-only ticketing copy
+
+- Removed inline English/Indonesian copy from the public ticket checkout, manual payment acknowledgement, orchestra settings and assignments, Public Customers details, Seat Occupancy guidance, and orchestra assignment and payment-confirmation email details. The booking and attendance rules are unchanged.
+- Added an English-only user-facing copy rule to the root `AGENTS.md`. Future translations should use a proper language-selection feature instead of slash-separated or stacked bilingual text.
+- Verification: all **105 backend audits passed**; focused frontend ESLint reported **0 errors and 3 existing warnings**; backend syntax checks and diff checks passed. The touched ticketing UI and email files were swept for Indonesian copy. Browser appearance and actual email delivery remain for owner verification under the project browser restriction.
