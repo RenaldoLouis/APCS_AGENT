@@ -19,12 +19,12 @@ Current local implementation: **23 September 2026**. This includes public perfor
 | --- | --- |
 | System Settings | Active event and eligibility schedule |
 | Venue Settings | Named venues, tier/row capacity blueprint and images |
-| Performer Sessions | Competition schedules and numbered competition seat generation |
+| Performer Sessions | Maintain private draft competition sessions for planning events; legacy event session maintenance |
 | Ticket Settings | Prices, active ticket tiers, remaining competition add-ons and sale dates; hides/rejects retired Masterclass/orchestra-seat products |
 | Orchestra Settings | Venue/date/time and performance-linked headcount quota; shows direct public attendance, held public demand, assigned performance groups and legacy allocations; never generates seats |
 | Orchestra Assignments | Paid public/winner performance groups, full attendee quantity, session assignment/reassignment and assignment-email retry |
 | Seat Occupancy | Numbered competition inventory and historical orchestra seat records; provider-confirmed cancellation of linked locked bookings |
-| Admin Page | Awards and saved competition performer assignments |
+| Admin Page | Awards, legacy assignments, and the draft/publish assignment board for planning events |
 | Public Customers | Booking status, competition seat assignment, manual-payment Mark Paid/cancellation, payment-instruction resend, reconciliation and confirmation resend; free-seating orchestra bookings cannot receive numbered seats |
 
 Masterclass Settings/Assignments have been removed from the active Ticketing System menu. Their legacy source files and data remain available for historical maintenance.
@@ -72,6 +72,30 @@ Saving an assignment sends a separate English email to each covered booking's sa
 Successful deliveries are tracked by assignment revision and booking ID. Failed deliveries remain retryable from Orchestra Assignments. A two-minute lease prevents concurrent sends and reassignment while a send is active. An acknowledged delivery is not resent by Retry email. SMTP delivery and persistence cannot be atomic: a crash after send but before acknowledgement can still cause a duplicate on retry. There is no new background email worker.
 
 Venue names for confirmations use the booking-time `venueName` snapshot, or its stored event for legacy bookings; neither callback route nor resend uses the current active event to name an old booking's venue.
+
+## Competition Session Planning (Provisional Groups → Publish → Ready)
+
+Staff use the **Admin Page** assignment board on planning events without active competition sessions or ticket inventory. APCS2026's dummy ticketing records were explicitly reset on 26 September 2026; the event is in draft, ready for new venue/date groups once the local code and rules are deployed. Its four terminal staging bookings remain as archived test tombstones, excluded from planning activity and rejected by paid callbacks. Other existing events with activity require their own explicit reconciliation. Legacy events retain the older session assignment path.
+
+The planning state read, draft save, preview, publish, and readiness endpoints require a current Firebase ID token and ticketing-admin whitelist membership. The Admin Page now sends a fresh token with each planning request and with the protected legacy assignment save. A backend `401` means authentication was missing or invalid; Firestore rules do not cause that HTTP response. A non-whitelisted authenticated account receives `403`. The browser's shared HTTP client redirects after a `401`, which is why a missing request token previously appeared as an Admin Page refresh to login.
+
+### Workflow
+
+1. **Draft groups** — Staff create venue/date groups on the Admin Page, drag or swap performers, compare names/music/durations, and save the complete board in one revision-checked transaction. Each group has a stable opaque ID.
+2. **Draft sessions** — In Performer Sessions, staff create private venue/date slots and add or edit their times when known. The Admin Page links each group to one unused slot with the same venue/date. A slot time edit keeps the group membership and updates its displayed time; neither creates a ticketable session.
+3. **Preview validation** — Save all board changes first. Every group must link to one slot with a valid final time and registrant, and every slot must be used or deleted. Overlaps with another slot or an existing venue, orchestra or Masterclass time block publication.
+4. **Publish** — One guarded transaction writes final times to `events/{eventId}.venues[].sessions` and ordered members to `sessionAssignments/{eventId}.assignments`; the event schedule state becomes `published`. The transaction rejects stale revisions, existing ticket activity and invalid registrant event IDs.
+5. **Seat generation (manual)** — Staff generate numbered seats for the published time. Generator failures reach the caller.
+6. **Readiness check** — Staff verify the complete numbered layout, configured venue tier prices and sale schedule configuration. Missing inventory keeps the state `published`.
+7. **Ticket sales** — Buyer discovery, competition seat listing and checkout reject `draft` and `published` planning events. Competition sales open at `ready`; existing events with no planning state retain legacy behavior.
+
+### Restrictions
+
+- Draft groups can be added, edited, reordered or removed.
+- Once published, group times cannot be edited through the planning or legacy session management controls. Corrections involving existing tickets need a separate rescheduling workflow.
+- Publishing requires a one-to-one group/session link and final times; unlinked groups, unused slots and missing times block publication.
+- Seat generation is manual and separate from publication.
+- The readiness state is distinct from today's tier eligibility; the existing daily eligibility check still applies to each purchase.
 
 ## Payment, cancellation and historical records
 

@@ -459,7 +459,8 @@ available ──[Pay Now (Firestore txn)]──► locked ──[verified paid c
 | `ageCategory` | string | Category-specific key from `RegisterPageConst` (e.g., `"Primary"`, `"JuniorwoodWind"`) |
 | `totalPerformer` | number | Count of performers in the `performers` array |
 | `performers` | array | Array of performer objects — **this is where performer names and emails live** (see below) |
-| `repertoire` | string | Name of the piece being performed |
+| `repertoireTitle` | string | Title of the piece entered during registration. Older documents may omit this field. The Registrant Dashboard can filter missing titles and update this field alone. |
+| `repertoire` | string | Legacy repertoire field, where present. |
 | `youtubeLink` | string | YouTube link for the performance |
 | `videoDuration` | number | **Duration of the performance video in seconds.** Calculated during upload via `getVideoDuration()`. Display as `mm:ss` (e.g., 192 → `"03:12"`). |
 | `videoPenaltyConfigRevision` | number\|null | Event video-penalty revision used when `averageScore` and `finalAward` were last synchronized. |
@@ -572,9 +573,60 @@ const performerNames = (record.performers || [])
 
 ---
 
-### 2.8 `systemSettings/global` — Event, Ticket Eligibility, Jury Deadlines & Exchange Rate
+### 2.8 `competitionSessionPlans/{eventId}` document + `groups/{groupId}` subcollection
 
-Ticketing additionally reads `currentEventId` and `ticketEligibility: { enabled, schedule: [{ date, allowedTiers }] }`. Eligibility uses Asia/Jakarta calendar dates and is edited in Ticket Settings. The supported ticket schedule values are Sapphire, Diamond, Gold, Silver, and Public. Enabled schedules without a matching date yield no allowed tiers; backend enforcement for public checkout is currently missing. The registration-enabled setting does not disable ticket sales.
+**Document ID:** Event ID (e.g., `APCS2026`)
+**Purpose:** Draft/provisional competition session groups created by staff before publication. Groups are invisible to ticket buyers until the event is marked ready. Seat generation is a separate manual step after publication. A new draft cannot be activated for an event with existing competition slots, assignments, seats, booking, capacity or ownership records; these require explicit reconciliation.
+
+**Document fields:**
+| Field | Type | Description |
+| --- | --- | --- |
+| `status` | string | `draft`, `published`, or `ready` |
+| `revision` | number | Incremented on every draft mutation and lifecycle transition |
+| `publishedAt` | timestamp or null | When the schedule was published |
+| `readyAt` | timestamp or null | When readiness was confirmed |
+| `draftSlots` | array | Private `{ slotId, venueId, date, start, end }` slots created in Performer Sessions; `start` and `end` may be null before publication |
+
+**`groups/{groupId}` subcollection — document ID format:** `plan_{randomUUID}`; stable across ordering and time edits.
+| Field | Type | Description |
+| --- | --- | --- |
+| `groupId` | string | Same as document ID |
+| `eventId` | string | Parent event |
+| `venueId` | string | Venue from event config |
+| `date` | string | Date in `YYYY-MM-DD` |
+| `ordinal` | number | Group ordering |
+| `label` | string | Display label |
+| `slotId` | string or null | Link to one private draft slot; null while grouping is provisional |
+| `start` | string or null | Cached start time `HH:mm`, resolved from the linked slot by the backend |
+| `end` | string or null | Cached end time `HH:mm`, resolved from the linked slot by the backend |
+| `registrantIds` | string[] | Ordered performer IDs |
+| `createdAt` | timestamp | |
+| `updatedAt` | timestamp | |
+
+**Draft board and published projection:** Performer Sessions edits private `draftSlots` in the plan parent with a revision-checked backend transaction. Editing a linked slot's time updates the group's cached time in the same transaction. Its venue/date cannot change while linked, and linked slots cannot be deleted. The Admin Page assignment board loads planning groups for planning events and uses `POST /competition-planning/:eventId/draft` to replace the complete draft in one revision-checked Firestore transaction. The backend resolves group time from the chosen slot, requires matching venue/date and one group per slot, and ignores submitted time values. This preserves cross-group moves and order without partial saves. Legacy events keep their existing session board and assignment endpoint. An atomic publish transaction requires all slots linked with final times, then writes time strings into `events/{eventId}.venues[].sessions` and ordered registrants into `sessionAssignments/{eventId}.assignments`. `events/{eventId}.competitionScheduleState` is the authoritative buyer gate; the plan parent mirrors its status and revision. Draft save does not create buyer-facing event times or assignments. Publish checks the expected revision, valid times/registrants, overlap and ticket activity. The backend blocks competition buyer discovery, seats and checkout until `ready`; events without the state field retain their historical behavior. The legacy assignment endpoint rejects planning events. Browser Firestore rules block direct edits to a planning event's venues/schedule state and assignment document. Published planning sessions are read-only in Performer Sessions.
+
+**Readiness gate:** All published slots must have the exact numbered seat layout and configured venue tier prices. Enabled sale eligibility must have at least one configured allowed-tier entry. This is a structural readiness check; daily sale eligibility remains independently enforced at checkout. The event stays `published` when checks fail.
+
+**APCS2026 test reset:** `apcs_service/reset_apcs2026_planning_test_data.js` inventories and privately backs up the event before changing Firestore. Its owner-authorized 26 September run removed dummy competition times, numbered seats, assignment and capacity/ownership/checkout records, while retaining registrants, scoring, venue layouts, prices and orchestra definitions. Four terminal public bookings remain under `publicBookings` with `paymentStatus: archived_test` and `planningReset.originalPaymentStatus`; planning ignores these tombstones and both Paper callback routes ignore late paid notifications for them. One expired staging invoice had a failed cancellation result, so its tombstone is retained. This event's `competitionScheduleState` and plan parent are `draft`, revision 0. The private JSON backup is in ignored `apcs_service/.local/backups/`.
+
+**API endpoints:**
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/competition-planning/:eventId` | Get planning state |
+| POST | `/competition-planning/:eventId/groups` | Save/update a group (draft) |
+| POST | `/competition-planning/:eventId/draft` | Atomically save the complete draft board with expected revision |
+| DELETE | `/competition-planning/:eventId/groups/:groupId` | Remove a group (draft only) |
+| POST | `/competition-planning/:eventId/slots` | Create or edit a private draft slot with expected revision |
+| POST | `/competition-planning/:eventId/slots/:slotId/delete` | Delete an unused private draft slot with expected revision |
+| POST | `/competition-planning/:eventId/preview` | Validate without publishing |
+| POST | `/competition-planning/:eventId/publish` | Atomic publish with revision check |
+| POST | `/competition-planning/:eventId/ready` | Verify seats and mark ready |
+
+---
+
+### 2.10 `systemSettings/global` — Event, Ticket Eligibility, Jury Deadlines & Exchange Rate
+
+Ticketing additionally reads `currentEventId` and `ticketEligibility: { enabled, schedule: [{ date, allowedTiers }] }`. Eligibility uses Asia/Jakarta calendar dates and is edited in Ticket Settings. The supported ticket schedule values are Sapphire, Diamond, Gold, Silver, and Public. Enabled schedules without a matching date yield no allowed tiers; checkout enforces the active day's public and winner eligibility. The registration-enabled setting does not disable ticket sales.
 
 **Field:** `juryDeadlines` (added to existing `systemSettings/global` document)
 **Purpose:** Per-competition-category deadlines for jury scoring. After the deadline passes, jury members for that category are blocked from logging in via email/password and can no longer submit scores.
@@ -647,8 +699,14 @@ There is currently no automatic physical-seat allocator for unselected ticket qu
 | POST | `/public-ticket/admin/release-booking` | Firebase-token and whitelist-protected booking cancellation; cancels a known Paper.id invoice or accepts manual no-invoice confirmation for a failed booking, then atomically releases the complete validated inventory set |
 | GET/POST | `/systemSettings/global` | Read/update global configuration; write route lacks admin middleware |
 | GET | `/getSessionAssignments/:eventId` | Read saved assignment map |
-| POST | `/saveSessionAssignments` | Replace event assignment map; write route lacks admin middleware |
+| POST | `/saveSessionAssignments` | Whitelisted admin route for legacy events; rejects planning events |
 | POST | `/payment/webhooks/paper-id` | Unified callback: look up public booking, otherwise process competition registration; no authenticity middleware wired |
+| GET | `/competition-planning/:eventId` | Get planning state (groups + schedule status) |
+| POST | `/competition-planning/:eventId/groups` | Save/update a group (draft only; admin middleware) |
+| DELETE | `/competition-planning/:eventId/groups/:groupId` | Remove a group (draft only; admin middleware) |
+| POST | `/competition-planning/:eventId/preview` | Validate all draft groups without publishing |
+| POST | `/competition-planning/:eventId/publish` | Atomic publish with revision check (admin middleware) |
+| POST | `/competition-planning/:eventId/ready` | Mark event ready for ticket sales (admin middleware) |
 
 Checkout requires `buyerName`, `userEmail`, `userPhone`, `venue`, `date`, `session`, and `tickets`. Current frontend payload also includes the winner and orchestra fields, explicit paid/free seat IDs and labels, add-on IDs, and product flags. Client totals/benefit values are not authoritative; nevertheless the backend still stores some client product metadata and does not validate all relationships.
 

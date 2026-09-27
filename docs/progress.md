@@ -2,6 +2,27 @@
 
 This document tracks features and changes made to the APCS project over time.
 
+## 2026-09-26 — Draft sessions linked from Performer Sessions
+
+- Corrected the planning workflow after the owner found that the Admin Page group modal still asked for a new time. Performer Sessions now creates and edits private draft slots for planning events; the Admin Page selects a matching unused slot for each group.
+- Draft slot time changes update the linked group's cached time and revision transactionally. Publication requires every group to use a distinct slot with a final time and every slot to be assigned. Buyer-facing event sessions and assignments are still written only at publication; seat verification remains the final sale gate.
+- Existing APCS2026 draft groups remain intact and must be linked after staff create slots. No live Firestore data was changed in this edit.
+- Backend audit: 117/117 passed after adding a board/slot linkage regression. Targeted frontend ESLint: zero errors, two pre-existing API warnings. Frontend Jest passed 8/8 with `--no-watchman` after local Watchman sandbox access blocked the first attempt. Browser acceptance is owner-operated.
+
+## Competition Session Planning (Provisional Groups → Publish → Ready)
+
+**Date:** 2026-09-26
+**Status:** Initial implementation was reviewed and repaired later on 26 September; see the chronological repair entry below. Browser acceptance and live Firestore rules verification remain.
+
+- Initial `competitionSessionPlans/{eventId}` document + `groups/{groupId}` design held venue, date, optional time range, and assigned registrants. The later repair uses stable UUID group IDs.
+- New backend endpoints under `/api/v1/apcs/competition-planning/`: get state, save/delete group (draft only), preview validation, atomic publish with revision check, mark ready. All write endpoints use `requireTicketingAdmin` middleware.
+- The initial `CompetitionPlanning.js` page (menu key `26`) was subsequently retired in favor of the Admin Page assignment board; see the unified-board entry below.
+- The initial Firestore rules and publication projection were faulty; the later repair uses the existing event session and assignment records and protects them with scoped rules.
+- Readiness gate verifies pricing, capacity, and sale eligibility dates before marking ready.
+- Seat generation is a separate manual step after publication (uses existing `uploadFullSeatLayout`).
+- The initial fresh-APCS2026 assumption was incorrect: paid staging bookings are recorded in this shared Firestore project. The repair rejects adoption until activity is reconciled.
+- Documentation updated: `docs/architecture.md` (new collections 2.8-2.10, API endpoints), `docs/COMPETITION_SESSION_PLANNING_PLAN_2026-09-26.md` (plan updated with user clarifications).
+
 ## Public Performance Tickets and International Manual Payment
 
 **Date:** 2026-09-23
@@ -1872,3 +1893,37 @@ A self-service, public-facing ticket booking flow for the APCS 2026 Gala Concert
 - Removed inline English/Indonesian copy from the public ticket checkout, manual payment acknowledgement, orchestra settings and assignments, Public Customers details, Seat Occupancy guidance, and orchestra assignment and payment-confirmation email details. The booking and attendance rules are unchanged.
 - Added an English-only user-facing copy rule to the root `AGENTS.md`. Future translations should use a proper language-selection feature instead of slash-separated or stacked bilingual text.
 - Verification: all **105 backend audits passed**; focused frontend ESLint reported **0 errors and 3 existing warnings**; backend syntax checks and diff checks passed. The touched ticketing UI and email files were swept for Indonesian copy. Browser appearance and actual email delivery remain for owner verification under the project browser restriction.
+## 2026-09-24 — Repertoire title backfill in Registrant Dashboard
+
+- Added a dashboard filter for registrants with missing or present `repertoireTitle`, treating absent, empty, and whitespace-only values as missing.
+- Added an Add/Edit action beside each repertoire title. Saving updates only the top-level `repertoireTitle` field in the existing registrant document, without rewriting performer, payment, or other registration data.
+- Manual browser verification remains with the project owner under the repository UI verification restriction.
+
+## 2026-09-26 — Competition planning repair
+
+- Added the [repair implementation plan](COMPETITION_SESSION_PLANNING_IMPLEMENTATION_2026-09-26.md). Staff can create private venue/date groups without times, edit group times and performer order, preview the complete timetable, publish atomically, generate seats separately, and verify inventory before competition sales.
+- The event schedule state is authoritative for new planning events. Draft and published competition sessions are closed in public discovery, seat listing and checkout; legacy events without this state retain existing behavior. Publication preserves unrelated venue slots, rejects stale revisions, invalid membership and prior ticket activity, and protects old assignment writes. Firestore rules protect planning state and published schedule projections from direct browser edits.
+- Existing APCS2026 shared Firestore records include paid staging bookings; this change does not migrate or delete them. Planning activation refuses events with existing sessions, assignments, inventory or bookings pending explicit reconciliation.
+- Focused offline tests cover draft editing, stale publication, projection, readiness, and public sale gating. Browser, Firestore emulator/rules deployment, live Firestore, Paper.id, and real payment flows remain unverified.
+- Owner UI and payment checks are listed in the [manual walkthrough](COMPETITION_SESSION_PLANNING_WALKTHROUGH_2026-09-26.md).
+
+## 2026-09-26 — APCS2026 dummy ticketing reset for planning
+
+- The owner confirmed all APCS2026 ticketing records were dummy/testing data and chose a reset so staff can regroup and retime every competition session. Read-only live inventory found nine competition times, 3,833 numbered seats, one assignment document, two capacity records, three seat ownership records, four checkout keys, one winner claim, one orchestra assignment, and four terminal public bookings (two paid staging, one failed, one expired). There were no pending bookings. The expired staging invoice's saved cancellation status was `failed`.
+- A fixed-event reset script backed up all affected documents to the private Git-ignored `apcs_service/.local/backups/apcs2026-ticketing-reset-2026-09-26.json.gz`. It removed the nine competition times, assignment document, all 3,833 seats and event-linked tracking records. It preserved registrants, scoring, venue layouts, prices and orchestra definitions. The four terminal bookings were marked `archived_test` as callback tombstones rather than deleted; Public Customers hides them from its active list.
+- Independent live readback: APCS2026 event and plan parent are `draft`, revision 0; no venue times, assignment document, seats, capacity, ownership, checkout keys, claims or orchestra assignments remain. All four public bookings are `archived_test`. Local code rejects archived bookings in payment fulfillment and both Paper callback routes ignore them; these protections require deployment to affect the running service.
+- This reset changed Firestore data only. New backend/frontend code and Firestore rules have **not** been deployed. Run the [owner walkthrough](COMPETITION_SESSION_PLANNING_WALKTHROUGH_2026-09-26.md) after the normal release process; browser UX, live rule evaluation and provider callback behavior remain unverified.
+
+## 2026-09-26 — Unified competition planning assignment board
+
+- The owner chose the existing Admin Page assignment board as the staff planning workspace because it shows performer names, repertoire, video duration, drag and drop, swaps, search, overview and export. The separate Competition Planning menu/page was removed. For planning events, the board shows stable draft groups with known venue/date and optional time; legacy events continue to use configured sessions and their previous assignment save path.
+- A clean event with no competition sessions can start its draft from the same board. The server refuses this transition if prior sessions, assignments or ticket activity exist; APCS2026 is already draft.
+- Added an authenticated, revision-checked `saveDraft` operation that replaces the complete board in one Firestore transaction. A cross-group performer move, reorder, group edit or deletion is saved together. Unsaved changes prevent preview and publication. All groups require final times before the existing atomic publication; seat generation and readiness actions now live on the board.
+- Performer Sessions displays planning-event times read-only. Its direct schedule and seat-generation controls are hidden for those events, while the Firestore rule and backend buyer gate continue to protect published data. APCS2026 remains draft; this UI change did not write new live event data.
+- Updated the [board implementation plan](COMPETITION_PLANNING_BOARD_IMPLEMENTATION_2026-09-26.md), [walkthrough](COMPETITION_SESSION_PLANNING_WALKTHROUGH_2026-09-26.md), architecture and ticketing guides. The full local audit suite passed 116/116; targeted frontend ESLint reported zero errors and three pre-existing warnings. UI browser acceptance, deployed rules and service behavior remain unverified.
+
+## 2026-09-26 — Admin Page planning authentication repair
+
+- The owner reported that opening Admin Page sent `GET /competition-planning/APCS2026` without a Firebase ID token, received HTTP `401`, and was redirected to login by the shared HTTP interceptor. The Ant Design Spin-tip and duplicate menu-key warnings were separate and did not cause the redirect. Firestore rules were not on the failing request path.
+- Planning read/write calls now attach the signed-in user's current Firebase ID token per request. The protected legacy assignment Save call had the same missing-token defect and is fixed on the same path. The HTTP GET and DELETE wrappers now forward per-request options, including auth headers. If no Firebase user is present, the API fails locally without issuing a request that would trigger a `401` redirect.
+- Removed the bare Spin-tip warning and assigned Video Penalty Settings its own menu key (`27`), leaving Orchestra Assignments at `25`. Focused frontend tests reproduced the missing planning and legacy-save headers before their fixes and now pass 7/7. Targeted ESLint reports zero errors and two existing warnings in the API module; `git diff --check` is clean. This is local code verification; the owner will verify browser behavior manually.

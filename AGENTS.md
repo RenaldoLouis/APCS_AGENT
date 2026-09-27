@@ -45,13 +45,13 @@
 <claude-mem-context>
 # Memory Context
 
-# [apcs_Project] recent context, 2026-09-23 9:31pm GMT+7
+# [apcs_Project] recent context, 2026-09-26 3:12pm GMT+7
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 31 obs (11,327t read) | 632,163t work | 98% savings
+Stats: 41 obs (14,362t read) | 836,233t work | 98% savings
 
 ### Sep 7, 2026
 2598 12:39a 🔵 Masterclass Assignment component already integrated into admin dashboard
@@ -88,8 +88,19 @@ Stats: 31 obs (11,327t read) | 632,163t work | 98% savings
 3861 9:21p 🔵 APCS Winner Booking Flow with Paper.id Payment Integration
 3862 9:25p 🔵 Paper.id staging invoice verification and webhook testing preparation
 3863 9:29p 🔵 Firestore fallback verification deployed after Paper.id endpoint timeout
+### Sep 26, 2026
+3948 3:01p 🟣 Competition Session Planning Flow with Draft-to-Publish Capability
+3949 " 🔴 Protected Existing Session Assignment Write Path from Planning Overwrite
+3950 " 🟣 Video Duration Tracking in Competition Planning UI
+3951 " ✅ Manual Walkthrough and Implementation Documentation Created
+3952 " ⚖️ APCS2026 Event Data Reset Strategy for Planning Flow Adoption
+3953 3:08p 🟣 APCS2026 Ticketing Reset with Test Data Archival
+3954 " 🔵 Paper.id Staging Invoice Already Purged
+3955 " ✅ Active Booking Detection Filter in Planning Repository
+3956 " 🔴 Paper.id Callback Guard Against Archived Test Bookings
+3957 " 🟣 Audit Tests for APCS2026 Planning Reset Flow
 
-Access 632k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 836k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
 
 Access 193k tokens of past work via get_observations([IDs]) or mem-search skill.

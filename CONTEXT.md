@@ -40,6 +40,18 @@ APCS runs music competitions and related audience events. This glossary records 
 A winning competition entry, either solo or ensemble. An ensemble counts as one performance regardless of its number of members.
 _Avoid_: One winning performance per ensemble member
 
+**Provisional competition group**:
+An internal ordered group of performers for a known venue and date whose exact performance time has not yet been published for ticket sales.
+_Avoid_: Ticketable session, placeholder time slot
+
+**Draft competition session**:
+An internal venue and date slot that can receive a final time and be linked to one provisional competition group. It is not available to ticket buyers until publication and seat verification.
+_Avoid_: Published competition session, buyer-visible timeslot
+
+**Published competition session**:
+A competition group with a finalized venue, date and time made available to ticketing setup. Ticket sales begin only after its numbered seats are verified ready.
+_Avoid_: Provisional group, freely editable time
+
 **Orchestra attendance**:
 All paid tickets purchased for one winning performance within an event plus its registered performers once. A solo adds one performer; an ensemble adds its members, shared across all purchases.
 _Avoid_: Per-purchase performer bonus, one place per ensemble

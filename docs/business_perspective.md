@@ -6,6 +6,10 @@ Updated: 19 September 2026. These rules replace the previous fixed complimentary
 
 Winners buy competition tickets for the performance venue and session already assigned by the internal team. They may use the remaining competition add-ons and seat-selection options. They do not select an orchestra session or orchestra seats during checkout.
 
+For a new event without prior competition sessions or ticket activity, staff may first create private venue/date performer groups without exact times. They order members and revise times while the event is in draft. Staff publish the complete timetable before generating numbered competition seats. Competition discovery and checkout open only after full seat and price readiness checks pass. Existing events without a planning state retain their current ticket path; an event with assignments, inventory or bookings needs explicit reconciliation before using planning. Published times cannot be changed through the old session editor.
+
+For APCS2026 specifically, the owner identified the previous ticketing data as dummy/testing data and authorized a scoped reset. The event is now a planning draft with registrants and venue configuration preserved. Four terminal test bookings are archived solely to reject late provider callbacks and do not count toward new attendance or inventory.
+
 Orchestra attendance is all paid tickets purchased using the same winning performance within the event, plus its registered performers once. A solo performer adds one place; an ensemble of four adds four places. Purchases of three and two tickets for that ensemble therefore entitle nine people to attend. Failed or pending purchases do not contribute paid attendance.
 
 After payment, the internal team assigns the whole paid winner group to an orchestra session. Orchestra admission uses free seating. The initial payment email confirms the competition venue and ticket/seat details; a separate email communicates the assigned orchestra venue, date and time. Later purchases show additional attendees awaiting an updated assignment; staff must fit the whole group into its chosen session.

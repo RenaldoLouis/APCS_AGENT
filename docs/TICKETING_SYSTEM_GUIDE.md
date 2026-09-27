@@ -8,12 +8,12 @@ Updated for the owner-confirmed business process on **23 September 2026**, inclu
 | --- | --- |
 | System Settings | Choose the active event and maintain sale eligibility |
 | Venue Settings | Maintain venue labels (for example Behring Theatre or Titan Theatre), images and tier capacity |
-| Performer Sessions | Set competition dates/times and generate numbered competition seats |
+| Performer Sessions | Create and edit private draft sessions for planning events; maintain legacy event times |
 | Ticket Settings | Set ticket prices and remaining competition add-ons; Masterclass and orchestra seat-selection products are hidden and cannot be newly added |
 | Orchestra Settings | Configure orchestra venue/date/time and performance-linked attendance quota; view session headcounts |
 | Orchestra Assignments | Assign paid public/winner performance groups to orchestra sessions and send/retry assignment emails |
 | Seat Occupancy | Inspect numbered competition seats and historical orchestra seats; reconcile linked locked bookings |
-| Admin Page | Save winners' competition performance assignments |
+| Admin Page | Drag performers into draft groups, link them to draft sessions, publish, and finalize competition sessions; retain legacy assignment tools |
 
 Masterclass Settings and Masterclass Assignments are removed from this menu. Public Customers remains a separate main-menu page for booking status, paid competition seat assignment, manual-payment confirmation/cancellation, payment-instruction resend and confirmation resend.
 
@@ -91,6 +91,33 @@ Session changes produce a new assignment revision and fresh notifications to all
 - Legacy complimentary allocations separately, because the historical counter includes holds and does not alone prove paid attendance.
 
 Unassigned performance-group demand is shown in Orchestra Assignments. A session's confirmed attendance excludes those groups until staff assign them. Seat Occupancy is not the orchestra headcount report: its historical numbered seat documents do not represent new free-seating purchases.
+
+## Competition planning on the Admin Page
+
+The **Admin Page** assignment board is the grouping workspace before published competition sessions or active ticket inventory exist. APCS2026's prior dummy ticketing data was reset on 26 September 2026 and the event is in draft; its historical terminal bookings remain archived. Deploy the local planning code and Firestore rules before following these steps. Other events with activity require separate reconciliation. Performer Sessions creates private draft slots for planning events; only the publication action writes buyer-facing event sessions.
+
+Admin Page planning requests and the legacy assignment save send the signed-in user's fresh Firebase ID token to the protected backend. A missing/invalid token returns HTTP `401` and the shared HTTP client redirects to login; whitelist rejection returns `403` and is shown as an error. These backend responses are separate from Firestore rule evaluation. After the frontend update, opening Admin Page should load the planning board without a login redirect for a signed-in whitelisted admin.
+
+For a new event with no competition sessions, staff can choose **Start planning** on the Admin Page. The backend refuses to start when existing assignments or ticket records need reconciliation. APCS2026 is already in draft and does not need this action.
+
+Archived APCS2026 test bookings remain in Firestore as callback tombstones and are hidden from the active Public Customers list. They do not contribute new orchestra attendance, seat capacity or winner eligibility.
+
+### Steps
+
+1. **Draft groups** — Click **Add group**, enter venue/date, then drag performers from the pool. Search by name/music, swap or reorder performers, and use Overview to compare groups. Save the complete board.
+2. **Draft sessions** — In Performer Sessions, add one draft session per planned group with venue/date and optional time. Add or edit the final time there when known. Back on the Admin Page, edit each group and select one matching unused session. Save the board. Existing APCS2026 groups remain on the board and need linking; the reset left no sessions to select until staff create them.
+3. **Preview** — Click **Validate and preview**. Resolve missing links or times, unused sessions, duplicate performers and overlapping sessions.
+4. **Publish** — Click **Publish schedule**. The event's final competition timetable and ordered assignments are saved together. Published times are frozen.
+5. **Generate seats** — Click **Generate numbered seats** after publication. Resolve any failed generation before proceeding.
+6. **Mark ready** — Click **Verify seats and mark ready**. Competition checkout opens only if numbered inventory and venue pricing checks pass. The usual day-specific sale eligibility remains in force.
+
+### Restrictions
+
+- Draft groups can be added, edited, reordered or removed.
+- Published groups cannot have their times edited through this or the older session pages.
+- Publishing requires all groups to pass validation.
+- Seat generation is manual and separate from publication.
+- The readiness check verifies the full seat layout, configured prices and sale-schedule setup; it does not override daily ticket eligibility.
 
 ## Confirmation and resend
 
