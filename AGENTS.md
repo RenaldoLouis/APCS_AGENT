@@ -45,13 +45,13 @@
 <claude-mem-context>
 # Memory Context
 
-# [apcs_Project] recent context, 2026-09-26 3:12pm GMT+7
+# [apcs_Project] recent context, 2026-09-28 10:10am GMT+7
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 41 obs (14,362t read) | 836,233t work | 98% savings
+Stats: 45 obs (16,207t read) | 900,373t work | 98% savings
 
 ### Sep 7, 2026
 2598 12:39a 🔵 Masterclass Assignment component already integrated into admin dashboard
@@ -99,8 +99,12 @@ Stats: 41 obs (14,362t read) | 836,233t work | 98% savings
 3955 " ✅ Active Booking Detection Filter in Planning Repository
 3956 " 🔴 Paper.id Callback Guard Against Archived Test Bookings
 3957 " 🟣 Audit Tests for APCS2026 Planning Reset Flow
+3958 3:13p 🟣 Implemented event ticketing reset capability for APCS2026 planning phase
+3959 " 🟣 Added archived test booking protection to payment callback handlers
+3960 " ✅ Updated competition planning documentation with APCS2026 reset details
+3961 " 🟣 Added audit tests for ticketing reset and archived booking callback protection
 
-Access 836k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 900k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
 
 Access 193k tokens of past work via get_observations([IDs]) or mem-search skill.

@@ -2,6 +2,65 @@
 
 This document tracks features and changes made to the APCS project over time.
 
+## 2026-09-28 — Smaller result-email scope using saved awards
+
+- Supersedes the shared-package migration below: restored the original frontend calculator and video-rule matcher byte-for-byte, removed shared source/release tooling, vendor artifacts and package dependencies, and restored both manifests/lockfiles. Existing dashboards, exports, award sync and session management retain their calculation/data paths.
+- Email backend reads saved `finalAward` and `averageScore`; it does not calculate jury scores or penalties. Missing/invalid saved results, outdated rule revisions, unfinished jury results and changed preview snapshots block sending. Existing performer greetings, PDF selection, fixed dummy tests and delivery tracking are retained.
+- Either campaign blocks the whole filtered scope when a finalized row needs syncing or lacks saved results, including tier changes. Staff must sync and refresh after edits; same-revision unsynced inputs cannot independently be detected by the backend because no input fingerprint/sync timestamp exists.
+- Verification: all 178 relevant frontend tests and 139 backend audits passed, including 22 result-email cases. Focused lint has zero errors; Node syntax, dead-reference checks and CRLF-aware whitespace checks passed. Original scoring files/manifests/lockfiles match the pre-refactor versions exactly. Self-review covered standards, requirements, imports, conditional branches and saved-result consistency. Frontend tests ran with Watchman disabled after its sandbox launch failure; existing Firebase Analytics/toolchain warnings remain.
+- Updated architecture, approved email plan, owner walkthrough and consistency report. Historical entries below describe earlier uncommitted approaches; the smaller scope here is the current implementation. No browser/start/build, live database changes, real email send, deployment, commit or push performed.
+
+## 2026-09-28 — Verify dashboard, sync and session scoring consistency
+
+- Traced Registrant Dashboard's Sync Awards controls, Admin Content's Sync Jury Scores control/session board, Scoring Recap calculations/exports, and the shared award-synchronization data/persistence path. Existing button handlers and session-management code were preserved.
+- Compared the old calculator and award-sync decision logic against the shared module over 17,280 cases; all results matched. Added mocked integration coverage for actual sync writes, event-specific configs, idempotency, batching and persistence failure. All 179 focused frontend and 29 focused backend/shared tests passed; lint and whitespace checks passed.
+- Documented the existing session-board freshness limitation: it uses saved `finalAward` values and an in-memory snapshot, so score/penalty changes require a successful sync and reopening/reloading the board. No automatic reload was added because it could discard unsaved assignments. See [verification report](SCORING_CENTRALIZATION_VERIFICATION_2026-09-28.md).
+- Browser/live Firestore button acceptance remains unverified. No production writes or real emails were sent; changes remain uncommitted.
+
+## 2026-09-28 — One shared scoring implementation for frontend and backend
+
+- Moved existing scoring/penalty/award calculations and video-rule matching into `shared/scoring/index.js`, consumed by both apps as `@apcs/scoring` 1.0.0. Existing frontend calculator exports are retained as compatibility adapters; pages, exports and award synchronization keep their current imports.
+- The email backend now imports the shared package directly. Removed the initially generated backend calculator and its synchronization script. No scoring thresholds, rounding, penalty rules or event data were changed.
+- Both app manifests/lockfiles pin the same package artifact, included in each `vendor/` directory so standalone deployment does not depend on sibling source trees. A release helper packages one immutable version for both apps; source/package audits and frontend function-identity tests catch drift.
+- Added shared behavior tests and maintenance/deployment documentation (removed when this approach was superseded). All changes remain uncommitted; no browser/start/build, deployment, production data mutation or real email send was performed.
+- Verification: 141 backend audits, 176 focused frontend tests, and five direct shared-module tests passed. Both installed packages match the canonical source and each other; a standalone offline install/calculation smoke check passed without either app source tree. Frontend frozen-lockfile install, focused lint, syntax, whitespace and stale-reference checks passed. Existing scoring behavior and thresholds were preserved; package artifacts and both lockfiles are ready for coordinated releases.
+
+## 2026-09-28 — Performer result emails from Scoring Recap
+
+- Added winner/non-qualifier campaign buttons with performer-level previews for finalized rows in the currently filtered APCS2026 table. Silver, Gold, Diamond and Sapphire receive their actual award in the invitation; Fail receives the approved result announcement. Each performer uses their own name/email, including ensemble members.
+- Staff select a local comment-sheet folder for exact name-to-PDF matching, or one shared winner guidelines PDF with required confirmation/rundown dates. Missing/ambiguous matches and invalid emails block preparation. Each message has exactly one PDF, limited to 4 MB.
+- Added fixed-recipient dummy tests to `renaldolouis555@gmail.com`, protected backend endpoints, authoritative live score/recipient checks, and per-performer transactional delivery tracking. Successful recipients are skipped on retry; ambiguous SMTP outcomes require provider review before any repair/resend.
+- Added backend-only Firestore delivery-record rules, offline tests, and [owner walkthrough](SCORING_RESULT_EMAIL_WALKTHROUGH.md). The initial generated calculator was subsequently replaced with the shared package described above. Browser, deployed rules, live Firestore/SMTP and inbox acceptance remain unverified. No live emails or deployment performed; all changes remain uncommitted.
+- Verification: the backend audit suite passed 139 tests, including 22 result-email cases. Focused frontend suites passed 36 tests; changed frontend files lint with zero errors and three pre-existing warnings. Self-review checked standards, requested behavior, declared imports/state, conditional branches, and stale references. Syntax and whitespace checks passed with the backend's existing CRLF convention preserved.
+
+## 2026-09-27 — Competition category filter in Teacher Award Stats
+
+- Added a competition category selector to the Admin Page Teacher Award Stats modal. Its options come from the selected event's loaded registrants, and selecting a category recalculates each teacher's award counts from registrations in that category.
+- The teacher search continues to filter the resulting rows. Reopening the modal resets the category to all competitions. The view remains read-only and includes assigned and unassigned registrants.
+
+## 2026-09-27 — Age category on Session Overview registrant cards
+
+- The Admin Page Session Overview modal now shows each registrant's age category in the Registrants tab. Stored category keys are resolved through the same registration label maps used by Scoring Recap, including instrument-specific and ensemble categories.
+- Missing categories display "Not set" and unknown legacy keys display their stored value. This is a read-only UI change; no database or assignment data changed. Browser verification remains with the owner.
+
+## 2026-09-27 — Teacher award statistics on the Admin Page
+
+- Added a Teacher Stats button beside Overview. Its searchable modal groups the selected event's registrants by trimmed, case-insensitive `teacherName` and shows counts for Sapphire, Diamond, Gold, Silver, Fail, and other or missing awards.
+- Counts use each registration's `finalAward` with `achievement` as the fallback and count each registration once, including ensembles. The statistics include assigned and unassigned registrants; the FAIL exclusion from the unassigned pool does not remove them from award statistics.
+- This is a read-only view derived from the existing event registrant load; no database schema, backend endpoint, or assignment data changed. Browser verification remains with the owner.
+
+## 2026-09-27 — Exclude FAIL results from the Admin Page unassigned pool
+
+- The Unassigned Registrants list and its counts omit registrants whose effective award (`finalAward`, falling back to `achievement`) is `Fail`, ignoring case and surrounding spaces.
+- Auto-Assign uses the same eligible pool, so it cannot silently assign a FAIL registrant hidden from the list. Previously assigned FAIL registrants remain visible in their session; no assignment data is changed by this display filter.
+- No database schema or backend endpoint changed. Browser verification remains with the owner.
+
+## 2026-09-27 — Teacher list in Admin Page session overview
+
+- Added a Teachers tab to the existing Session Overview modal on the Admin Page. Each venue's session column retains its date and time and lists each assigned teacher once, even when several registrants share that teacher.
+- Teacher names come from the assigned registrants' existing `teacherName` field. Empty names are omitted, and duplicate names are matched without case sensitivity after trimming spaces. The tab updates with unsaved assignment changes and uses the existing overview search to highlight matching teachers.
+- No database schema, save behavior, or backend endpoint changed. Browser acceptance remains with the owner under the project's UI verification policy.
+
 ## 2026-09-26 — Draft sessions linked from Performer Sessions
 
 - Corrected the planning workflow after the owner found that the Admin Page group modal still asked for a new time. Performer Sessions now creates and edits private draft slots for planning events; the Admin Page selects a matching unused slot for each group.
