@@ -1,6 +1,6 @@
 # APCS Ticketing System Guide
 
-Updated for the owner-confirmed business process on **23 September 2026**, including public performance selection and optional PayNow/bank-transfer checkout. Implementation is local; deployment and owner UI acceptance are separate.
+Updated for the owner-confirmed business process on **28 September 2026**, including public performance seat selection, public performance selection and optional PayNow/bank-transfer checkout. Implementation is local; deployment and owner UI acceptance are separate.
 
 ## Ticketing System menu
 
@@ -52,6 +52,10 @@ Pending, failed and expired purchases do not count as paid attendance. The perfo
 ## Public competition purchases
 
 Choose **Public Buyer → Watch a Performance**, search the assigned winning performance, and review its venue/date/time. Each paid Presto or Allegro competition ticket includes one complimentary, free-seating orchestra place that follows the selected performance when staff assign its orchestra session. Five tickets mean five orchestra places; public purchases add no performer places. The buyer enters their own contact details. The competition ticket remains numbered-seat inventory, with any unselected seats assigned through the existing paid-only staff workflow.
+
+Public performance buyers may purchase the configured **performance seat-selection add-on**. Choose the number of seats to select, then select exactly that many available seats within the purchased Presto/Allegro quantities. Each add-on unit covers one numbered performance seat, and its configured price appears in the order total, cart and Review & Pay. Other winner add-ons remain unavailable to public buyers. This works with both Paper.id and manual PayNow/bank-transfer checkout. The add-on does not add orchestra places; only purchased performance ticket quantities count toward those places.
+
+Without the add-on, or for tickets not covered by it, staff assign the remaining performance seats after payment in **Public Customers → Assign Missing Seats**, then resend the confirmation. Switching to another performance or Orchestra Ticket clears the previous seat/add-on selections. Orchestra-only checkout has no seat-selection add-on or numbered seat map.
 
 The public performance list is not restricted to winners currently allowed to make a winner purchase, but public sale dates still control checkout. An older public competition checkout made without a selected performance retains its original competition-only entitlement; it is not converted into an orchestra booking.
 

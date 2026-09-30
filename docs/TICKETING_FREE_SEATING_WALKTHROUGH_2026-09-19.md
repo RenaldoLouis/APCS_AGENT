@@ -16,3 +16,13 @@ Use a controlled test event and test recipients. This is the owner-run browser c
 12. **Venue correctness:** after a controlled active-event switch, resend an older booking confirmation. It must still use its own event's venue or saved venue snapshot.
 
 Deploy backend/frontend and required indexes together before this acceptance pass. The database CLI was unavailable in the local offline cache, so the live database edition/index state was not checked. No database deployment or live migration was attempted.
+
+## Public performance seat selection — 28 September 2026
+
+1. Choose **Public Buyer → Watch a Performance**, select an assigned performance, and continue. Buy two Presto or Allegro tickets. Confirm only the performance seat-selection add-on is offered to public buyers.
+2. Buy one seat-selection unit. Confirm the cart adds exactly its configured price and Continue remains disabled until one available seat in the purchased tier is selected. A second selected seat must be rejected until another add-on unit is purchased.
+3. Enter the buyer's own contact details. Review & Pay must show the selected performance, ticket quantities, seat-selection charge, selected seat and matching total. Complete a controlled Paper.id test payment, or use manual payment and have staff confirm it. Verify the receipt contains that seat and the remaining performance ticket awaits staff assignment. Orchestra Assignments should count two public ticket places and no performer allowance, regardless of the add-on charge.
+4. Go back to entry and switch to **Orchestra Ticket**. Confirm previous quantities/add-ons/seats clear. Select an orchestra session and quantity; no add-on or numbered seat map should appear, and the total must contain only orchestra tickets.
+5. Repeat a public performance purchase without the add-on. Verify there is no seat-selection charge and staff can assign seats after payment in Public Customers. Also confirm the existing Registered Winner seat-selection/add-on flow still works.
+
+Agent verification for this change is offline tests, focused lint and source review only. Owner browser acceptance, provider/payment behavior and actual email delivery remain separate.

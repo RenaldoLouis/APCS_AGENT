@@ -45,13 +45,13 @@
 <claude-mem-context>
 # Memory Context
 
-# [apcs_Project] recent context, 2026-09-28 10:10am GMT+7
+# [apcs_Project] recent context, 2026-09-28 11:38pm GMT+7
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 45 obs (16,207t read) | 900,373t work | 98% savings
+Stats: 47 obs (17,046t read) | 941,251t work | 98% savings
 
 ### Sep 7, 2026
 2598 12:39a 🔵 Masterclass Assignment component already integrated into admin dashboard
@@ -103,8 +103,11 @@ Stats: 45 obs (16,207t read) | 900,373t work | 98% savings
 3959 " 🟣 Added archived test booking protection to payment callback handlers
 3960 " ✅ Updated competition planning documentation with APCS2026 reset details
 3961 " 🟣 Added audit tests for ticketing reset and archived booking callback protection
+### Sep 28, 2026
+3975 10:11a 🟣 Email sending for scoring results in ScoringRecap
+3976 " ⚖️ Centralize scoring calculator into shared @apcs/scoring package
 
-Access 900k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 941k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
 
 Access 193k tokens of past work via get_observations([IDs]) or mem-search skill.

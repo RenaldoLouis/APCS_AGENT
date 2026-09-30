@@ -1,6 +1,6 @@
 # Seat Booking and Ticketing Flow Architecture
 
-Current local implementation: **23 September 2026**. This includes public performance selection and optional international PayNow/bank-transfer checkout. The free-seating rules below supersede earlier reserved-row and Masterclass checkout rules. Offline checks do not certify deployment, live payment/email, or browser behavior.
+Current local implementation: **28 September 2026**. This includes public performance selection, public performance seat-selection add-ons, and optional international PayNow/bank-transfer checkout. The free-seating rules below supersede earlier reserved-row and Masterclass checkout rules. Offline checks do not certify deployment, live payment/email, or browser behavior.
 
 ## Business rules
 
@@ -11,7 +11,7 @@ Current local implementation: **23 September 2026**. This includes public perfor
 - Staff assign the entire paid performance group to one orchestra session after payment. Orchestra attendance uses free seating; customers and admins do not select numbered orchestra seats.
 - Direct public orchestra buyers select their session and Presto/Allegro quantities. They receive no winner-member allowance and no numbered seat-selection option.
 - Masterclass sales, add-ons, and complimentary Presto benefits are outside this system for new purchases. Existing records retain their historical entitlements.
-- Numbered competition tickets retain the existing optional performer seat-selection add-on and paid-only manual assignment.
+- Winner and public performance buyers can purchase the optional `seat_selection_performer` add-on for numbered competition seats. Public performance buyers can purchase this add-on only; other winner add-ons remain excluded. Each add-on unit covers one selected competition seat, within the purchased ticket quantity and tier. Unselected seats retain paid-only manual assignment. Direct orchestra purchases cannot include this add-on or numbered seats.
 
 ## Ownership and configuration
 
@@ -46,8 +46,8 @@ See [architecture](architecture.md) for field/API details and [the agreed implem
 
 1. Load event config, sale eligibility and assigned winning performances. Public performance discovery is independent of the winner purchase-day award filter; public sale eligibility still applies at checkout. Historical Masterclass slots are excluded.
 2. Winner and public competition buyers select a performance, which supplies assigned competition venue/date/time. Direct public orchestra buyers use the orchestra-session dropdown. Public selection does not prefill the winner's personal contact details.
-3. Choose quantities and, for competition winners, any remaining add-ons/numbered competition seats. The checkout has four steps: entry, tickets, details, review/payment. There is no winner orchestra dropdown, quota banner or free-orchestra-seat step.
-4. Submit buyer details, explicit `bookingType`, performance ID where applicable, paid session, ticket quantities, selected competition seats, active winner add-ons and optional `manualPayment`. Checkout rejects public winner add-ons, supplied orchestra seats, retired products and Masterclass products.
+3. Choose quantities. Winner and public performance buyers may purchase performance seat-selection units and choose the corresponding numbered competition seats. Other active add-ons remain winner-only. The checkout has four steps: entry, tickets, details, review/payment. There is no winner orchestra dropdown, quota banner or free-orchestra-seat step.
+4. Submit buyer details, explicit `bookingType`, performance ID where applicable, paid session, ticket quantities, selected competition seats, permitted add-ons and optional `manualPayment`. The total, cart/review summaries, request and checkout-attempt fingerprint include permitted seat-selection units for public performance buyers. Changing performance, buyer type or public purchase type clears quantities, add-ons and selected seats. Checkout rejects other public performance add-ons, supplied orchestra seats, retired products and Masterclass products.
 5. Backend verifies event, winner eligibility/competition assignment, session type, server pricing, quantities, physical ownership and paid capacity. New orchestra products accept only Presto/Allegro and no numbered seats/add-ons.
 6. The checkout transaction reads inventory and the idempotency record before writes. Selected competition seats lock physically; all purchased quantities reserve paid capacity even without a selected seat.
 7. Paper.id mode creates/saves an invoice and URL, starts a 30-minute cancellation-request timer, and polls status. Manual mode creates no invoice or timer, emails PayNow/bank-transfer instructions with the server total and booking ID, and shows a booking acknowledgement. Its inventory stays held until protected staff payment confirmation or cancellation. Both modes include booking type and payment mode in the checkout idempotency fingerprint; a matching retry reuses its booking.
@@ -116,6 +116,6 @@ Legacy seat generators still have different document-ID formats; regeneration is
 
 ## Verification
 
-Run `node --test --test-reporter=spec apcs_service/audit/*.audit.cjs` from the project root. The suite includes checkout/failure boundaries, public five-for-five, mixed public/winner ensemble attendance, manual no-invoice settlement/cancellation, assignment/reassignment, quota, pagination, notifications and email details.
+Run `node --test --test-reporter=spec apcs_service/audit/*.audit.cjs` from the project root. The suite includes checkout/failure boundaries, public five-for-five, mixed public/winner ensemble attendance, public performance seat-selection pricing and fulfillment through Paper.id/manual payment, seat quantity/tier/session/availability guards, rejected unrelated add-ons and orchestra seat selection, manual no-invoice settlement/cancellation, assignment/reassignment, quota, pagination, notifications and email details.
 
 Local evidence is recorded in [progress](progress.md). Follow the [manual walkthrough](TICKETING_FREE_SEATING_WALKTHROUGH_2026-09-19.md) for owner UI acceptance. The 19 September free-seating implementation was verified offline. On 23 September, the owner paid one public and one eligible-winner staging invoice through their browser; the existing local backend received genuine nested Invoice Paid callbacks and marked both test bookings paid with matching invoice IDs and totals. Both booking contacts were the owner's designated test email and phone. The new flat production `invoice.amount` branch passed only offline regression and requires the running backend to load the edited code. The successful email-send flags do not prove inbox delivery, and Paper.id's internal notification recipient was not independently verified. Firestore contention, callback authentication/recovery, production callback behavior and browser acceptance remain separate checks; prior audit findings are preserved in the [historical audit](TICKETING_AUDIT_2026-09-06.md).

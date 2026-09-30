@@ -2,6 +2,29 @@
 
 This document tracks features and changes made to the APCS project over time.
 
+## 2026-09-29 — All registrants Excel export in Scoring Recap
+
+- Added **Export All Registrants to Excel** beside **Export Winner Comment Sheets by Award**. Downloads one `.xlsx` workbook with one worksheet and only Full Name, Competition Category and Award, covering all registrations/categories in the selected event. Table filters and pagination do not limit this export.
+- Includes winning tiers, Fail and unscored registrations (`N/A`); uses the existing scoring calculation with current manual/video penalties. Unfinished results remain provisional. Ensembles occupy one registration row with performer names joined by ` & `; registration-contact names are never substituted. Category/configuration read errors cancel the whole export. No database writes, schema/dependency changes or edits to the existing ZIP export.
+- Manual walkthrough: select an event, leave the competition category empty and click the new button. Open the workbook in Excel and check its single worksheet and exact three headers; compare winners, Fail, an unscored entry and an ensemble. Apply a restrictive category/search/status filter and export again: the workbook must still include the entire selected event. Switch events and check the filename/data scope. An empty event should show a notice with no download.
+- Verification: focused ESLint passed with zero errors and one existing unused `juryMap` warning; existing CRA/Browserslist notices remain. A mocked execution of the actual export handler generated/reopened the workbook and checked exact headers, winner/Fail/N/A rows, custom categories, ensemble/name fallbacks, empty-event handling and no partial download on read failure. This verifies workbook plumbing with stubbed score calculation and Firestore reads; browser/live data acceptance remains with the owner.
+- Self-review passed for standards, requested scope, declared imports/state, branch consistency and reference hygiene; no variables/functions/imports were removed. No app terminal is attached, so running-dev-server compilation is unverified. No browser/start/build, live database actions, commits or pushes; unrelated changes preserved.
+
+## 2026-09-28 — Public performance seat-selection add-on
+
+- Enabled the existing `seat_selection_performer` add-on for Public Buyer → Watch a Performance. The controls, cart/review pricing, submitted add-ons and checkout-attempt fingerprint now include public performance seat selection. Other public add-ons remain excluded; direct orchestra purchases still have no add-ons or numbered seat selection.
+- Backend permits only performance seat selection for public competition bookings and retains server pricing and seat quantity/tier/session/availability/ownership validation. Selected seats follow the existing Paper.id/manual-payment reservation and fulfillment paths. Public orchestra entitlement stays one place per purchased performance ticket, without performer allowance or extra places for add-on charges. No schema or collection change.
+- Updated both ticketing guides, architecture and the [owner walkthrough](TICKETING_FREE_SEATING_WALKTHROUGH_2026-09-19.md#public-performance-seat-selection--28-september-2026).
+- Verification: all 144 backend audits passed, including five new public seat-selection checks covering Paper.id/manual payment, partial selection, server pricing, unchanged attendance, invalid seats/add-ons and orchestra rejection. Focused frontend lint, backend syntax and changed-code whitespace checks passed; existing CRA/Browserslist notices remain. Source self-review passed for standards, scope, declared state/dependencies, cart/review/submission consistency and conditional paths. No state/import/function removal; the former blanket public add-on restrictions were swept for stale references.
+- Browser acceptance remains with the owner; no app terminal was attached to check a running frontend compiler. No browser/start/build commands, live database writes, real invoice/email calls, deployment, commits or pushes. Unrelated existing changes were preserved.
+
+## 2026-09-28 — Filtered totals in Teacher Award Stats
+
+- Added a total row for Sapphire, Diamond, Gold, Silver, Fail and Other / no award in the Admin Page session-assignment Teacher Award Stats modal. Totals follow the competition category and teacher search across all pages, with zero totals when no teachers match.
+- Added Winners (excluding Fail) per teacher and in the total row: Sapphire + Diamond + Gold + Silver. Total (including Fail) includes all counted registrations, including Other / no award. Existing counting remains one registration per entry, including ensembles; registrations without teacher names remain excluded.
+- Manual walkthrough: open Teacher Award Stats, select Piano (or another available category), compare each award total with the sum of teacher rows across pages, verify Winners equals the four winning tiers and overall Total equals Winners + Fail + Other / no award. Search one teacher, clear filters, and check an unmatched search yields zeros.
+- Verification uses focused ESLint, calculation checks and source self-review; browser acceptance remains with the owner. No database writes, build/start commands, commits or pushes.
+
 ## 2026-09-28 — Smaller result-email scope using saved awards
 
 - Supersedes the shared-package migration below: restored the original frontend calculator and video-rule matcher byte-for-byte, removed shared source/release tooling, vendor artifacts and package dependencies, and restored both manifests/lockfiles. Existing dashboards, exports, award sync and session management retain their calculation/data paths.

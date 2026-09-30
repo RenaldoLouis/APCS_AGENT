@@ -1,5 +1,11 @@
 # APCS Project — Architecture & Data Structure
 
+## Scoring Recap all-registrants Excel export — 29 September 2026
+
+`ScoringRecap.js` adds **Export All Registrants to Excel** beside the winner comment-sheet ZIP export. On click, it reads `Registrants2025` filtered by the selected `eventId`, then reads `JuryScores2025` for each distinct competition category present in those registrations and links scores by `registrantId`. It loads the selected event's video-penalty configuration and uses the existing `calculateRegistrantScoreAndAward` calculation, including manual/video penalties, rather than relying on potentially stale saved awards. A read failure cancels the export rather than downloading a partial workbook.
+
+The ExcelJS workbook contains one worksheet, **All Registrants**, and exactly three columns: **Full Name**, **Competition Category**, **Award**. Every registration is included, regardless of category/search/status filters, pagination, payment status or jury finalization; calculated results from unfinished scoring are provisional. Winners and Fail results are included, and unscored/invalid-score results use `N/A`. Ensemble performer names share one registration row joined with ` & `. Names come from `performers[].fullName` with first/last-name fallback, never the top-level registration-contact name; absent performer names use `Unknown`, and absent categories use `Unassigned`. Rows sort by competition category and full name. The download is `ALL_REGISTRANTS_<eventId>_<YYYY-MM-DD>.xlsx`. No new collections, schema changes or database writes are introduced.
+
 ## Scoring result announcement emails — 28 September 2026
 
 Scoring Recap's **Send Winner Emails** and **Send Non-Qualifier Emails** prepare performer-level messages for finalized rows in the currently filtered APCS2026 table. The frontend selects a local comment-sheet folder for non-qualifiers or one shared winner guidelines PDF, displays recipients/attachments, and sends only after a preview and confirmation. Each message goes to `Registrants2025.performers[index].email`, greeting that performer's `fullName` or first/last name. No registration-contact fallback is used. All four winning tiers, including Sapphire, receive invitations. Only Fail results receive non-qualifier emails. No existing scoring, registration, assignment, or ticketing records are changed.
@@ -46,6 +52,8 @@ New `publicBookings` use `ticketingVersion: 2`, `bookingType` (`winner`, `public
 `winnerOrchestraClaims` remains a legacy collection; new checkouts do not write it. New Masterclass purchases are rejected even if historical configuration remains. Existing invoices and legacy cleanup are unchanged.
 
 ### Manual-payment state and APIs
+
+**Public performance seat selection (28 September 2026):** `PublicTicketBookingPage` permits `seat_selection_performer` for `public_competition` purchases and includes its configured unit price in the cart/review total, request and idempotency fingerprint. The backend allows only this add-on for public performance purchases, recalculates its price from event configuration, and applies the existing selected-seat quantity, tier, session, availability and ownership validation. `public_orchestra` still rejects all add-ons/numbered seats. This uses existing booking, capacity and ownership fields and introduces no collection or schema change; public performer count remains zero and orchestra entitlement remains the purchased performance ticket quantity.
 
 The review checkbox sends `manualPayment: true` for the optional PayNow/bank-transfer flow. Checkout stores `paymentMode: 'manual'`, `paymentStatus: 'pending'`, a server-priced IDR total, capacity reservation, and any locked competition seats. It creates no Paper.id invoice or 30-minute `lockExpiresAt`; the sweeper therefore does not expire it. The checkout idempotency fingerprint includes booking type and payment mode. The buyer receives a ticket-specific payment email using the existing PayNow/bank details and the booking ID as reference, then sees `/ticket-payment-instructions/:bookingId`. Failed instruction delivery is retryable with the same checkout key or by staff.
 
@@ -299,6 +307,8 @@ apcs_service/
 **Used by:** `SessionAssignmentManager.js` (Admin Dashboard > Performer Sessions).
 
 The assignment screen reads each registrant's numeric `videoDuration` from `Registrants2025`, shows it on the card, and sums known video durations for each session against the time range in `events/{eventId}.venues[].sessions`. An overrun is a warning only; saving assignments remains allowed. Missing durations are marked unknown and omitted from the known total. Scoring Recap also shows the registrant's video duration.
+
+The read-only Teacher Award Stats modal uses the already loaded event registrations, filtered by competition category and then teacher search. Each registration, including an ensemble, counts once under its case-insensitively grouped teacher; blank teacher names are excluded. Saved `finalAward` (falling back to `achievement`) supplies the normalized award. Per-teacher and filtered summary Winners count Sapphire + Diamond + Gold + Silver; Fail is separate. Total includes Winners + Fail + Other / no award. The summary covers all matching rows across pagination and shows zeros for an empty result. It requires no additional queries or database writes.
 
 ```json
 {
