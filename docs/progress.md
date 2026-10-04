@@ -1,6 +1,103 @@
 # APCS Project — Progress Tracker
 
+## 2026-10-04 — Local duplicate venue-time cleanup
+
+- At the owner's request, removed only Behring Theatre (`Venue_lnssq2n1`) / `2026-11-14` / `08:00-09:00` from the local emulator's `events/APCS2026.venues[].sessions`. The identical linked draft slot remains intact. No production data was changed.
+- Draft-mode Performer Sessions displays plan `draftSlots`, while publication also validates existing event venue times. An older entry in that separate projection can therefore block a draft without appearing as a second row. Do not ignore this guard globally; investigate the specific stored entry before cleanup.
+- Saved the previous venue configuration to `/private/tmp/apcs2026-duplicate-venue-time-backup-20261004.json`. Transaction checked the draft state and unchanged venue configuration before deletion. Readback confirmed removal and unchanged draft slots; the actual publication preview at revision 51 returned `canPublish: true` with no errors. The schedule was not published.
+
+## 2026-10-04 — Visible group assigned times
+
+- Admin Page group headers show a dedicated gold **Assigned time: HH:mm-HH:mm** badge below the heading, including collapsed groups whose videos fit within the session. Groups without a time show **Time not assigned**. Video totals and overrun warnings remain separate.
+- The badge uses the board's existing `session.time`, resolved from the linked planning slot (or the legacy event timeslot). It reflects current board edits; use Save to persist them. No new data reads, writes or schema changes. Headers and video metadata wrap when space is limited.
+- Verification: focused ESLint passed with zero errors and one existing unused `handleAutoAssign` warning. Self-review confirmed the assigned and pending branches use the existing time prop, the new icon is imported, and no variables were removed. Diff whitespace check passed; browser appearance remains for owner verification.
+- Manual walkthrough: check the saved second group shows **Assigned time: 09:00-10:00** without an overrun warning; check the first and third retain their time badges and overrun warnings; check a group without a final time shows **Time not assigned**. Edit its linked session, keep it on the board, save and reopen to confirm the badge reflects the saved time.
+
 This document tracks features and changes made to the APCS project over time.
+
+## 2026-10-04 — Performer session usage markers
+
+- Performer Sessions shows a gold **Used in Admin Page** marker with the linked group label for draft and published planning sessions. A linked draft counts as used even before performers are assigned. Legacy sessions show the saved registration count; empty assignments are **Unused**. Seat generation remains a separate status.
+- Usage comes from the existing event planning state or the event-scoped assignment API used by AdminContent's SessionAssignmentManager. Unsaved Admin Page edits are reflected after saving and reopening Performer Sessions. Failed reads show **Usage unavailable**, rather than incorrectly marking sessions unused. No schema or write-path changes.
+- Manual walkthrough: save a linked group on Admin Page, reopen Performer Sessions and check its gold marker and label; check an unlinked draft shows Unused. For published sessions verify both usage and seat-generation labels. For legacy events save an assignment and verify its registration count. Browser verification remains with the owner.
+
+- Verification: focused ESLint passed with zero errors or lint warnings; JSX branches, declared state/helper references and usage keys passed self-review. `git diff --check` passed. No browser was launched.
+
+## 2026-10-04 — Local Firestore startup documentation
+
+- Clarified that everyday development starts the emulator with saved-data import and export-on-exit, followed by the API and web app in separate terminals. Loading is part of emulator startup; production snapshots do not need to be copied again each session.
+- Documented normal shutdown persistence, reuse of an already-running emulator, explicit local API selection, and production environment defaults.
+- Verification: reviewed commands against the existing Firebase configuration and frontend/backend mode guards; documentation self-review and diff whitespace checks passed. No application or browser was launched.
+
+## 2026-10-02 — APCS2026 all-winners email campaign
+
+- Added **Send to All Winners** to the Scoring Recap header, enabled only for the selected APCS2026 event. It gathers finalized, synced winners across competition categories, independent of category/table filters.
+- Added paginated event-scoped registration reads and score reads bounded to linked IDs. The combined preview shows competition category, uses one shared PDF, and refreshes eligibility/sync checks before sending.
+- Reused per-performer delivery history, personalized messages, test sending and Sapphire-as-Diamond wording. No email was sent during implementation. Keep the modal/page open until sending finishes.
+- Verification: 15 focused frontend tests passed, ESLint reported zero errors and one existing ScoringRecap unused-variable warning, and diff/self-review checks passed. Live data and browser/inbox acceptance remain unverified.
+
+## 2026-10-02 — Shared ensemble result PDFs
+
+- For ensemble registrations, both comment-sheet and certificate PDFs may list complete performer names separated by `&`. For example, `NATANIA JANICE & GRACE FRANEL CHAO.pdf` matches either full name, ignoring whitespace, case and Unicode composition. Each performer receives the shared PDFs separately. Folder matching, Send One and backend validation use this rule. Partial names and multiple matching files remain blocked; solo filenames must match the whole performer name.
+- Reused existing PerformanceCategory; delivery identity and recipient snapshot are unchanged.
+
+## 2026-10-02 — Whitespace-insensitive result PDF matching
+
+- Comment-sheet and certificate filenames now match performer names ignoring all whitespace, case and Unicode composition, consistently in folder matching, Send One validation and backend checks.
+- Names/files that become duplicates after normalization still block automatic matching. Original displayed names and filenames are preserved.
+
+## 2026-10-02 — Non-qualifier preview age categories
+
+- Added the registrant's assigned age category to each performer row in the non-qualifier email modal and the Send One confirmation, helping staff distinguish duplicate names when selecting certificates.
+- Reused Scoring Recap's category labels and loaded registration data, including specific ensemble age categories; missing values show Unassigned. No additional database reads or changes to PDF matching or delivery identity.
+
+## 2026-10-02 — Justified result emails and real winner PDF simulation
+
+- Applied inline justified alignment to both winner and non-qualifier email bodies and their paragraphs, preserving existing bold emphasis.
+- The winner test already accepts the selected shared guidelines PDF. Prepared a local test email simulation with the supplied `WINNER ANNOUNCEMENT.pdf`; no SMTP send is required for local review.
+
+## 2026-10-02 — Winner email attendance and guidelines emphasis
+
+- Bolded “confirm your attendance” and “all important event guidelines and performance information” in winner result emails, including test invitations.
+- Extended existing email audit assertions and reviewed the template branches for consistency. Manual inbox review requires a backend restart and a newly sent test email.
+
+## 2026-10-02 — Non-qualifier email attachment text alignment
+
+- Applied inline justified alignment to the bold E-certificate and E-comment sheets sentence in non-qualifier result emails sent from Scoring Recap, including test emails.
+- Updated the existing email audit assertion. Manual inbox review remains the visual acceptance step; restart the backend before sending a new test email.
+
+## 2026-10-02 — Sapphire invitation wording held for separate announcement
+
+- Winner invitations now display **DIAMOND WINNER** for recipients whose saved result is Sapphire, in both HTML and plain text. The test invitation uses the same display rule. Silver, Gold and Diamond invitation wording is unchanged.
+- Sapphire remains eligible for the winner campaign, and the preview and backend delivery record retain the actual saved award for staff tracking. This email does not reveal the Sapphire tier; the admin team will announce it separately.
+- Focused backend audits and source self-review cover the displayed wording, absence of Sapphire in the email, preserved saved award and existing winner eligibility. No browser, live email, deployment, start/build command, commit or push was performed.
+
+## 2026-10-02 — Registrant Dashboard award filter
+
+- Added a clearable award selector for Gold, Diamond, Silver, Fail and Sapphire. It matches saved `finalAward` values regardless of casing or surrounding whitespace and combines with existing filters before pagination, totals and filtered export selection. Changing or clearing it resets pagination to page 1; missing awards are not treated as Fail.
+- Added a hover hint explaining that Sync Awards refreshes saved awards after scoring changes. No additional Firestore reads or writes are needed.
+- Manual walkthrough: select each award and compare rows with saved results after Sync Awards; combine an award with event/category/search filters; change the award from a later page and confirm page 1; clear it and confirm the remaining filters still apply; check that filtered export includes only matching registrations, and an empty match shows zero rows.
+- Verification: source self-review covers state wiring, filter dependencies, all five options, clearing, and pagination/export consistency. No identifiers or rendering branches were removed. Documentation whitespace checks passed. Targeted ESLint could not run because this checkout has no installed ESLint executable/frontend dependencies. Browser acceptance remains with the owner; no browser, start/build command, commit or push.
+
+## 2026-10-01 — Optional local Firestore and production snapshot
+
+- Added explicit Firestore-only emulator switches for the React client and Express API, using port 8081 because the API uses 8080. Both applications retain production Firestore unless explicitly switched; local mode fails if the emulator is unavailable.
+- Added a read-only production snapshot exporter and emulator-only importer for top-level and nested Firestore documents. Snapshots stay in ignored, owner-only `apcs_service/.local/firestore-snapshots/` and contain real production data. Auth, S3, Paper.id and email configurations are unchanged.
+- Documented setup, refresh, persistence and cost in [Local Firestore development](LOCAL_FIRESTORE.md). The 1 October production copy contained 7,171 documents: 7,159 top-level and 12 nested. The local emulator counts matched all 16 production top-level collections, and its data was exported privately for reuse.
+- Verification: backend emulator connection and restart persistence checked against local counts; frontend Firebase initialization passed focused ESLint; script syntax and changed-file whitespace checks passed. No browser, app start/build command, production write, commit or push. Self-review found consistent mode guards, no removed identifiers or stale references, and no UI branch changes.
+
+## 2026-10-01 — Competition-only Seat Occupancy
+
+- Removed legacy numbered orchestra rows from Seat Occupancy. Its table and subtitle now describe competition seats only; Orchestra Settings and Orchestra Assignments remain the headcount views for free-seating orchestra attendance.
+- Preserved orchestra sessions, historical seats and booking data. Historical orchestra locked-seat rows no longer expose Seat Occupancy's release entry point, so older bookings that need reconciliation require a separate controlled review.
+- Verification: source self-review and changed-code consistency checks; browser acceptance remains with the owner. No live Firestore writes, browser, start/build command, commit or push.
+
+## 2026-10-01 — E-certificate and comment sheet in fail result emails
+
+- Non-qualifier batch preparation now selects separate E-certificate and comment-sheet PDF folders. Each folder matches exact performer-name PDF basenames; both files are required before a batch send. Sending one performer requires choosing both PDFs on that row.
+- The backend validates both PDFs and names before reserving a delivery, sends two distinct attachments, and records the E-certificate filename/hash alongside the existing comment-sheet fields. The authenticated request limit is 12 MB to allow two PDFs of up to 4 MB each. Winner messages continue to use one shared guidelines PDF.
+- The fail email replaces its bordered attachment callout with the bold sentence “Please find below your E-certificate and comment sheets.” Test fail emails use two generated dummy PDFs, fictional Alex Example, a `[TEST]` subject and the fixed test destination; real sends use each performer's saved identity and the two selected files.
+- Verification: focused backend audits, frontend utility/API tests, syntax, lint and source self-review. Browser file selection and inbox delivery remain for owner acceptance. No live email, deployment, start/build command, browser, commit or push was performed.
 
 ## 2026-09-29 — All registrants Excel export in Scoring Recap
 
@@ -47,6 +144,32 @@ This document tracks features and changes made to the APCS project over time.
 - Both app manifests/lockfiles pin the same package artifact, included in each `vendor/` directory so standalone deployment does not depend on sibling source trees. A release helper packages one immutable version for both apps; source/package audits and frontend function-identity tests catch drift.
 - Added shared behavior tests and maintenance/deployment documentation (removed when this approach was superseded). All changes remain uncommitted; no browser/start/build, deployment, production data mutation or real email send was performed.
 - Verification: 141 backend audits, 176 focused frontend tests, and five direct shared-module tests passed. Both installed packages match the canonical source and each other; a standalone offline install/calculation smoke check passed without either app source tree. Frontend frozen-lockfile install, focused lint, syntax, whitespace and stale-reference checks passed. Existing scoring behavior and thresholds were preserved; package artifacts and both lockfiles are ready for coordinated releases.
+
+## 2026-09-30 — Non-qualifier greeting and sign-off emphasis
+
+- Bolded the performer name after “Dear” and “APCS Team” after “Best regards” in non-qualifier HTML emails. The plain-text wording, recipient resolution, attachment and delivery behavior are unchanged. The same template serves dummy and real sends; all 24 result-email audits and backend syntax checks passed. Inbox rendering remains for owner verification.
+
+## 2026-09-30 — Winner invitation greeting and WhatsApp link
+
+- Restored “Congratulations!” immediately after the bold performer greeting in both HTML and plain text. The bold contact number now opens the specified WhatsApp chat in HTML; the plain-text fallback retains the number. The non-qualifier template and recipient/delivery flow are unchanged. All 24 result-email audits, backend syntax checks and whitespace checks passed; no browser or live email send was performed.
+
+## 2026-09-30 — Faster result-email preview
+
+- Diagnosed the preview list delay with a deterministic mocked-Firestore timing test: 15 registrations with 120 ms read latency took 7.4 seconds because registration and delivery reads were serial. Bounded concurrency of six reduced the same test to about 1.46 seconds while preserving recipient order and all validation. All 24 focused result-email audits passed, plus backend syntax and whitespace checks. Live API latency remains unmeasured; no browser, Firestore, or email send was used.
+
+## 2026-09-30 — Revised winner invitation wording
+
+- Updated winner test and real-email copy to the supplied invitation wording, bolded the performer name and requested details, and removed the redundant heading inside the email. The shared APCS banner/footer and existing event-details card remain. Winner date fields now open with 12 October 2026 for confirmation and 19 October 2026 for the rundown, while remaining editable; backend-only dummy tests use the same defaults. Non-qualifier copy and send behavior are unchanged. All 23 result-email backend audits, targeted frontend lint, backend syntax checks and whitespace checks passed. No browser or live email verification was performed.
+
+## 2026-09-30 — APCS branding for scoring result emails
+
+- Routed winner and non-qualifier result messages, including dummy tests, through the shared APCS email layout for the logo banner, font, content card, and copyright footer. Preserved the existing English message text, recipient selection, PDF attachments, and delivery tracking. Backend restart and a new owner-run test email are needed to inspect the rendered inbox result; no live email or browser verification was performed.
+- Refined the HTML presentation: winner invitations now have a clear heading, highlighted award, event-details panel and key-date panel; non-qualifier results have a restrained heading and bordered attachment note. Plain-text copy and sending behavior are unchanged. Offline audit and syntax checks cover the generated content; inbox appearance remains for owner verification.
+
+## 2026-09-30 — Single non-qualifier result email
+
+- Added a per-performer PDF picker and **Send One** confirmation to the non-qualifier preview. Staff can send one selected row without preparing a complete comment-sheet folder. Explicit selection handles duplicate names while retaining exact PDF-name matching and the backend's saved-result, identity, authorization, attachment and delivery-state safeguards. The batch workflow remains available and keeps its duplicate-name block.
+- Focused verification: 23 result-email backend audits and 8 frontend utility tests passed; targeted ESLint, backend syntax checks, and whitespace checks passed. No browser, live SMTP, or Firestore verification was performed; owner acceptance uses the documented single-row walkthrough. Changes remain uncommitted.
 
 ## 2026-09-28 — Performer result emails from Scoring Recap
 

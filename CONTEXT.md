@@ -4,6 +4,9 @@ This context defines the language used for competition registration, jury assess
 
 ## Language
 
+**Shared Ensemble Result PDF**:
+A comment sheet or certificate covering named members of an ensemble. Each named performer receives the shared document in their own result email.
+
 **Jury Assessment Lock**:
 The finalized state that prevents a jury member from changing a submitted score or comment. It does not freeze derived penalties, averages, or awards.
 _Avoid_: Final result lock, award lock

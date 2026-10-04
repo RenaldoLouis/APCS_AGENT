@@ -1,5 +1,23 @@
 # Seat Booking and Ticketing Flow Architecture
 
+## 2026-10-04 — Local duplicate venue-time cleanup
+
+- At the owner's request, removed only Behring Theatre (`Venue_lnssq2n1`) / `2026-11-14` / `08:00-09:00` from the local emulator's `events/APCS2026.venues[].sessions`. The identical linked draft slot remains intact. No production data was changed.
+- Draft-mode Performer Sessions displays plan `draftSlots`, while publication also validates existing event venue times. An older entry in that separate projection can therefore block a draft without appearing as a second row. Do not ignore this guard globally; investigate the specific stored entry before cleanup.
+- Saved the previous venue configuration to `/private/tmp/apcs2026-duplicate-venue-time-backup-20261004.json`. Transaction checked the draft state and unchanged venue configuration before deletion. Readback confirmed removal and unchanged draft slots; the actual publication preview at revision 51 returned `canPublish: true` with no errors. The schedule was not published.
+
+## 2026-10-04 — Visible group assigned times
+
+- Admin Page group headers show a dedicated gold **Assigned time: HH:mm-HH:mm** badge below the heading, including collapsed groups whose videos fit within the session. Groups without a time show **Time not assigned**. Video totals and overrun warnings remain separate.
+- The badge uses the board's existing `session.time`, resolved from the linked planning slot (or the legacy event timeslot). It reflects current board edits; use Save to persist them. No new data reads, writes or schema changes. Headers and video metadata wrap when space is limited.
+- Manual walkthrough: check the saved second group shows **Assigned time: 09:00-10:00** without an overrun warning; check the first and third retain their time badges and overrun warnings; check a group without a final time shows **Time not assigned**. Edit its linked session, keep it on the board, save and reopen to confirm the badge reflects the saved time.
+
+## 2026-10-04 — Performer session usage markers
+
+- Performer Sessions shows a gold **Used in Admin Page** marker with the linked group label for draft and published planning sessions. A linked draft counts as used even before performers are assigned. Legacy sessions show the saved registration count; empty assignments are **Unused**. Seat generation remains a separate status.
+- Usage comes from the existing event planning state or the event-scoped assignment API used by AdminContent's SessionAssignmentManager. Unsaved Admin Page edits are reflected after saving and reopening Performer Sessions. Failed reads show **Usage unavailable**, rather than incorrectly marking sessions unused. No schema or write-path changes.
+- Manual walkthrough: save a linked group on Admin Page, reopen Performer Sessions and check its gold marker and label; check an unlinked draft shows Unused. For published sessions verify both usage and seat-generation labels. For legacy events save an assignment and verify its registration count. Browser verification remains with the owner.
+
 Current local implementation: **28 September 2026**. This includes public performance selection, public performance seat-selection add-ons, and optional international PayNow/bank-transfer checkout. The free-seating rules below supersede earlier reserved-row and Masterclass checkout rules. Offline checks do not certify deployment, live payment/email, or browser behavior.
 
 ## Business rules
@@ -23,7 +41,7 @@ Current local implementation: **28 September 2026**. This includes public perfor
 | Ticket Settings | Prices, active ticket tiers, remaining competition add-ons and sale dates; hides/rejects retired Masterclass/orchestra-seat products |
 | Orchestra Settings | Venue/date/time and performance-linked headcount quota; shows direct public attendance, held public demand, assigned performance groups and legacy allocations; never generates seats |
 | Orchestra Assignments | Paid public/winner performance groups, full attendee quantity, session assignment/reassignment and assignment-email retry |
-| Seat Occupancy | Numbered competition inventory and historical orchestra seat records; provider-confirmed cancellation of linked locked bookings |
+| Seat Occupancy | Numbered competition inventory only; provider-confirmed cancellation of linked locked competition bookings. Historical orchestra seat records remain stored but are not listed here |
 | Admin Page | Awards, legacy assignments, and the draft/publish assignment board for planning events |
 | Public Customers | Booking status, competition seat assignment, manual-payment Mark Paid/cancellation, payment-instruction resend, reconciliation and confirmation resend; free-seating orchestra bookings cannot receive numbered seats |
 
@@ -106,6 +124,7 @@ Payment and inventory safety:
 - Paper.id cancellation must be confirmed before unpaid inventory release. Thirty minutes is a cancellation-request point, not permission to unlock.
 - Timer, sweeper and failure cleanup release only the booking's owned capacity/seats and legacy winner claims/quota. Failed or unknown invoice outcomes stay held for reconciliation.
 - Seat Occupancy's protected cancellation action validates the complete booking-owned inventory set. Missing/inconsistent ownership, capacity or legacy quota aborts the local release; a late invoice change prevents unsafe release.
+- Seat Occupancy lists competition sessions only. Removing historical orchestra rows from this view also removes its locked-seat release entry point for those rows; historical orchestra bookings that still need reconciliation require a separate controlled review. No orchestra seat, booking, claim, or session record is deleted by this UI change.
 - The protected manual-payment Mark Paid endpoint rechecks pending status, no invoice, capacity reservation and physical seat ownership in a transaction. It records the staff actor, books selected seats and attempts the normal confirmation email. A retry does not pay again; failed email delivery can be retried from Public Customers.
 - The protected manual-payment cancellation action requires staff confirmation that payment was not received, validates no invoice/link and all owned inventory, then releases the whole booking and records an audit. Paper.id pending no-invoice records remain blocked because invoice creation may still be in flight.
 - Deletion remains restricted to reconciled terminal bookings. Numbered competition seat assignment cannot alter a free-seating orchestra booking.

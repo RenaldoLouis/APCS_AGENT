@@ -45,27 +45,16 @@
 <claude-mem-context>
 # Memory Context
 
-# [apcs_Project] recent context, 2026-09-28 11:38pm GMT+7
+# [apcs_Project] recent context, 2026-10-01 10:05pm GMT+7
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 47 obs (17,046t read) | 941,251t work | 98% savings
+Stats: 50 obs (19,542t read) | 979,979t work | 98% savings
 
-### Sep 7, 2026
-2598 12:39a 🔵 Masterclass Assignment component already integrated into admin dashboard
-2617 4:02p 🔴 Payment/expiry lifecycle refactored to hold inventory until provider confirmation
 ### Sep 8, 2026
-2647 4:54p 🟣 Masterclass Assignment Enhancement: Paid and Complimentary Passes Combined
-2648 " 🔴 Seat Occupancy Lock Expiry: Respect Backend Lifecycle
-2649 " 🔴 Paper.id Delete Endpoint: Correct to Singular Path
-2650 " ✅ System Settings Configuration: Fail Explicit on Missing Setup
-2651 " 🔵 Paper.id Staging Environment Already Configured
 2655 9:55p 🔴 Paper.id Sales Invoice Cancellation Endpoint Corrected
-2656 " 🔵 Staging Credentials and Firebase Configuration Verified
-2657 " 🔵 Nine Test Failures Identified in Ticketing Follow-Up Audit Suite
-2658 " ⚖️ Firestore Emulator Strategy for Ticketing Launch Testing
 ### Sep 10, 2026
 2813 10:21p 🔄 Retired Registrant Dashboard score finalization UI and lock
 2814 " 🟣 Award sync now processes all registrants including finalized assessments
@@ -106,8 +95,48 @@ Stats: 47 obs (17,046t read) | 941,251t work | 98% savings
 ### Sep 28, 2026
 3975 10:11a 🟣 Email sending for scoring results in ScoringRecap
 3976 " ⚖️ Centralize scoring calculator into shared @apcs/scoring package
+3984 11:38p 🔵 APCS ticketing system business-process audit completed
+### Oct 1, 2026
+4221 10:40a ✅ Removed legacy orchestra rows from Seat Occupancy page
+4222 " 🔵 Verified ticketing workflow sequence and validation behavior
+S917 Audit the public ticket booking purchase flow to identify blockers, fatal errors, and ensure seats cannot be double-booked, payments don't fail silently, and seat displays work correctly (Oct 1 at 10:43 AM)
+4223 10:56a 🟣 Local Firestore Emulator Setup for Development
+4224 11:02a 🟣 Local Firestore Emulator Development Environment
+4225 " 🔵 Production Data Export to Local Snapshot
+4226 11:07a 🟣 Local Firestore Emulator Development Environment Configured
+4337 7:28p 🔴 Removed legacy orchestra rows from Seat Occupancy display
+4338 " 🔵 Schedule publishing does not auto-generate numbered seats
+4339 " 🔵 Performance quota still governs free-seating capacity in orchestra sessions
+4340 " 🔵 Planning validation does not reliably detect same child across separate registrations
+4341 " 🔵 Ticketing audit suite passes 147 offline checks; live payment and Firestore gaps remain
+4342 " 🔵 Payment webhook processing may require manual reconciliation on fulfillment failure
+S946 Audit APCS ticketing purchase flow for blockers and fatal errors; remove unused orchestra seat display; confirm planning and payment workflows are sound (Oct 1 at 7:29 PM)
+**Investigated**: - Removed legacy orchestra numbered-seat rows from Seat Occupancy display (still keeping historical records)
+    - Confirmed performance quota is still active and required for capacity control in free-seating orchestra flow
+    - Validated the multi-stage planning workflow: publish schedule → generate seats → verify and mark ready → sales eligible
+    - Discovered planning validation catches same-registration-ID conflicts but NOT same-child-across-separate-registrations
+    - Reviewed full ticketing purchase path from seat display through checkout, payment webhook, and fulfillment
+    - Audited Firestore indexes, transaction guards, and concurrent-booking prevention
+    - Examined payment confirmation and webhook reconciliation logic
 
-Access 941k tokens of past work via get_observations([IDs]) or mem-search skill.
+**Learned**: - Publishing schedule does NOT auto-generate numbered seats; that's a separate explicit step requiring staff action
+    - Checkout opens only when competition schedule status is "ready" (not just "published")
+    - Eligibility schedule in Ticket Pricing Settings gates WHO can buy WHEN, independent of seat readiness
+    - Performance quota splits capacity between eligible-performer and public-orchestra buyers even without numbered seating
+    - Payment webhook success does not guarantee fulfillment completion; partial failures leave bookings in paid-pending state needing staff reconciliation
+    - Offline audit suite passes 147 tests covering simultaneous checkout, double-booking prevention, and capacity guards
+    - Seat ownership tracked via physicalSeatKeys with transaction-protected updates; concurrent buyers cannot select same seat
+
+**Completed**: - Removed empty orchestra rows from SeatOccupancy.js display (competition sessions only)
+    - Updated documentation in SEAT_BOOKING_FLOW.md, TICKETING_SYSTEM_GUIDE.md, and progress.md to clarify the separate seat-generation gate
+    - Ran complete offline audit suite (147 checks pass)
+    - Code review of payment handlers, repository transaction patterns, and seat-ownership verification
+    - ESLint verification on modified pages (0 errors, 1 existing Hook warning)
+
+**Next Steps**: Complete the pending read-only Firestore check (with escalated permissions) to verify the active event's published competition sessions have generated seats and proper status. This will confirm ticket-sale readiness by checking seat counts across the first 10 sessions and validating the eligibility schedule for today's date. Upon completion, the full ticketing workflow audit will be documented with any discovered live-data gaps.
+
+
+Access 980k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
 
 Access 193k tokens of past work via get_observations([IDs]) or mem-search skill.

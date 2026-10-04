@@ -1,5 +1,23 @@
 # APCS Ticketing System Guide
 
+## 2026-10-04 — Local duplicate venue-time cleanup
+
+- At the owner's request, removed only Behring Theatre (`Venue_lnssq2n1`) / `2026-11-14` / `08:00-09:00` from the local emulator's `events/APCS2026.venues[].sessions`. The identical linked draft slot remains intact. No production data was changed.
+- Draft-mode Performer Sessions displays plan `draftSlots`, while publication also validates existing event venue times. An older entry in that separate projection can therefore block a draft without appearing as a second row. Do not ignore this guard globally; investigate the specific stored entry before cleanup.
+- Saved the previous venue configuration to `/private/tmp/apcs2026-duplicate-venue-time-backup-20261004.json`. Transaction checked the draft state and unchanged venue configuration before deletion. Readback confirmed removal and unchanged draft slots; the actual publication preview at revision 51 returned `canPublish: true` with no errors. The schedule was not published.
+
+## 2026-10-04 — Visible group assigned times
+
+- Admin Page group headers show a dedicated gold **Assigned time: HH:mm-HH:mm** badge below the heading, including collapsed groups whose videos fit within the session. Groups without a time show **Time not assigned**. Video totals and overrun warnings remain separate.
+- The badge uses the board's existing `session.time`, resolved from the linked planning slot (or the legacy event timeslot). It reflects current board edits; use Save to persist them. No new data reads, writes or schema changes. Headers and video metadata wrap when space is limited.
+- Manual walkthrough: check the saved second group shows **Assigned time: 09:00-10:00** without an overrun warning; check the first and third retain their time badges and overrun warnings; check a group without a final time shows **Time not assigned**. Edit its linked session, keep it on the board, save and reopen to confirm the badge reflects the saved time.
+
+## 2026-10-04 — Performer session usage markers
+
+- Performer Sessions shows a gold **Used in Admin Page** marker with the linked group label for draft and published planning sessions. A linked draft counts as used even before performers are assigned. Legacy sessions show the saved registration count; empty assignments are **Unused**. Seat generation remains a separate status.
+- Usage comes from the existing event planning state or the event-scoped assignment API used by AdminContent's SessionAssignmentManager. Unsaved Admin Page edits are reflected after saving and reopening Performer Sessions. Failed reads show **Usage unavailable**, rather than incorrectly marking sessions unused. No schema or write-path changes.
+- Manual walkthrough: save a linked group on Admin Page, reopen Performer Sessions and check its gold marker and label; check an unlinked draft shows Unused. For published sessions verify both usage and seat-generation labels. For legacy events save an assignment and verify its registration count. Browser verification remains with the owner.
+
 Updated for the owner-confirmed business process on **28 September 2026**, including public performance seat selection, public performance selection and optional PayNow/bank-transfer checkout. Implementation is local; deployment and owner UI acceptance are separate.
 
 ## Ticketing System menu
@@ -12,7 +30,7 @@ Updated for the owner-confirmed business process on **28 September 2026**, inclu
 | Ticket Settings | Set ticket prices and remaining competition add-ons; Masterclass and orchestra seat-selection products are hidden and cannot be newly added |
 | Orchestra Settings | Configure orchestra venue/date/time and performance-linked attendance quota; view session headcounts |
 | Orchestra Assignments | Assign paid public/winner performance groups to orchestra sessions and send/retry assignment emails |
-| Seat Occupancy | Inspect numbered competition seats and historical orchestra seats; reconcile linked locked bookings |
+| Seat Occupancy | Inspect numbered competition seats and reconcile linked locked competition bookings; historical orchestra seat rows are hidden |
 | Admin Page | Drag performers into draft groups, link them to draft sessions, publish, and finalize competition sessions; retain legacy assignment tools |
 
 Masterclass Settings and Masterclass Assignments are removed from this menu. Public Customers remains a separate main-menu page for booking status, paid competition seat assignment, manual-payment confirmation/cancellation, payment-instruction resend and confirmation resend.
@@ -94,7 +112,7 @@ Session changes produce a new assignment revision and fresh notifications to all
 - Confirmed attendance = paid direct public orchestra tickets + assigned version-2 performance-group headcount.
 - Legacy complimentary allocations separately, because the historical counter includes holds and does not alone prove paid attendance.
 
-Unassigned performance-group demand is shown in Orchestra Assignments. A session's confirmed attendance excludes those groups until staff assign them. Seat Occupancy is not the orchestra headcount report: its historical numbered seat documents do not represent new free-seating purchases.
+Unassigned performance-group demand is shown in Orchestra Assignments. A session's confirmed attendance excludes those groups until staff assign them. Seat Occupancy lists only numbered competition sessions; use Orchestra Settings and Orchestra Assignments for orchestra headcounts. Historical orchestra seat documents remain stored but are not shown in Seat Occupancy.
 
 ## Competition planning on the Admin Page
 
@@ -134,6 +152,8 @@ Venue names use the booking-time snapshot for new purchases and the booking's ow
 ## Historical bookings and payment safety
 
 Existing bookings retain their seats and original Masterclass entitlements. Legacy source pages remain in the repository but are no longer active menu options. Do not delete historical data or regenerate orchestra seats to adopt free seating.
+
+Historical orchestra locked-seat rows are no longer an entry point for Seat Occupancy's release action. If an older orchestra booking needs reconciliation, review its complete booking, invoice, seat ownership and legacy quota through a separate controlled process before changing records.
 
 A winner with paid legacy complimentary orchestra allocations is explicitly flagged in Orchestra Assignments. Staff must reconcile that allocation before assigning a new version-2 group; the system does not silently move old seats or count performer places twice. No automatic historical migration is included.
 
