@@ -1,0 +1,129 @@
+{
+  "eventId": "QA_TICKETS_20261009",
+  "providerPaidBooking": "RpCjw1OW3cLRf9qsZNGX",
+  "providerPaymentStatus": "paid",
+  "localPaymentStatus": "pending",
+  "receipt": null,
+  "emailSent": false,
+  "originalRecordsPreserved": [
+    {
+      "collection": "publicBookings",
+      "originalCount": 4,
+      "preserved": true
+    },
+    {
+      "collection": "Registrants2025",
+      "originalCount": 1392,
+      "preserved": true
+    },
+    {
+      "collection": "ticketCapacity",
+      "originalCount": 0,
+      "preserved": true
+    },
+    {
+      "collection": "ticketSeatOwnership",
+      "originalCount": 0,
+      "preserved": true
+    },
+    {
+      "collection": "ticketPaymentReceipts",
+      "originalCount": 0,
+      "preserved": true
+    },
+    {
+      "collection": "seatsAPCS2026",
+      "originalCount": 1388,
+      "preserved": true
+    },
+    {
+      "collection": "sessionAssignments",
+      "originalCount": 1,
+      "preserved": true
+    }
+  ],
+  "records": [
+    {
+      "bookingId": "RpCjw1OW3cLRf9qsZNGX",
+      "buyerName": "APCS QA Public Selected Seat",
+      "bookingType": "public_competition",
+      "paymentStatus": "pending",
+      "totalAmount": 829000,
+      "amountPaid": null,
+      "invoiceId": "8519f970-c415-4241-9c14-49ff6e269512",
+      "emailSent": false,
+      "seatingMode": "numbered",
+      "performerCount": 0,
+      "orchestraAttendanceTickets": 1,
+      "seats": [
+        {
+          "id": "Venue_lnssq2n1-Presto-A10_APCS2026_2026-11-14_08:00-09:00",
+          "label": "A10",
+          "status": "locked"
+        }
+      ],
+      "receipts": []
+    },
+    {
+      "bookingId": "nIQEU8hacFn6ukPUpwfU",
+      "buyerName": "APCS QA winner-unselected",
+      "bookingType": "winner",
+      "paymentStatus": "pending",
+      "totalAmount": 1058000,
+      "amountPaid": null,
+      "invoiceId": "c330d772-25b0-432e-ad29-22a3a8f07b6c",
+      "emailSent": false,
+      "seatingMode": "numbered",
+      "performerCount": 1,
+      "orchestraAttendanceTickets": 2,
+      "seats": [],
+      "receipts": []
+    },
+    {
+      "bookingId": "v1MkDciRdE5hbYx22xyF",
+      "buyerName": "APCS QA public-unselected",
+      "bookingType": "public_competition",
+      "paymentStatus": "pending",
+      "totalAmount": 529000,
+      "amountPaid": null,
+      "invoiceId": "17b4a255-fda7-4881-aef9-ecb90a015d0a",
+      "emailSent": false,
+      "seatingMode": "numbered",
+      "performerCount": 0,
+      "orchestraAttendanceTickets": 1,
+      "seats": [],
+      "receipts": []
+    }
+  ],
+  "occupancy": {
+    "total": 80,
+    "available": 79,
+    "locked": 1
+  },
+  "capacities": [
+    {
+      "id": "QA_TICKETS_20261009_7CVenue_lnssq2n1_7C2026-11-14_7C08_3A00-09_3A00_7Cpaid",
+      "eventId": "QA_TICKETS_20261009",
+      "venue": "Venue_lnssq2n1",
+      "date": "2026-11-14",
+      "session": "08:00-09:00",
+      "pool": "paid",
+      "capacityByTier": {
+        "presto": 40,
+        "allegro": 40
+      },
+      "capacityPolicy": "numbered_layout",
+      "reservedByTier": {
+        "presto": 1,
+        "allegro": 3
+      },
+      "updatedAt": {
+        "_seconds": 1791544490,
+        "_nanoseconds": 625000000
+      }
+    }
+  ],
+  "backendEmailsAccepted": 3,
+  "forbiddenEmailsAccepted": 0,
+  "activeLocalEventRestored": "APCS2026"
+}

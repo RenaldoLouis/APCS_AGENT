@@ -4,6 +4,10 @@ This context defines the language used for competition registration, jury assess
 
 ## Language
 
+**Venue attendance confirmation**:
+A registrant's stated intention to attend the venue for the current winner-confirmation campaign. It applies to the entire solo/ensemble registration. It is distinct from performing, check-in, admission, payment and orchestra group membership. Unclear/blank imported responses count as not attending by the owner's chosen rule.
+_Avoid_: Paid attendance, checked-in performer, confirmed performance
+
 **Shared Ensemble Result PDF**:
 A comment sheet or certificate covering named members of an ensemble. Each named performer receives the shared document in their own result email.
 
@@ -63,9 +67,29 @@ _Avoid_: Per-purchase performer bonus, one place per ensemble
 Admission without an individual numbered seat reservation. Public orchestra buyers choose Presto or Allegro; staff choose winners' orchestra sessions after payment.
 _Avoid_: Unlimited attendance
 
+**Staff-managed orchestra capacity**:
+The owner's policy that staff arrange sufficient orchestra admission space independently of the competition's numbered-seat layout, without a software admission-capacity ceiling. It applies to orchestra sessions only; numbered competition seating keeps its layout limits.
+_Avoid_: Guaranteed unlimited physical seating
+
+**Informational performance quota**:
+The orchestra session's performance-linked attendance number kept for staff planning. It never blocks an orchestra assignment, Orchestra Settings save or direct orchestra sale.
+_Avoid_: Orchestra capacity limit, assignment guard
+
 **Orchestra assignment**:
 The venue, date, time and attendee quantity allocated by staff to a winning performance's paid group after payment, without individual orchestra seat numbers.
 _Avoid_: Orchestra seat assignment
+
+**Orchestra attendance group**:
+An admin-organized group of registered orchestra attendees, independent of their competition performance group. A child may belong to both and retain their ticketable performance; attendance membership alone grants no ticket, admission, orchestra session or quota.
+_Avoid_: Orchestra performance group, paid attendance group
+
+**Guest registrant**:
+An existing registrant from a different event invited into the current event's performance or orchestra attendance group. Their original registration and results stay with the source event; a performance assignment can qualify them for the destination event's existing ticketing rules.
+_Avoid_: Unregistered child, transferred registration
+
+**Payment receipt**:
+The durable record of a provider's paid notification for a public booking, stored before fulfillment and replayed until applied or sent to staff review. It marks a booking paid only when the invoice identity is the booking's saved one or is confirmed by the provider's invoice API.
+_Avoid_: Callback log, payment confirmation
 
 **Admin seat assignment**:
 Staff selection of the physical seat for a paid ticket whose buyer did not purchase the corresponding seat-selection add-on. Only bookings with confirmed payment qualify.

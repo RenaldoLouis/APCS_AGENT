@@ -1,5 +1,20 @@
 # APCS Ticketing Business Process
 
+## 2026-10-11 — Confirmation status visible to the assignment team
+
+The Admin Page shows each registration's venue confirmation as Attending, Not attending or Not imported. Staff can filter registrant lists by these statuses while arranging performance/orchestra groups, including invited APCS2025 guests. The confirmation belongs to the whole ensemble entry. Counts stay complete and hidden members remain assigned/saved; selected orchestra members are retained in the editor. The display assists staff decisions without granting admission, blocking assignment or changing ticket purchases. [Owner walkthrough](SESSION_ATTENDANCE_WALKTHROUGH.md).
+
+## 2026-10-11 — Winner venue confirmation records
+
+Staff can upload a confirmation worksheet from Registrant Dashboard and store intended venue attendance on each matched solo/ensemble registration. Both APCS2025 invited guests and APCS2026 registrations are supported without changing source years. The owner chose false for negative, blank and unclear responses; affirmative venue attendance stays true even when the performer will not play. A registration not listed retains its previous flag.
+
+The current-campaign flag is informational and does not prove payment, grant admission, count a paid orchestra place or change a performance assignment. Staff must still manage group membership, ticketing and check-in through their established workflows. There is no confirmation history; later imports replace the flag. [Import rules and review workflow](REGISTRANT_ATTENDANCE_IMPORT.md).
+
+## 2026-10-09 — A performer can also attend the orchestra
+
+Performance participation and orchestra attendance are independent assignments. Staff assign a child to their performance group above and may select the same registration in the separate orchestra attendance table below. Attendance membership leaves the child's performance visible and purchasable under the usual sale rules. Each registration can belong to one group of each type. An attendance group is not a ticketable competition performance, and a child who only attends has no competition performance to sell.
+
+The table records the intended attendance group; it does not automatically issue the child's free admission, reserve capacity, or replace paid orchestra assignment. Admission remains separately arranged, consistent with the existing classification-only policy.
 Updated: 19 September 2026. These rules replace the previous fixed complimentary-ticket and reserved-orchestra-seat description.
 
 ## Winners and ensembles

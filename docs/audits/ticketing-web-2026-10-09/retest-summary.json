@@ -1,0 +1,212 @@
+{
+  "phase": "callback-retest",
+  "date": "2026-10-09",
+  "environment": "local Firestore + Paper.id staging",
+  "records": [
+    {
+      "bookingId": "RpCjw1OW3cLRf9qsZNGX",
+      "buyerName": "APCS QA Public Selected Seat",
+      "bookingType": "public_competition",
+      "paymentStatus": "pending",
+      "totalAmount": 829000,
+      "amountPaid": null,
+      "invoiceId": "8519f970-c415-4241-9c14-49ff6e269512",
+      "emailSent": false,
+      "seatingMode": "numbered",
+      "performerCount": 0,
+      "orchestraAttendanceTickets": 1,
+      "seats": [
+        {
+          "id": "Venue_lnssq2n1-Presto-A10_APCS2026_2026-11-14_08:00-09:00",
+          "label": "A10",
+          "status": "locked"
+        }
+      ],
+      "receipts": []
+    },
+    {
+      "bookingId": "nIQEU8hacFn6ukPUpwfU",
+      "buyerName": "APCS QA winner-unselected",
+      "bookingType": "winner",
+      "paymentStatus": "PAID",
+      "totalAmount": 1058000,
+      "amountPaid": 1058000,
+      "invoiceId": "c330d772-25b0-432e-ad29-22a3a8f07b6c",
+      "emailSent": true,
+      "seatingMode": "numbered",
+      "performerCount": 1,
+      "orchestraAttendanceTickets": 2,
+      "seats": [
+        {
+          "id": "Venue_lnssq2n1-Allegro-E9_APCS2026_2026-11-14_08:00-09:00",
+          "label": "E9",
+          "status": "booked"
+        },
+        {
+          "id": "Venue_lnssq2n1-Allegro-E8_APCS2026_2026-11-14_08:00-09:00",
+          "label": "E8",
+          "status": "booked"
+        }
+      ],
+      "receipts": [
+        {
+          "id": "nIQEU8hacFn6ukPUpwfU_7Cc330d772-25b0-432e-ad29-22a3a8f07b6c",
+          "status": "processed",
+          "deliveryCount": 1
+        }
+      ]
+    },
+    {
+      "bookingId": "qwyXksF3r3jU6y1D4wcE",
+      "buyerName": "APCS QA selected-retest",
+      "bookingType": "public_competition",
+      "paymentStatus": "PAID",
+      "totalAmount": 829000,
+      "amountPaid": 829000,
+      "invoiceId": "e90bba98-fe9b-4466-adb6-5d222ee7bf3b",
+      "emailSent": true,
+      "seatingMode": "numbered",
+      "performerCount": 0,
+      "orchestraAttendanceTickets": 1,
+      "seats": [
+        {
+          "id": "Venue_lnssq2n1-Presto-A9_APCS2026_2026-11-14_08:00-09:00",
+          "label": "A9",
+          "status": "booked"
+        }
+      ],
+      "receipts": [
+        {
+          "id": "qwyXksF3r3jU6y1D4wcE_7Ce90bba98-fe9b-4466-adb6-5d222ee7bf3b",
+          "status": "processed",
+          "deliveryCount": 1
+        }
+      ]
+    },
+    {
+      "bookingId": "v1MkDciRdE5hbYx22xyF",
+      "buyerName": "APCS QA public-unselected",
+      "bookingType": "public_competition",
+      "paymentStatus": "PAID",
+      "totalAmount": 529000,
+      "amountPaid": 529000,
+      "invoiceId": "17b4a255-fda7-4881-aef9-ecb90a015d0a",
+      "emailSent": true,
+      "seatingMode": "numbered",
+      "performerCount": 0,
+      "orchestraAttendanceTickets": 1,
+      "seats": [
+        {
+          "id": "Venue_lnssq2n1-Allegro-E10_APCS2026_2026-11-14_08:00-09:00",
+          "label": "E10",
+          "status": "booked"
+        }
+      ],
+      "receipts": [
+        {
+          "id": "v1MkDciRdE5hbYx22xyF_7C17b4a255-fda7-4881-aef9-ecb90a015d0a",
+          "status": "processed",
+          "deliveryCount": 3
+        }
+      ]
+    }
+  ],
+  "occupancy": {
+    "total": 80,
+    "booked": 4,
+    "available": 75,
+    "locked": 1
+  },
+  "capacity": [
+    {
+      "id": "QA_TICKETS_20261009_7CVenue_lnssq2n1_7C2026-11-14_7C08_3A00-09_3A00_7Cpaid",
+      "eventId": "QA_TICKETS_20261009",
+      "venue": "Venue_lnssq2n1",
+      "date": "2026-11-14",
+      "session": "08:00-09:00",
+      "pool": "paid",
+      "capacityByTier": {
+        "presto": 40,
+        "allegro": 40
+      },
+      "capacityPolicy": "numbered_layout",
+      "reservedByTier": {
+        "presto": 2,
+        "allegro": 3
+      },
+      "updatedAt": {
+        "_seconds": 1791549086,
+        "_nanoseconds": 778000000
+      }
+    }
+  ],
+  "notifications": {
+    "smtpAcceptedAcrossBothPhases": 7,
+    "forbiddenRecipientsAccepted": 0,
+    "inboxAndWhatsAppVerified": false
+  },
+  "duplicateCallback": {
+    "genuineCapturedPayload": true,
+    "statuses": [
+      {
+        "route": "/api/v1/apcs/payment/webhooks/paper-id",
+        "http": 200,
+        "status": "OK"
+      },
+      {
+        "route": "/api/v1/apcs/public-ticket/webhook",
+        "http": 200,
+        "status": "OK"
+      }
+    ],
+    "mailBefore": 7,
+    "mailAfter": 7
+  },
+  "preservation": {
+    "preserved": [
+      {
+        "collection": "publicBookings",
+        "count": 4,
+        "unchanged": true
+      },
+      {
+        "collection": "Registrants2025",
+        "count": 1392,
+        "unchanged": true
+      },
+      {
+        "collection": "seatsAPCS2026",
+        "count": 1388,
+        "unchanged": true
+      },
+      {
+        "collection": "sessionAssignments",
+        "count": 1,
+        "unchanged": true
+      },
+      {
+        "collection": "events",
+        "count": 3,
+        "unchanged": true
+      },
+      {
+        "collection": "ticketCapacity",
+        "count": 0,
+        "unchanged": true
+      },
+      {
+        "collection": "ticketSeatOwnership",
+        "count": 0,
+        "unchanged": true
+      },
+      {
+        "collection": "ticketPaymentReceipts",
+        "count": 0,
+        "unchanged": true
+      }
+    ],
+    "currentEventId": "APCS2026"
+  },
+  "applicationFlowRepairs": false,
+  "frontendConfigChange": "corrected two unterminated URL strings; temporary loopback restored to owner tunnel"
+}

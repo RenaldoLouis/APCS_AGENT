@@ -1,0 +1,262 @@
+{
+  "emulator": "127.0.0.1:8082",
+  "externalPaymentAndEmail": "substituted",
+  "passed": 23,
+  "failed": 1,
+  "results": [
+    {
+      "name": "Minimal emulator control: 20 claims on one document must accept one claimant",
+      "status": "PASS",
+      "elapsedMs": 4688
+    },
+    {
+      "name": "20 simultaneous buyers of the same chair produce one booking and invoice",
+      "status": "PASS",
+      "detail": {
+        "accepted": 1,
+        "rejected": 19
+      },
+      "elapsedMs": 4476
+    },
+    {
+      "name": "Two document aliases for one physical chair cannot sell twice",
+      "status": "PASS",
+      "elapsedMs": 3390
+    },
+    {
+      "name": "20 simultaneous unselected purchases cannot oversell the last tier place",
+      "status": "PASS",
+      "elapsedMs": 7964
+    },
+    {
+      "name": "Concurrent retries of one checkout create one invoice and one capacity reservation",
+      "status": "PASS",
+      "elapsedMs": 3479
+    },
+    {
+      "name": "Idempotency recovery control: refused concurrent requests can retry the same checkout",
+      "status": "PASS",
+      "detail": {
+        "initialErrors": [],
+        "recoveredBookingId": "Yo8OjfnzIWb7oOKIPZFJ"
+      },
+      "elapsedMs": 3893
+    },
+    {
+      "name": "Concurrent duplicate paid callbacks preserve one booked chair and reservation",
+      "status": "PASS",
+      "elapsedMs": 3515
+    },
+    {
+      "name": "Expiry retains inventory when provider cancellation fails",
+      "status": "PASS",
+      "elapsedMs": 132
+    },
+    {
+      "name": "Repeated confirmed expiry releases chair and capacity exactly once",
+      "status": "PASS",
+      "elapsedMs": 3469
+    },
+    {
+      "name": "Payment that wins while cancellation is waiting is never released",
+      "status": "PASS",
+      "elapsedMs": 131
+    },
+    {
+      "name": "Manual mark-paid retries retain inventory and never call Paper.id",
+      "status": "PASS",
+      "elapsedMs": 3090
+    },
+    {
+      "name": "POLICY: direct public orchestra sales exceed the competition layout while competition tier capacity holds",
+      "status": "PASS",
+      "detail": {
+        "orchestraHeadcount": {
+          "presto": 15,
+          "allegro": 15
+        },
+        "competitionLayoutPresto": 10
+      },
+      "elapsedMs": 202
+    },
+    {
+      "name": "Orchestra: paid winner and public tickets combine with the performer once for staff assignment",
+      "status": "PASS",
+      "elapsedMs": 147
+    },
+    {
+      "name": "POLICY: a paid performance group is assigned in full whatever the informational quota (staff-managed capacity)",
+      "status": "PASS",
+      "elapsedMs": 105
+    },
+    {
+      "name": "An early paid callback must remain recoverable after invoice persistence",
+      "status": "PASS",
+      "detail": {
+        "callback": {
+          "status": "RECEIVED_FOR_RECONCILIATION",
+          "receiptId": "PuFoS60SaY8ZGDX5JIDc_7Cqa-invoice-PuFoS60SaY8ZGDX5JIDc"
+        },
+        "bookingStatus": "PAID"
+      },
+      "elapsedMs": 204
+    },
+    {
+      "name": "Failed payment fulfillment must persist a receipt or request provider retry",
+      "status": "PASS",
+      "detail": {
+        "responses": [
+          {
+            "name": "public callback",
+            "http": 500,
+            "body": {
+              "status": "RECEIPT_NOT_STORED"
+            }
+          },
+          {
+            "name": "generic callback used by staging",
+            "http": 500,
+            "body": {
+              "status": "RECEIPT_NOT_STORED"
+            }
+          }
+        ]
+      },
+      "elapsedMs": 85
+    },
+    {
+      "name": "A paid callback whose fulfillment commit fails keeps a durable receipt and is paid once after restart",
+      "status": "PASS",
+      "detail": {
+        "responses": [
+          {
+            "http": 200,
+            "status": "RECEIVED_FOR_RECONCILIATION"
+          },
+          {
+            "http": 200,
+            "status": "RECEIVED_FOR_RECONCILIATION"
+          }
+        ]
+      },
+      "elapsedMs": 206
+    },
+    {
+      "name": "Lost invoice response must allow recovery of a subsequent matching paid callback",
+      "status": "PASS",
+      "detail": {
+        "http": 200,
+        "recovered": "PAID"
+      },
+      "elapsedMs": 111
+    },
+    {
+      "name": "An unverified or forged paid callback for a lost invoice keeps inventory held and is never marked PAID",
+      "status": "PASS",
+      "elapsedMs": 162
+    },
+    {
+      "name": "Anonymous matching callback must not mark a booking paid",
+      "status": "FAIL",
+      "error": "Unsigned callback was accepted and persisted as PAID",
+      "state": {
+        "invoiceCalls": 1,
+        "bookings": [
+          {
+            "id": "phOwRSpm5uaEYG7XvG7a",
+            "status": "PAID",
+            "seatIds": []
+          }
+        ],
+        "seats": [],
+        "capacity": [
+          {
+            "presto": 1
+          }
+        ]
+      },
+      "elapsedMs": 116
+    },
+    {
+      "name": "Seat generation overlapping checkout must preserve the newly acquired lock",
+      "status": "PASS",
+      "detail": {
+        "generated": {
+          "eventId": "QA20261007",
+          "venueId": "V1",
+          "sessionIds": [
+            "2026-11-01_09:00-10:00"
+          ],
+          "created": 19,
+          "refreshed": 1,
+          "preserved": 0
+        }
+      },
+      "elapsedMs": 2972
+    },
+    {
+      "name": "Repeated generation concurrent with ten checkouts never erases a lock",
+      "status": "PASS",
+      "detail": {
+        "accepted": 10,
+        "rejected": 0,
+        "generations": [
+          {
+            "eventId": "QA20261007",
+            "venueId": "V1",
+            "sessionIds": [
+              "2026-11-01_09:00-10:00"
+            ],
+            "created": 0,
+            "refreshed": 20,
+            "preserved": 0
+          },
+          {
+            "eventId": "QA20261007",
+            "venueId": "V1",
+            "sessionIds": [
+              "2026-11-01_09:00-10:00"
+            ],
+            "created": 10,
+            "refreshed": 10,
+            "preserved": 0
+          }
+        ],
+        "finalPass": {
+          "eventId": "QA20261007",
+          "venueId": "V1",
+          "sessionIds": [
+            "2026-11-01_09:00-10:00"
+          ],
+          "created": 0,
+          "refreshed": 10,
+          "preserved": 10
+        }
+      },
+      "elapsedMs": 14236
+    },
+    {
+      "name": "Staff assignment of paid unselected seats runs atomically on the backend under contention",
+      "status": "PASS",
+      "detail": {
+        "outcomes": [
+          "Seat A1 is no longer available.",
+          "Physical seat A-1 is already held by another booking.",
+          "accepted"
+        ]
+      },
+      "elapsedMs": 3130
+    },
+    {
+      "name": "Classification: attendance groups persist, publish no performance, and stay hidden from discovery and forged checkout",
+      "status": "PASS",
+      "detail": {
+        "forged": "This registration is in an orchestra attendance group and has no ticketable performance.",
+        "attendanceOnly": [
+          "guest-1"
+        ]
+      },
+      "elapsedMs": 308
+    }
+  ]
+}

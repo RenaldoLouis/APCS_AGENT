@@ -1,0 +1,330 @@
+{
+  "emulator": "127.0.0.1:8082",
+  "externalPaymentAndEmail": "substituted",
+  "passed": 13,
+  "failed": 7,
+  "results": [
+    {
+      "name": "Minimal emulator control: 20 claims on one document must accept one claimant",
+      "status": "PASS",
+      "elapsedMs": 4767
+    },
+    {
+      "name": "20 simultaneous buyers of the same chair produce one booking and invoice",
+      "status": "PASS",
+      "detail": {
+        "accepted": 1,
+        "rejected": 19
+      },
+      "elapsedMs": 3822
+    },
+    {
+      "name": "Two document aliases for one physical chair cannot sell twice",
+      "status": "PASS",
+      "elapsedMs": 3250
+    },
+    {
+      "name": "20 simultaneous unselected purchases cannot oversell the last tier place",
+      "status": "PASS",
+      "elapsedMs": 3656
+    },
+    {
+      "name": "Concurrent retries of one checkout create one invoice and one capacity reservation",
+      "status": "PASS",
+      "elapsedMs": 3604
+    },
+    {
+      "name": "Idempotency recovery control: refused concurrent requests can retry the same checkout",
+      "status": "PASS",
+      "detail": {
+        "initialErrors": [
+          "3 INVALID_ARGUMENT: Transaction is invalid or closed."
+        ],
+        "recoveredBookingId": "e9iJ0PAzDFr4hjgVPzWs"
+      },
+      "elapsedMs": 12295
+    },
+    {
+      "name": "Concurrent duplicate paid callbacks preserve one booked chair and reservation",
+      "status": "PASS",
+      "elapsedMs": 3580
+    },
+    {
+      "name": "Expiry retains inventory when provider cancellation fails",
+      "status": "PASS",
+      "elapsedMs": 106
+    },
+    {
+      "name": "Repeated confirmed expiry releases chair and capacity exactly once",
+      "status": "PASS",
+      "elapsedMs": 3547
+    },
+    {
+      "name": "Payment that wins while cancellation is waiting is never released",
+      "status": "PASS",
+      "elapsedMs": 114
+    },
+    {
+      "name": "Manual mark-paid retries retain inventory and never call Paper.id",
+      "status": "PASS",
+      "elapsedMs": 3525
+    },
+    {
+      "name": "Orchestra: direct public free-seating purchase records payment and respects the performance quota",
+      "status": "PASS",
+      "elapsedMs": 86
+    },
+    {
+      "name": "Orchestra: paid winner and public tickets combine with the performer once for staff assignment",
+      "status": "PASS",
+      "elapsedMs": 126
+    },
+    {
+      "name": "Orchestra: paid attendance promised at checkout must fit the available performance quota",
+      "status": "FAIL",
+      "error": "The whole group exceeds this session\u2019s remaining performance quota. Choose another session or increase its capacity safely.",
+      "state": {
+        "invoiceCalls": 1,
+        "bookings": [
+          {
+            "id": "MdXHDJiJEjXpjqpWBqFE",
+            "status": "PAID",
+            "seatIds": []
+          }
+        ],
+        "seats": [],
+        "capacity": [
+          {
+            "presto": 2
+          }
+        ]
+      },
+      "elapsedMs": 91
+    },
+    {
+      "name": "An early paid callback must remain recoverable after invoice persistence",
+      "status": "FAIL",
+      "error": "Callback HTTP 200; booking pending; invoice saved; no payment receipt/retry record",
+      "state": {
+        "invoiceCalls": 1,
+        "bookings": [
+          {
+            "id": "GkuomYDa4rl8gUGuZibA",
+            "status": "pending",
+            "seatIds": []
+          }
+        ],
+        "seats": [],
+        "capacity": [
+          {
+            "presto": 1
+          }
+        ]
+      },
+      "elapsedMs": 80
+    },
+    {
+      "name": "Failed payment fulfillment must persist a receipt or request provider retry",
+      "status": "FAIL",
+      "error": "Rollback verified: [{\"name\":\"public callback\",\"http\":200,\"body\":{\"status\":\"Error handled\"}},{\"name\":\"generic callback used by staging\",\"http\":200,\"body\":{\"status\":\"Error handled\"}}], booking pending, no durable payment details",
+      "state": {
+        "invoiceCalls": 1,
+        "bookings": [
+          {
+            "id": "DWpU5Ez3Oud7BmHevgf1",
+            "status": "pending",
+            "seatIds": []
+          }
+        ],
+        "seats": [],
+        "capacity": [
+          {
+            "presto": 1
+          }
+        ]
+      },
+      "elapsedMs": 85
+    },
+    {
+      "name": "Lost invoice response must allow recovery of a subsequent matching paid callback",
+      "status": "FAIL",
+      "error": "HTTP 200; booking failed; cancellation unknown; no durable paid recovery",
+      "state": {
+        "invoiceCalls": 1,
+        "bookings": [
+          {
+            "id": "mwxUeLOjbODN5vn95jaT",
+            "status": "failed",
+            "seatIds": []
+          }
+        ],
+        "seats": [],
+        "capacity": [
+          {
+            "presto": 1
+          }
+        ]
+      },
+      "elapsedMs": 85
+    },
+    {
+      "name": "Anonymous matching callback must not mark a booking paid",
+      "status": "FAIL",
+      "error": "Unsigned callback was accepted and persisted as PAID",
+      "state": {
+        "invoiceCalls": 1,
+        "bookings": [
+          {
+            "id": "eoPzgcoCPMM7Pg1ZIYxz",
+            "status": "PAID",
+            "seatIds": []
+          }
+        ],
+        "seats": [],
+        "capacity": [
+          {
+            "presto": 1
+          }
+        ]
+      },
+      "elapsedMs": 74
+    },
+    {
+      "name": "Seat generation overlapping checkout must preserve the newly acquired lock",
+      "status": "FAIL",
+      "error": "Checkout lock overwritten; resulting seat status available\n+ actual - expected\n\n+ undefined\n- 'eLh9s0751aVxXV6kdSsA'",
+      "state": {
+        "invoiceCalls": 1,
+        "bookings": [
+          {
+            "id": "eLh9s0751aVxXV6kdSsA",
+            "status": "pending",
+            "seatIds": [
+              "V1-presto-A1_QA20261007_2026-11-01_09:00-10:00"
+            ]
+          }
+        ],
+        "seats": [
+          {
+            "id": "V1-allegro-B10_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-allegro-B1_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-allegro-B2_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-allegro-B3_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-allegro-B4_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-allegro-B5_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-allegro-B6_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-allegro-B7_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-allegro-B8_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-allegro-B9_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-presto-A10_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-presto-A1_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-presto-A2_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-presto-A3_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-presto-A4_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-presto-A5_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-presto-A6_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-presto-A7_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-presto-A8_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          },
+          {
+            "id": "V1-presto-A9_QA20261007_2026-11-01_09:00-10:00",
+            "status": "available",
+            "owner": null
+          }
+        ],
+        "capacity": [
+          {
+            "presto": 1
+          }
+        ]
+      },
+      "elapsedMs": 105
+    },
+    {
+      "name": "Installed Web SDK supports the query transaction required by staff seat assignment",
+      "status": "FAIL",
+      "error": "Cannot read properties of undefined (reading 'path')",
+      "state": {
+        "invoiceCalls": 0,
+        "bookings": [],
+        "seats": [],
+        "capacity": []
+      },
+      "elapsedMs": 166
+    }
+  ]
+}

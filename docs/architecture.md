@@ -1,5 +1,144 @@
 # APCS Project — Architecture & Data Structure
 
+## 2026-10-11 — Attendance chips and filters in session assignment
+
+`AdminContent.js` embeds `SessionAssignmentManager`; current registrations and hydrated APCS2025 guests already include `willAttend` from existing reads. Shared `AttendanceStatusChip` displays strict booleans as Attending/Not attending and missing/non-boolean values as Not imported on unassigned/assigned cards, Overview registrants, orchestra roster rows and selector choices/tags.
+
+One attendance filter defaults to All attendance statuses, is shared by the board and Overview's Registrants view, and resets on event loading. It composes with searches and pool category filters. Performance lists/Overview retain full original indices for drag-and-drop/order numbering. Membership, source-event/category summaries, video totals, event statistics, teacher lists and saved payloads stay complete; shown counts are separate. Orchestra options filter new candidates but retain selected members. Read-only tags and the roster follow the filter. Status changes clear pending swap selections.
+
+This is presentation state only: no new Firestore read/write, schema, backend input or ticket/assignment eligibility rule. Reload the board after importing confirmations to refresh its snapshot. [Owner acceptance](SESSION_ATTENDANCE_WALKTHROUGH.md).
+
+## 2026-10-10 — Group registrant summaries by source event and category
+
+`GroupRegistrantSummary.js` renders a compact summary on every performance-group header, each performance column in Session Overview and each orchestra attendance group's identity cell. `groupRegistrantSummary.js` derives rows from the group's complete hydrated membership in `assignments[groupId]`, using saved `eventId` and `competitionCategory`. Columns show APCS2025, APCS2026 and Total; category rows include every present competition category, including Piano and Guzheng, with a Total registrants footer. The two requested event columns remain visible at zero; any other source event gets its own column.
+
+Counts represent registrations, so an ensemble counts once. Known competition labels use `competitionList` casing; category matching trims whitespace and ignores case, while unrecognized categories remain visible. Missing categories display Not set. Missing/null/empty eventId on a real legacy registration follows the existing APCS2025 convention. A missing-document placeholder instead displays Unknown event / Registrant unavailable rather than being miscounted as APCS2025.
+
+Summary counts update from local draft membership after additions, removals, moves, swaps or discard, remain visible on collapsed/read-only groups, and do not change when staff search/filter the pool or attendance roster. Performance and attendance summaries count their own membership independently. No queries, backend inputs, collections, schema or assignment writes are added. [Manual acceptance steps](SESSION_GROUP_SUMMARY_WALKTHROUGH.md).
+
+## 2026-10-10 — Performance video playback during session assignment
+
+`AdminContent.js` embeds `SessionAssignmentManager.js`. Its unassigned registrant cards, assigned performance cards and registrant rows in Session Overview expose **Play video** using the already loaded `Registrants2025.videoPerformanceS3Link`. This includes loaded/hydrated guest registrations and read-only published sessions. Missing/blank links disable the button with an explanatory tooltip.
+
+The board resolves raw keys, `s3://bucket/<key>` values and full S3/CDN URLs to the existing Jury Dashboard CloudFront domain. Raw keys and S3 URI filenames are encoded by path segment to preserve spaces, Unicode, `#`, `?` and `%`. Playback opens an Ant Design modal with the performer name, native video controls and an **Open video in a new tab** fallback. Invalid saved links produce a message; media failures produce a visible alert. Closing the modal or switching events removes the player. Play clicks stop propagation to card swap handling, and drag starts on the play control are prevented.
+
+This adds no Firestore query, backend request, collection, schema or write path. The existing registration upload already saves the video location; viewing it supplies no new assignment input. Draft membership, ordering, saving and publication retain their existing behavior. [Manual acceptance walkthrough](SESSION_VIDEO_WALKTHROUGH.md).
+
+## 2026-10-10 — APCS2025 guest registrants in APCS2026
+
+`AdminContent.js` embeds `SessionAssignmentManager.js`; the board exposes **Other Event Registrants** for APCS2026 planning events. Staff explicitly load APCS2025. `guestRegistrants.js` scans the existing `Registrants2025` collection in pages of 200 ordered by document ID, then selects explicit APCS2025 records and records with missing/null/empty `eventId`. This explicit scan is necessary because equality queries cannot retrieve an absent field. Missing `createdAt` does not exclude a record. It adds no full collection scan on APCS2026 mount. The current-event query, event registration statistics, teacher award statistics and automatic assignment remain scoped to current-event registrations.
+
+Guests are separate frontend state, merged by document ID only for manual performance assignment and orchestra selectors. Search/category filters follow the active tab. Cards and attendee options show the source event. Both purposes persist original registration IDs using existing revision-checked `competitionSessionPlans/{eventId}/groups/{groupId}.registrantIds`. Saved IDs outside the current-event query hydrate in batches of up to 30 by document ID before the board is usable. Missing documents stay as placeholders and block publication. Source loading failures are visible; late results are invalidated on event switch/reload. Seat Occupancy's explicitly loaded lookup also hydrates assigned IDs outside its active-event query, so guest performer names remain searchable.
+
+**Published schema extension:** competition entries in `sessionAssignments/{eventId}.assignments[sessionKey][]` now include `sourceEventId` alongside `registrantId` and `order`. Publication derives this value from the actual registration document, with absent/null/empty eventId interpreted as APCS2025. It accepts same-event registrations plus the specific APCS2025 → APCS2026 guest relationship for both group purposes; missing records and other source events remain rejected. Source registration documents, awards and video fields are never copied or changed. No collection or Firestore index is added.
+
+Discovery and checkout recognize a cross-event performer only when its actual source is APCS2025 and its APCS2026 published performance entry carries the matching sourceEventId. Checkout revalidates the source marker, actual record, performance membership, attendance-only exclusion and award in its inventory transaction. Historical records may use `achievement` when `finalAward` is absent; this fallback applies only to APCS2025 records. Current-event result rules, daily winner-tier rules, readiness, seat ownership/capacity and payments retain their existing guards. Missing award is not fabricated and still blocks ticketing. Missing video or duration does not block grouping; blank/missing/invalid videoDuration displays Unknown and is omitted from the known duration total.
+
+This extension applies to editable APCS2026 planning drafts. Existing published plans stay read-only and are not migrated. Release frontend and backend together; the backend needs its normal restart/release to load the changed code. [Staff acceptance walkthrough](GUEST_REGISTRANTS_WALKTHROUGH.md).
+
+## 2026-10-09 — Seat Occupancy registrant/reservation lookup
+
+`SeatOccupancy.js` adds an explicitly loaded, read-only competition lookup. It paginates `Registrants2025` and `publicBookings` by active `eventId` in pages of 200, reads `sessionAssignments/{eventId}`, and paginates the already configured generated competition seat scopes by venue/session. No collection is read for this lookup on mount. The pure `src/utils/seatOccupancyLookup.js` joins performer assignment entries by registration ID and joins current booked/reserved/locked seat records to individual reservations by `bookingId` or `lockedByBookingId`. Legacy holder metadata is presented separately when no matching booking is loaded. Performer names come from `performers[]` with full/first/last-name and legacy-string support; top-level registration `name` is searchable contact metadata, not the displayed performer identity.
+
+Search filters the snapshot locally by all case-insensitive whitespace-normalized words across performer names, contact/teacher metadata for assignment rows, buyer names and identifying IDs. Rows preserve venue/date/time, reference ID, record type and payment/assignment status. Archived test bookings and orchestra scopes are excluded. Assignment is not admission/payment proof; an unmatched paid booking displays Awaiting seat assignment, without inferring seats from stale saved labels/IDs. Explicit refresh clears old results until all reads succeed; event changes clear data and invalidate pending lookup requests. No backend endpoint, schema, collection, index, admission policy or write path changes. See the name-lookup sections in both ticketing guides for owner acceptance steps.
+
+## 2026-10-09 — Checkout timetable authority
+
+Direct public orchestra checkout validates its exact venue/date/time against `events.orchestraSessions`, with venue existence verified against `events.venues`. Competition checkout validates against `events.venues[].sessions` and retains its readiness/assignment/capacity checks. Both availability guards read the authoritative session type, including a fresh event read inside the booking transaction; removed/replaced sessions and removed venues are rejected before invoice creation. This uses existing event, booking, capacity and payment records without a collection or schema migration. Orchestra admission remains free seating with staff-managed capacity and no numbered-chair ownership. See [repair evidence](audits/TICKETING_ORCHESTRA_SEAT_DIAGNOSIS_2026-10-09.md#authorized-repair-and-regression-results); the running backend must restart to load the repair.
+
+## 2026-10-09 — Local obsolete venue-time cleanup
+
+Owner-approved local cleanup removed only the old Behring `2026-11-14` `08:00-09:00` entry from `events/APCS2026.venues[].sessions`, preserving Group 1's private draft slot. Existing venue timetable entries and private `draftSlots` are separate data sources: publication rejects overlaps with either source, even when their time strings are identical. No schema or collection changed.
+
+Preflight found no published assignments, active bookings, event seats/capacity/ownership or matching special session. A private ignored backup preceded a snapshot-checked transaction; event/plan draft revisions advanced 31 → 32. Readback verified the exact event change and preserved draft slots/groups/assignments. Repository publication preview now passes with no errors. [Execution, backup and manual follow-up](LOCAL_FIRESTORE.md#2026-10-09--removed-obsolete-local-venue-timetable-entry). Production and publication were not touched.
+
+## 2026-10-09 — Independent performance and orchestra attendance assignments
+
+`AdminContent.js` still renders `SessionAssignmentManager`. Its upper board and Overview now show competition groups only; the lower `OrchestraAttendanceTable` edits attendance membership using the same loaded event registrants, including those with a performance assignment. Counts and the left unassigned pool consider performance membership only. Both sections share draft save, revision protection, discard and event-switch handling. Clear All explicitly clears both sections; deleting a group removes only that group's membership.
+
+The existing `competitionSessionPlans/{eventId}/groups/{groupId}` documents retain `purpose` and `registrantIds`; no collection or field is added. SaveGroup, full-board save and publication enforce at most one group **per purpose** for each registration. One competition membership plus one orchestra attendance membership is valid. Missing purpose still means competition; duplicate membership within a type is rejected. Attendance groups retain venue/date and null performer-session/time fields.
+
+Publication derives `sessionAssignments/{eventId}.attendanceOnlyRegistrantIds` as **attendance members minus competition members**. Ordered `assignments` and venue times still come only from competition groups. Readiness recomputes this same exclusion set. Existing public/winner discovery and checkout guards use that projection: dual members retain their performance, while an attendee without a performance remains excluded. No ticket, payment, admission allocation or paid `orchestraAssignments` record is created by this table.
+
+Draft groups load into the appropriate section automatically. Existing published projections are not rewritten by this code change; a published inconsistency requires separately reviewed reconciliation, rather than bypassing the read-only/ticket-activity safeguards. Backend and frontend changes must be released together. [Manual acceptance](ORCHESTRA_ATTENDANCE_WALKTHROUGH.md).
+## 2026-10-09 — Local performer-session seed utility
+
+`apcs_service/scripts/seed_local_performer_sessions.js` reads the event, plan parent and ordered saved groups only from the `apcs-profile` emulator on `127.0.0.1:8081`. It reserves linked slots, reuses matching unused sessions and adds only missing competition slots with saved venue/date. Missing times on new or reused slots are filled with one-hour sample ranges every two hours from 08:00, avoiding same-venue/date overlaps and preserving existing times; attendance groups are skipped. It uses the existing `{ slotId, venueId, date, start, end }` schema, with no new collections or fields. Output pairing is a suggestion, not a persisted assignment.
+
+Apply saves an ignored private JSON backup, checks that the complete read snapshot is unchanged in a Firestore transaction, and updates `competitionSessionPlans/{eventId}.draftSlots/revision/updatedAt` and `events/{eventId}.competitionScheduleState.revision`. Linked groups whose slots receive times have cached `start/end/updatedAt` synchronized, matching the repository saveSlot path. Revisions advance together once. Group links/members, published venue sessions, seats and buyer gates are preserved. With sufficient matching, timed slots a rerun writes nothing. The installed Admin SDK's Firestore class is used directly without application initialization or production credentials. [Commands, local execution and manual acceptance](LOCAL_FIRESTORE.md#seed-performer-sessions-from-saved-local-groups).
+
+## 2026-10-07 — Implemented ticketing repair batch (payment receipts, seat writes, attendance groups, orchestra capacity)
+
+Implemented from the [repair plan](TICKETING_REPAIR_PLAN_2026-10-07.md). The sections further down describe the state before this batch and stay as history.
+
+### New collection: `ticketPaymentReceipts/{encode(bookingId|providerInvoiceId)}`
+
+The backend writes these; Firestore rules give whitelisted users read access and deny all client writes. One document exists per (public booking, provider invoice ID). It is written **before** fulfillment by both Paper.id callback routes.
+
+| Field | Meaning |
+| --- | --- |
+| `bookingId`, `providerInvoiceId`, `payload` | Callback reference, invoice ID as reported by the callback (untrusted until matched or verified), and the full paid payload |
+| `status` | `pending` (replayable), `processed` (the booking is PAID), `needs_review` (automation stopped; staff reconcile with Paper.id), `ignored` (archived test booking) |
+| `reason`, `lastError` | Last outcome, e.g. `fulfillment_failed`, `awaiting_invoice_identity`, `provider_not_paid`, `provider_verification_unavailable`, `invoice_mismatch`, `payment_amount_mismatch`, `booking_canceled_before_payment`, `booking_released_before_payment`, `provider_invoice_not_for_booking`, `retry_limit_reached` |
+| `attempts`, `nextAttemptAt` (ms), `deliveryCount`, `receivedAt`, `lastReceivedAt`, `lastAttemptAt`, `processedAt` | Retry, backoff and duplicate-delivery bookkeeping. Backoff runs from 1 to 30 minutes; after 48 attempts the receipt becomes `needs_review`. |
+
+**Data flow.** Callback → booking lookup (a lookup failure returns HTTP 500) → archived guard → `recordPaymentReceipt` transaction (a failure returns HTTP 500 `RECEIPT_NOT_STORED`) → `reconcilePaymentReceipt` → `handlePublicTicketWebhookPaid(bookingId, payload, { receiptRef, verifiedInvoice })`. That function marks the receipt `processed` in the same transaction that sets the booking `PAID`. HTTP 200 (`OK` or `RECEIVED_FOR_RECONCILIATION`) is returned only after the receipt exists. The confirmation email is sent once, by the caller that performed the paid transition.
+
+**Trust.** A pending booking's saved `invoiceId` is matched exactly, as before. When the booking has no saved invoice ID, or is `failed` with inventory still held (`checkoutFailure.cleanupStatus !== 'complete'`), the receipt is applied only after `PaperRepository.getInvoice(id)` — Paper.id's documented `GET {PAPER_BASE_URL}/sales-invoices/{invoice_id}` with API credentials — returns `number == bookingId`, `payment_status == paid` and `total == totalAmount`. The verified invoice ID is then adopted. Unverified receipts never release, book or change inventory.
+
+**Replay.** `PublicTicketController.createPublicTicketBooking` replays pending receipts for its booking after the invoice is saved (early callbacks). `src/jobs/PublicTicketPaymentRecoveryJob.js` runs 15 s after startup and every 2 minutes, processing due `pending` receipts (restart recovery). Both queries are single-field (`status`, `bookingId`); no composite index is required.
+
+### New and changed fields
+
+- `publicBookings.paymentReceipt`: `{ receiptId, status, reason }` staff marker shown on Public Customers.
+- `publicBookings.paymentVerification`: `{ source: 'paper_sales_invoice_api', invoiceId, recoveredFromStatus, verifiedAt }`, set when a booking was paid through provider-verified recovery.
+- `publicBookings.seatAssignments[]`: `{ seatIds, assignedByUid, assignedByEmail, assignedAt }`; `physicalSeatKeys` now stays aligned with `selectedSeatIds` after staff assignment.
+- `competitionSessionPlans/{eventId}/groups/{groupId}.purpose`: `competition` (the default; a missing value means competition) or `orchestra_attendance`. Attendance groups store venue and date, `slotId/start/end: null`.
+- `sessionAssignments/{eventId}.attendanceOnlyRegistrantIds`: written by publish; as refined on 9 October, attendance members minus competition members. Discovery skips these attendance-only registrants, and checkout rejects them before and inside its transaction. `assignments` contain only competition groups.
+- `ticketCapacity.capacityPolicy`: `numbered_layout` for competition sessions (`capacityByTier` enforced) or `staff_managed` for orchestra sessions (`capacityByTier: null`; `reservedByTier` is an exact headcount with no ceiling).
+- `events.orchestraSessions[].complimentaryQuota` is informational. Assignment and Orchestra Settings no longer reject because of it or because of the competition `seatConfig`. `freeSeatingAssigned` stays an exact transactional counter.
+
+### New protected endpoints (Firebase ID token and whitelist)
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/public-ticket/admin/assign-seats` | `{ bookingId, seatIds }`. Runs one Admin SDK transaction that reads the booking, seats, canonical ownership and alias queries, then books the seats. Replaces the browser `Transaction.get(Query)` path. |
+| POST | `/public-ticket/admin/seats/generate` | `{ eventId, venueId, sessionIds }`. Generates chunked transactions that skip locked, booked or referenced seats and canonically owned chairs, then sets the `sessionsSeatsGenerated` flags. `uploadFullSeatLayout` in `SeatEvent.js` calls it. |
+
+Unchanged deferred boundaries: callback authenticity for a normal pending booking whose saved invoice ID matches, the unprotected global-settings route, rate limiting, slow-checkout recovery and the legacy capacity writer.
+
+## 2026-10-07 — Pending attendance classification and repair boundaries
+
+The [final agent prompt](TICKETING_REPAIR_PROMPT_2026-10-07.md) references the handoff's complete source/data-path/evidence map and owner-approved policy choices. It is a work request, not a new implemented schema or data flow.
+
+Additional domain clarification: `venues[].seatConfig` is the competition seating layout, while orchestra admission can use a larger flexible layout. The current code uses it for orchestra settings/assignment total checks and direct orchestra tier/total checks. The owner chose **no system orchestra capacity ceiling with staff-managed admission**; [the handoff](TICKETING_REPAIR_HANDOFF_2026-10-07.md#subsequent-clarification-orchestra-capacity-differs-from-competition-layout) records the selected decoupling without a new session-capacity model or pre-payment admission reservation redesign. Competition capacity, payment safeguards and transactional counters remain requirements. The separate performance-quota semantics must be explicit in the next plan. No removed guards or schema changes have been implemented.
+
+The [repair handoff](TICKETING_REPAIR_HANDOFF_2026-10-07.md#existing-data-path-traced-in-this-chat) traces AdminContent → SessionAssignmentManager → authenticated competition-planning API → `competitionSessionPlans/{eventId}/groups` → publication into `sessionAssignments`/venue times → backend discovery/checkout. All current planning groups are projected as competition sessions; current save paths explicitly persist known fields and have no attendance classification. A UI-only flag would be lost and would leave stale/forged checkout paths unprotected.
+
+Requested **Orchestra attendance** groups classify/hide members; admission remains separate, with no automatic capacity reservation or paid entitlement. Admin planning groups are distinct from paid orchestra groups derived by `(eventId, registrantId)`. Schema choice, scheduling/publication treatment and any durable payment receipt/recovery mechanism must be finalized in the next implementation plan and documented here when implemented. No collection, schema, application flow or production data changed in this documentation handoff. Legacy migration and the original paid-orchestra quota guarantee are excluded/deferred, without erasing the audit findings.
+
+
+## 2026-10-07 — Real ticketing transaction and staging verification
+
+Follow-up testing used real server SDK transactions against an empty fixed demo project on port 8082 and an independent fresh local QA event on port 8081 for the running API/ngrok. **13 safety assertions passed, 7 failed**; [results and boundaries](TICKETING_READINESS_AUDIT_2026-10-07.md#follow-up-real-emulator-transactions-and-paperid-staging). Main checkout ownership/capacity guards passed contention tests, but durable payment recovery, callback authenticity, the generation boundary, Web SDK assignment and checkout-guaranteed orchestra entitlement remain unresolved. Actual staging callbacks saved PAID/receipts for all three purchase types; independent provider reads and owner email receipt confirmed those happy paths. Slow checkout and shared-IP rate limiting reproduced customer blocking paths.
+
+No production collections, schema or application flow changed. Synthetic records use the existing settings/events/registration/assignment, seats, bookings, capacity, ownership and checkout-key collections. `firebase.ticketing-audit.json` targets port 8082; the audit refuses any other host or a nonempty demo database, and substitutes all external integrations. The API's separate port-8081 QA database remains available for owner review. Private staging records/tokens remain ignored; the saved local snapshot is unchanged.
+
+## 2026-10-07 — Ticketing readiness and recovery boundary review
+
+The [current readiness audit](TICKETING_READINESS_AUDIT_2026-10-07.md) documents unresolved source-level boundaries: paid callbacks have no durable receipt/replay record before fulfillment, invoice identity is saved after external creation, and ambiguous failed invoices lack an automatic paid reconciliation path. Canonical seat ownership protects the normal checkout, but unconditional seat regeneration can invalidate its locks, legacy reservations bypass paid-capacity accounting, and frontend staff assignment incorrectly passes a Query to Web `Transaction.get`. Paid performance-linked orchestra demand is recorded before its later quota assignment, without a checkout guarantee that all sold attendance fits. Callback and global-settings write routes lack application authentication/verification.
+
+This review adds no collections, schema fields or application data flow. Existing `publicBookings`, `ticketCapacity`, `ticketSeatOwnership`, legacy booking and orchestra assignment records retain their implementation. The live production event was still draft with closed eligibility on 7 October; 153 existing offline checks passed while 11 diagnostic observations exposed additional open gaps. Older implementation sections below describe historical stages, not a complete launch certification.
+
+## 2026-10-05 — Venue image save correction
+
+- Venue Settings image/name-only edits now call `POST /venue-settings/:eventId/:venueId/metadata` with a current Firebase ID token. Whitelist authentication is required. This avoids the browser Firestore rule that protects the whole `venues` array for planning events.
+- The backend transaction reads the latest event and changes only the selected venue's label and HTTPS image URL. Sessions, seat configuration, extra venue fields, other venues and schedule state are preserved. Stale label/image edits are rejected with a refresh message.
+- Upload completion is required before saving; download-URL errors are caught and specific save failures are displayed. SVG files continue through the existing Firebase Storage upload path; no Storage permissions were changed.
+- Scope: image/name-only edits to existing venues. Adding/deleting venues or changing seat capacity retains the existing protected flow; this endpoint does not bypass those safeguards.
+- Offline verification: metadata transaction regression tests and frontend lint. Manual acceptance: edit Behring, upload `Behring-01.svg`, wait for upload success, save, then reopen and confirm the new image and unchanged seat rows/sessions. Frontend and backend must both include this change. Browser, deployed Storage rules and production acceptance remain unverified.
+
+
 ## 2026-10-04 — Visible group assigned times
 
 - Admin Page group headers show a dedicated gold **Assigned time: HH:mm-HH:mm** badge below the heading, including collapsed groups whose videos fit within the session. Groups without a time show **Time not assigned**. Video totals and overrun warnings remain separate.
@@ -340,7 +479,7 @@ apcs_service/
 
 The assignment screen reads each registrant's numeric `videoDuration` from `Registrants2025`, shows it on the card, and sums known video durations for each session against the time range in `events/{eventId}.venues[].sessions`. An overrun is a warning only; saving assignments remains allowed. Missing durations are marked unknown and omitted from the known total. Scoring Recap also shows the registrant's video duration.
 
-The read-only Teacher Award Stats modal uses the already loaded event registrations, filtered by competition category and then teacher search. Each registration, including an ensemble, counts once under its case-insensitively grouped teacher; blank teacher names are excluded. Saved `finalAward` (falling back to `achievement`) supplies the normalized award. Per-teacher and filtered summary Winners count Sapphire + Diamond + Gold + Silver; Fail is separate. Total includes Winners + Fail + Other / no award. The summary covers all matching rows across pagination and shows zeros for an empty result. It requires no additional queries or database writes.
+The read-only Teacher Award Stats modal uses the already loaded event registrations, filtered by competition category and then teacher search. Each registration, including an ensemble, counts once under its case-insensitively grouped teacher; blank teacher names are excluded. Saved `finalAward` (falling back to `achievement`) supplies the normalized award. Per-teacher and filtered summary Winners count Sapphire + Diamond + Gold + Silver; Fail is separate. Total includes Winners + Fail + Other / no award. The summary covers all matching rows across pagination and shows zeros for an empty result. It requires no additional queries or database writes. The modal's **Export to Excel** button creates a single `Teacher Award Stats` worksheet from `visibleTeacherStats` and `teacherStatsTotals`, preserving table order and including every matching teacher across pagination. It records event/category/search context, the same nine table columns and a numeric Filtered total row. The file is `TEACHER_AWARD_STATS_<eventId>_<YYYY-MM-DD>.xlsx`. Export is disabled for empty results, shows loading while writing the workbook, and reports serialization/download errors. Award counts use the same saved results as the table; no score recalculation occurs during export.
 
 ```json
 {
@@ -499,11 +638,13 @@ available ──[Pay Now (Firestore txn)]──► locked ──[verified paid c
 
 ### 2.5 `Registrants2025` collection
 
+**Attendance import (11 October 2026):** Registrant Dashboard parses the confirmation file locally and calls the whitelist-protected `/api/v1/apcs/registrant-attendance/preview` and `/apply` endpoints. `src/services/RegistrantAttendanceImport.js` shares classification/matching/write logic with `scripts/import_registrant_attendance.js`. Explicit scans paginate candidates by document ID in pages of 200 across APCS2025/APCS2026, including legacy missing-event APCS2025 records. Signed previews bind original roster/event/attendance; apply rechecks live data and transactionally patches only `willAttend` in chunks of at most 200. No collection/index, source-event migration, ticketing read path or automatic mount-time scan is added. [Rules, API/CLI and manual acceptance](REGISTRANT_ATTENDANCE_IMPORT.md).
+
 **Document ID:** Auto-generated by Firestore
 **Purpose:** One document per competition registration. Created during the registration flow (`Register.js`).
 **Used by:** `JuryDashboard.js`, `AdminContent.js`, `SessionAssignmentManager.js`, `PaperController.handlePaperWebhook`
 
-> **⚠️ Tech Debt Notice:** Despite the "2025" in the name, this collection is used for **all** years (e.g., APCS2025, APCS2026). The initial plan to separate years into different collections was abandoned. To differentiate registrants by year, you **must** filter queries using the `eventId` field (e.g., `where('eventId', '==', 'APCS2026')`).
+> **⚠️ Tech Debt Notice:** Despite the "2025" in the name, this collection is used for **all** years (e.g., APCS2025, APCS2026). The initial plan to separate years into different collections was abandoned. To differentiate registrants by year, filter queries using the `eventId` field. For legacy APCS2025 guest loading, a missing/null/empty `eventId` is interpreted as APCS2025 without rewriting the record. Normal event queries use the explicit field (e.g., `where('eventId', '==', 'APCS2026')`).
 
 #### Key fields
 
@@ -519,6 +660,7 @@ available ──[Pay Now (Firestore txn)]──► locked ──[verified paid c
 | `ageCategory` | string | Category-specific key from `RegisterPageConst` (e.g., `"Primary"`, `"JuniorwoodWind"`) |
 | `totalPerformer` | number | Count of performers in the `performers` array |
 | `performers` | array | Array of performer objects — **this is where performer names and emails live** (see below) |
+| `willAttend` | boolean (optional) | Imported venue confirmation for the current campaign, stored on the whole registration. Blank/unclear imported responses become false; missing field means not imported. Historical APCS2025 guests retain their original event ID. Informational, not check-in or admission. See [attendance import](REGISTRANT_ATTENDANCE_IMPORT.md). |
 | `repertoireTitle` | string | Title of the piece entered during registration. Older documents may omit this field. The Registrant Dashboard can filter missing titles and update this field alone. |
 | `repertoire` | string | Legacy repertoire field, where present. |
 | `youtubeLink` | string | YouTube link for the performance |
@@ -754,13 +896,15 @@ There is currently no automatic physical-seat allocator for unselected ticket qu
 | GET | `/public-ticket/eligible-winners` | Assigned eligible winners, including display names/emails; public |
 | POST | `/public-ticket/booking` | Create pending booking/invoice; server pricing but incomplete entitlement/inventory validation |
 | GET | `/public-ticket/booking-status/:bookingId` | Payment status, attempted payment URL, ISO expiry |
-| POST | `/public-ticket/webhook` | Dedicated paid callback; no authenticity middleware wired in local code |
+| POST | `/public-ticket/webhook` | Dedicated paid callback. Stores a durable `ticketPaymentReceipts` record before fulfillment and returns 500 if it cannot. No authenticity middleware is wired in local code (deferred). |
+| POST | `/public-ticket/admin/assign-seats` | Firebase-token and whitelist-protected atomic staff assignment of paid, unselected numbered seats |
+| POST | `/public-ticket/admin/seats/generate` | Firebase-token and whitelist-protected transactional numbered-seat generation that preserves locks, bookings and canonical ownership |
 | POST | `/public-ticket/resend-email` | Resend a paid public booking email; no admin middleware wired |
 | POST | `/public-ticket/admin/release-booking` | Firebase-token and whitelist-protected booking cancellation; cancels a known Paper.id invoice or accepts manual no-invoice confirmation for a failed booking, then atomically releases the complete validated inventory set |
 | GET/POST | `/systemSettings/global` | Read/update global configuration; write route lacks admin middleware |
 | GET | `/getSessionAssignments/:eventId` | Read saved assignment map |
 | POST | `/saveSessionAssignments` | Whitelisted admin route for legacy events; rejects planning events |
-| POST | `/payment/webhooks/paper-id` | Unified callback: look up public booking, otherwise process competition registration; no authenticity middleware wired |
+| POST | `/payment/webhooks/paper-id` | Unified callback (used by staging). Looks up the public booking and uses the same receipt-first path as the dedicated route; otherwise processes competition registration unchanged. Returns 500 if the booking lookup or receipt fails. No authenticity middleware is wired (deferred). |
 | GET | `/competition-planning/:eventId` | Get planning state (groups + schedule status) |
 | POST | `/competition-planning/:eventId/groups` | Save/update a group (draft only; admin middleware) |
 | DELETE | `/competition-planning/:eventId/groups/:groupId` | Remove a group (draft only; admin middleware) |

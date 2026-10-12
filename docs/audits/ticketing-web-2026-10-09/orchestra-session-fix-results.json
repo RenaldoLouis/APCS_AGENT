@@ -1,0 +1,335 @@
+{
+  "date": "2026-10-09",
+  "scope": "Authorized repair of direct orchestra checkout timetable validation",
+  "offline": {
+    "tests": 176,
+    "passed": 176,
+    "failed": 0
+  },
+  "database": "Disposable demo-apcs-ticketing-qa emulator at 127.0.0.1:8082",
+  "externalProviderAndEmail": "substituted; no genuine provider invoices, callbacks or email delivery",
+  "ownerDatabaseMutated": false,
+  "ownerApiRestarted": false,
+  "checks": {
+    "orchestraPurchaseAndPayment": {
+      "emulator": "127.0.0.1:8082",
+      "externalPaymentAndEmail": "substituted",
+      "passed": 1,
+      "failed": 0,
+      "results": [
+        {
+          "name": "PUBLIC ORCHESTRA: both independent sessions purchase and confirm without numbered-seat locks",
+          "status": "PASS",
+          "detail": {
+            "times": [
+              "15:30-17:30",
+              "19:30-21:30"
+            ],
+            "bookingIds": [
+              "EEujgdMTAB1JPIpyxht4",
+              "vucn1ljo0VEzpoUS98MD"
+            ],
+            "paymentStatus": "PAID",
+            "invoiceCalls": 2,
+            "numberedSeatLocks": 0
+          },
+          "elapsedMs": 535
+        }
+      ]
+    },
+    "orchestraCapacityPolicy": {
+      "emulator": "127.0.0.1:8082",
+      "externalPaymentAndEmail": "substituted",
+      "passed": 1,
+      "failed": 0,
+      "results": [
+        {
+          "name": "POLICY: direct public orchestra sales exceed the competition layout while competition tier capacity holds",
+          "status": "PASS",
+          "detail": {
+            "orchestraHeadcount": {
+              "presto": 15,
+              "allegro": 15
+            },
+            "competitionLayoutPresto": 10
+          },
+          "elapsedMs": 472
+        }
+      ]
+    },
+    "competitionSeatScopes": {
+      "emulator": "127.0.0.1:8082",
+      "externalPaymentAndEmail": "substituted",
+      "passed": 1,
+      "failed": 0,
+      "results": [
+        {
+          "name": "SCOPE: all current Titan and Behring session/tier pairs lock once, stay isolated, and confirm owned seats",
+          "status": "PASS",
+          "detail": {
+            "venues": [
+              "Behring Theatre",
+              "Titan Theatre"
+            ],
+            "sessionCount": 12,
+            "tierSessionPairs": 24,
+            "accepted": 24,
+            "rejectedDuplicates": 24,
+            "confirmedBooked": 24,
+            "wrongVenueRejected": true,
+            "realEmailSent": 0,
+            "rows": [
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-15",
+                "session": "08:00-09:00",
+                "tier": "presto",
+                "id": "Venue_lnssq2n1-presto-A1_QA20261007_2026-11-15_08:00-09:00",
+                "row": "A",
+                "loserError": "Seat A1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-15",
+                "session": "08:00-09:00",
+                "tier": "allegro",
+                "id": "Venue_lnssq2n1-allegro-E1_QA20261007_2026-11-15_08:00-09:00",
+                "row": "E",
+                "loserError": "Seat E1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-15",
+                "session": "10:00-11:00",
+                "tier": "presto",
+                "id": "Venue_lnssq2n1-presto-A1_QA20261007_2026-11-15_10:00-11:00",
+                "row": "A",
+                "loserError": "Seat A1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-15",
+                "session": "10:00-11:00",
+                "tier": "allegro",
+                "id": "Venue_lnssq2n1-allegro-E1_QA20261007_2026-11-15_10:00-11:00",
+                "row": "E",
+                "loserError": "Seat E1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-15",
+                "session": "12:00-13:00",
+                "tier": "presto",
+                "id": "Venue_lnssq2n1-presto-A1_QA20261007_2026-11-15_12:00-13:00",
+                "row": "A",
+                "loserError": "Seat A1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-15",
+                "session": "12:00-13:00",
+                "tier": "allegro",
+                "id": "Venue_lnssq2n1-allegro-E1_QA20261007_2026-11-15_12:00-13:00",
+                "row": "E",
+                "loserError": "Seat E1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-15",
+                "session": "14:00-15:00",
+                "tier": "presto",
+                "id": "Venue_lnssq2n1-presto-A1_QA20261007_2026-11-15_14:00-15:00",
+                "row": "A",
+                "loserError": "Seat A1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-15",
+                "session": "14:00-15:00",
+                "tier": "allegro",
+                "id": "Venue_lnssq2n1-allegro-E1_QA20261007_2026-11-15_14:00-15:00",
+                "row": "E",
+                "loserError": "Seat E1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-14",
+                "session": "08:00-09:00",
+                "tier": "presto",
+                "id": "Venue_lnssq2n1-presto-A1_QA20261007_2026-11-14_08:00-09:00",
+                "row": "A",
+                "loserError": "Seat A1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-14",
+                "session": "08:00-09:00",
+                "tier": "allegro",
+                "id": "Venue_lnssq2n1-allegro-E1_QA20261007_2026-11-14_08:00-09:00",
+                "row": "E",
+                "loserError": "Seat E1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-14",
+                "session": "10:00-11:00",
+                "tier": "presto",
+                "id": "Venue_lnssq2n1-presto-A1_QA20261007_2026-11-14_10:00-11:00",
+                "row": "A",
+                "loserError": "Seat A1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-14",
+                "session": "10:00-11:00",
+                "tier": "allegro",
+                "id": "Venue_lnssq2n1-allegro-E1_QA20261007_2026-11-14_10:00-11:00",
+                "row": "E",
+                "loserError": "Seat E1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-14",
+                "session": "12:00-13:00",
+                "tier": "presto",
+                "id": "Venue_lnssq2n1-presto-A1_QA20261007_2026-11-14_12:00-13:00",
+                "row": "A",
+                "loserError": "Seat A1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-14",
+                "session": "12:00-13:00",
+                "tier": "allegro",
+                "id": "Venue_lnssq2n1-allegro-E1_QA20261007_2026-11-14_12:00-13:00",
+                "row": "E",
+                "loserError": "Seat E1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-14",
+                "session": "14:00-15:00",
+                "tier": "presto",
+                "id": "Venue_lnssq2n1-presto-A1_QA20261007_2026-11-14_14:00-15:00",
+                "row": "A",
+                "loserError": "Seat A1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_lnssq2n1",
+                "label": "Behring Theatre",
+                "date": "2026-11-14",
+                "session": "14:00-15:00",
+                "tier": "allegro",
+                "id": "Venue_lnssq2n1-allegro-E1_QA20261007_2026-11-14_14:00-15:00",
+                "row": "E",
+                "loserError": "Seat E1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_mvfyegwz",
+                "label": "Titan Theatre",
+                "date": "2026-11-15",
+                "session": "08:00-09:00",
+                "tier": "presto",
+                "id": "Venue_mvfyegwz-presto-C1_QA20261007_2026-11-15_08:00-09:00",
+                "row": "C",
+                "loserError": "Seat C1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_mvfyegwz",
+                "label": "Titan Theatre",
+                "date": "2026-11-15",
+                "session": "08:00-09:00",
+                "tier": "allegro",
+                "id": "Venue_mvfyegwz-allegro-I1_QA20261007_2026-11-15_08:00-09:00",
+                "row": "I",
+                "loserError": "Seat I1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_mvfyegwz",
+                "label": "Titan Theatre",
+                "date": "2026-09-14",
+                "session": "08:00-09:00",
+                "tier": "presto",
+                "id": "Venue_mvfyegwz-presto-C1_QA20261007_2026-09-14_08:00-09:00",
+                "row": "C",
+                "loserError": "Seat C1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_mvfyegwz",
+                "label": "Titan Theatre",
+                "date": "2026-09-14",
+                "session": "08:00-09:00",
+                "tier": "allegro",
+                "id": "Venue_mvfyegwz-allegro-I1_QA20261007_2026-09-14_08:00-09:00",
+                "row": "I",
+                "loserError": "Seat I1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_mvfyegwz",
+                "label": "Titan Theatre",
+                "date": "2026-11-14",
+                "session": "08:00-09:00",
+                "tier": "presto",
+                "id": "Venue_mvfyegwz-presto-C1_QA20261007_2026-11-14_08:00-09:00",
+                "row": "C",
+                "loserError": "Seat C1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_mvfyegwz",
+                "label": "Titan Theatre",
+                "date": "2026-11-14",
+                "session": "08:00-09:00",
+                "tier": "allegro",
+                "id": "Venue_mvfyegwz-allegro-I1_QA20261007_2026-11-14_08:00-09:00",
+                "row": "I",
+                "loserError": "Seat I1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_mvfyegwz",
+                "label": "Titan Theatre",
+                "date": "2026-11-14",
+                "session": "10:00-11:00",
+                "tier": "presto",
+                "id": "Venue_mvfyegwz-presto-C1_QA20261007_2026-11-14_10:00-11:00",
+                "row": "C",
+                "loserError": "Seat C1 is no longer available. Please go back and re-select."
+              },
+              {
+                "venue": "Venue_mvfyegwz",
+                "label": "Titan Theatre",
+                "date": "2026-11-14",
+                "session": "10:00-11:00",
+                "tier": "allegro",
+                "id": "Venue_mvfyegwz-allegro-I1_QA20261007_2026-11-14_10:00-11:00",
+                "row": "I",
+                "loserError": "Seat I1 is no longer available. Please go back and re-select."
+              }
+            ]
+          },
+          "elapsedMs": 79917
+        }
+      ]
+    }
+  },
+  "limits": [
+    "Owner backend must restart to load source changes; no post-fix live browser/staging acceptance claimed.",
+    "Prior callback authenticity, ngrok polling and lost-callback findings remain separate.",
+    "Prior 48-request burst timeout finding remains; this scoped seat test does not certify peak load.",
+    "Orchestra Settings saveSession still checks venues[].sessions; this repair covers checkout only."
+  ]
+}
