@@ -1,0 +1,35 @@
+{
+  "source": "apcs_service/logs/combined-2026-10-13.log",
+  "events": [
+    {
+      "level": "info",
+      "message": "Public booking 6ttrB0C9s4Zi6zY89Qfu created. Seats locked: Venue_lnssq2n1-Allegro-F5_APCS2026_2026-11-14_10:00-11:00",
+      "timestamp": "2026-10-13T03:21:35.032Z"
+    },
+    {
+      "level": "info",
+      "message": "Successfully create payment for renald test with id 6ttrB0C9s4Zi6zY89Qfu",
+      "timestamp": "2026-10-13T03:21:35.045Z"
+    },
+    {
+      "level": "info",
+      "message": "Email sent successfully for Invoice ID: 9747e8c5-09b7-4e16-a258-dd799c71125c,to :renaldolouis555@gmail.com",
+      "timestamp": "2026-10-13T03:22:28.303Z"
+    },
+    {
+      "level": "info",
+      "message": "Seat-hold email sent to renaldolouis555@gmail.com",
+      "timestamp": "2026-10-13T03:22:32.631Z"
+    },
+    {
+      "level": "info",
+      "message": "[SWEEPER] Requesting provider cancellation for expired public booking 6ttrB0C9s4Zi6zY89Qfu.",
+      "timestamp": "2026-10-13T06:30:24.974Z"
+    },
+    {
+      "level": "info",
+      "message": "Successfully deleted Paper.id invoice 9747e8c5-09b7-4e16-a258-dd799c71125c",
+      "timestamp": "2026-10-13T06:30:27.894Z"
+    }
+  ]
+}

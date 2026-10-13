@@ -1,5 +1,11 @@
 # Local Firestore development
 
+## 2026-10-12 — Friday paid-test records absent after failed shutdown export
+
+The last recorded production refresh remains 7 October. The active local export was last saved on 9 October at 12:48 WIB, before the team's 21:33–21:36 paid booking. On 10 October at 10:05 WIB, shutdown attempted `--export-on-exit` but logged repeated `write EIO` errors. On 12 October the emulator imported the unchanged noon export. The emailed booking and its receipt are absent locally; an exact production lookup also found no booking. Evidence strongly supports unsaved local state being lost on restart, rather than paid-booking cleanup. [Evidence, safeguards, limitations and operational follow-up](audits/LOCAL_BOOKING_PERSISTENCE_2026-10-12.md).
+
+Do not treat `--export-on-exit` as proof of a completed backup. Before ending a paid-test session, create and verify a separate export; retain the previous good copy. Failed shutdown export can leave the next startup importing stale data. No database data or application code was changed in this investigation.
+
 ## 2026-10-09 — Removed obsolete local venue timetable entry
 
 With owner approval, removed only `events/APCS2026.venues[Venue_lnssq2n1].sessions[2026-11-14]`'s old `08:00-09:00` entry, leaving that date's array empty. It duplicated Group 1's valid private draft session. Preview checks existing venue times as well as draft-to-draft overlaps; this separate old entry caused `Group 1: overlaps an existing venue time.` The original seed checks covered draft slots only, so their earlier overlap verification did not cover the full publication validator.

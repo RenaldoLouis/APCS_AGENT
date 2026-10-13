@@ -1,0 +1,33 @@
+{
+  "source": "Live local Firestore emulator readback; apcs-profile on 127.0.0.1:8081; 13 October 2026",
+  "bookingId": "6ttrB0C9s4Zi6zY89Qfu",
+  "bookingType": "public_competition",
+  "paymentMode": "paper_id",
+  "paymentStatus": "expired",
+  "totalAmount": 1358000,
+  "invoiceId": "9747e8c5-09b7-4e16-a258-dd799c71125c",
+  "paymentUrl": "https://stg-v2.paper.id/dfMzGF5",
+  "createdAt": "2026-10-13T03:21:35.016Z",
+  "invoiceCreatedAt": "2026-10-13T03:22:28.326Z",
+  "lockExpiresAt": "2026-10-13T03:51:34.901Z",
+  "expiredAt": "2026-10-13T06:30:28.326Z",
+  "emailSentFieldPresent": false,
+  "paidNotificationReceiptCount": 0,
+  "performanceSeatLabels": [
+    "F5"
+  ],
+  "selectedSeatStatus": "available",
+  "physicalSeatOwnership": {
+    "active": false,
+    "status": "released"
+  },
+  "reservedByTier": {
+    "allegro": 0,
+    "presto": 0
+  },
+  "expiry": {
+    "invoiceCancellationStatus": "canceled",
+    "quotaRefundStatus": "not_applicable",
+    "reconciliationReasons": []
+  }
+}

@@ -1,5 +1,13 @@
 # APCS Project — Architecture & Data Structure
 
+## 2026-10-13 — Checkout response recovery and APCS email status
+
+`apis.publicTicket.createBooking` makes its own Axios request with a 90-second timeout and rejects failures rather than routing through the shared wrapper that could return `{ error: undefined }`. `PublicTicketBookingPage.handleSubmit` validates the returned booking ID/link, keeps the saved sessionStorage checkout key after an uncertain result, and uses the existing backend idempotency record when unchanged details are retried. A known paid result can navigate without a payment URL; pending manual mode retains the payment-instructions route.
+
+`PublicTicketController.createPublicTicketBooking` returns HTTP 202 for a saved Paper.id booking whose original invoice request has not yet produced its link. Its response contains the existing booking ID/payment state and a recovery message; it does not create another invoice or send an empty-link holding email. The original request persists its invoice and proceeds normally. The existing `publicBookings`, `ticketCheckoutKeys`, payment receipts, inventory and confirmation-send fields are unchanged; no collection, field, migration or database write is introduced by this repair.
+
+Public Customers' **APCS Email Status** combines payment state with the existing `emailSent` flag: unpaid pending means AWAITING PAYMENT; unpaid terminal means NOT APPLICABLE; paid true/false/absent mean SENT/FAILED/NOT SENT. Pending manual mode continues to read `manualInstructionsEmailSent`. Provider invoice delivery and APCS holding email are not inferred from this paid-confirmation flag. [Evidence, regression results and owner walkthrough](audits/PUBLIC_CHECKOUT_RESPONSE_DIAGNOSIS_2026-10-13.md#authorized-repair-after-the-owners-follow-up).
+
 ## 2026-10-11 — Attendance chips and filters in session assignment
 
 `AdminContent.js` embeds `SessionAssignmentManager`; current registrations and hydrated APCS2025 guests already include `willAttend` from existing reads. Shared `AttendanceStatusChip` displays strict booleans as Attending/Not attending and missing/non-boolean values as Not imported on unassigned/assigned cards, Overview registrants, orchestra roster rows and selector choices/tags.

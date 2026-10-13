@@ -1,5 +1,25 @@
 # APCS Ticketing System Guide
 
+## 2026-10-13 — Checkout crash repaired and confirmation status clarified
+
+Checkout now waits up to 90 seconds for invoice creation and the holding email. Timeout/network failures and incomplete responses show recovery guidance without crashing. **Retry with the same details** reuses the saved checkout key and reservation. If the original invoice is still being prepared, the service returns the existing booking with HTTP 202 and a retry message; it sends no holding email containing an empty payment link. Already-paid results go to payment status, while pending manual results continue to payment instructions.
+
+**APCS Email Status** now distinguishes AWAITING PAYMENT for unpaid Paper.id orders, NOT APPLICABLE for unpaid terminal orders, and SENT/FAILED/NOT SENT for paid confirmations. FAILED requires an explicit failed send result; a missing result is NOT SENT. Manual payment-instruction labels remain unchanged, and tooltips distinguish these APCS statuses from Paper.id's invoice delivery.
+
+Verification: the original error reproduction is green; 34 frontend tests and all 209 offline backend audits pass. Lint has zero errors/four existing warnings, and the existing dev compiler has no compilation errors. The backend needs its normal restart to load the invoice-in-progress guard; frontend changes are present in the running compilation. No live purchase/payment, browser, email send or database mutation was used for this repair. The existing canceled test invoice remains canceled. [Full evidence and manual walkthrough](audits/PUBLIC_CHECKOUT_RESPONSE_DIAGNOSIS_2026-10-13.md#authorized-repair-after-the-owners-follow-up).
+
+## 2026-10-13 — Invoice delivered while checkout page reports an error
+
+Receiving Paper.id's invoice/WhatsApp request and APCS's temporary reservation email proves that booking/invoice creation reached those delivery steps, not that payment completed. For the owner's documented test, invoice creation took about 53 seconds and the holding email completed at about 58 seconds, beyond the frontend's 30-second timeout. A missing-response transport error is swallowed by the API wrapper and then produces `Cannot destructure property 'bookingId' of 'res.data' as it is undefined.` The page cannot navigate despite a backend booking/invoice. This defect is reproduced and recorded, with application behavior unchanged by the diagnostic request. Keep the same checkout details/idempotency key when recovering an uncertain result; do not create another booking or release its hold blindly.
+
+**Email Status** currently tracks the paid-confirmation `emailSent` flag for Paper.id bookings, not these unpaid payment-request emails. An unset flag and a failed confirmation both display PENDING/FAILED. The checkout-page error does not set that flag or determine provider payment. The recorded booking has no paid callback receipt; its invoice was later canceled by the service and F5/capacity reopened.
+
+Offline actual-controller checks confirm both staging `data.invoice.total_amount` and production `invoice.amount` on both webhook routes, processed receipts/PAID seats, one confirmation across duplicate delivery, and incorrect-total rejection. The focused suite passes 100/100; this is payload-format coverage, not a production delivery/authenticity certification. See the [full diagnosis, original screenshots, saved callback examples and owner acceptance steps](audits/PUBLIC_CHECKOUT_RESPONSE_DIAGNOSIS_2026-10-13.md).
+
+## 2026-10-12 — Preserve local paid-test data before shutdown
+
+A confirmed local test purchase can disappear after restarting an emulator whose latest data was never successfully exported. Friday's paid-test email matched backend logs; Saturday export-on-exit attempted to run but encountered `write EIO`, and Monday imported the unchanged Friday-noon export. This is strong evidence of a local persistence failure. Production Firestore does not use this local import/export lifecycle. Before stopping local paid testing, verify an explicit backup export completed and keep the previous good copy. Current normal-flow paid cleanup/deletion guards passed focused offline checks, but checked-in rules permit privileged direct booking deletion and deployed production rules were not verified. [Full read-only investigation](audits/LOCAL_BOOKING_PERSISTENCE_2026-10-12.md). No booking or payment was restored or changed.
+
 ## 2026-10-11 — Attendance chips during session assignment
 
 Admin Page displays green Attending, red Not attending and gray Not imported chips on performance registrants, Overview rows and orchestra members/options. Choose a status from All attendance statuses to filter displayed registrants, including loaded APCS2025 guests. Overview shares that selection for Registrants; its teacher listing stays complete. Selected orchestra members remain visible in editable selectors regardless of the filter, while the assigned roster combines status with search.
