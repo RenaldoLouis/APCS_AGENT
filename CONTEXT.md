@@ -110,3 +110,11 @@ _Avoid_: An additional ticketing-admin role required beyond whitelist membership
 **Public ticket entry verification**:
 Staff manually verify the booking ID at entry; a public-ticket QR code is not required.
 _Avoid_: Mandatory QR check-in
+
+**Ticket redemption**:
+Staff handing over some or all tickets covered by a paid booking for a particular session. Performance and orchestra tickets are redeemed independently; redemption is distinct from payment, seat allocation and a stated intention to attend.
+_Avoid_: Mark paid, attendance confirmation
+
+**Shared performer allowance**:
+The complimentary orchestra places for performers in one paid performance group, counted once across all of that group's bookings. Redeeming a buyer's purchased tickets does not consume these performer places.
+_Avoid_: Performer bonus per booking
