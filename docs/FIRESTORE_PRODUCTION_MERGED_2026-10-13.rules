@@ -1,0 +1,136 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isJury() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'jury';
+    }
+
+    function isEmailWhitelisted() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && exists(/databases/$(database)/documents/whitelist/$(request.auth.token.email));
+    }
+
+    // Existing production public reads are preserved.
+    match /whitelist/{document=**} {
+      allow read: if true;
+    }
+    match /Registration2025Fee/{document=**} {
+      allow read: if true;
+    }
+    match /diamondAchiever/{achieverId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    match /videos/{document=**} {
+      allow read: if true;
+    }
+    match /homeVideos/{document=**} {
+      allow read: if true;
+    }
+    match /users/{document=**} {
+      allow read: if true;
+    }
+
+    // Existing production registration and scoring rules are preserved.
+    // The compatibility fallback below still grants whitelisted staff access.
+    match /Registrants2025/{document=**} {
+      allow create: if false;
+      allow update, delete: if isAdmin();
+      allow read: if request.auth != null
+        && request.auth.token.role == 'jury'
+        && request.auth.token.competitionCategory == resource.data.competitionCategory;
+    }
+
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Whitelisted staff retain their existing access via the fallback.
+      // Do not copy the local rule that allows anonymous user writes.
+      allow write: if false;
+    }
+
+    match /JuryScores2025/{scoreId} {
+      allow read, write: if isAdmin();
+      allow read: if isJury() && resource.data.juryUserId == request.auth.uid;
+      allow create: if isJury()
+        && request.resource.data.juryUserId == request.auth.uid;
+      allow update: if isJury()
+        && resource.data.juryUserId == request.auth.uid
+        && request.resource.data.juryUserId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // New local planning rules: backend operations own planning mutations.
+    match /competitionSessionPlans/{eventId} {
+      allow read: if isEmailWhitelisted();
+      allow write: if false;
+      match /groups/{groupId} {
+        allow read: if isEmailWhitelisted();
+        allow write: if false;
+      }
+    }
+
+    // Public event reads support the current event UI.
+    // Planning timetable changes must use the authenticated backend.
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if isEmailWhitelisted()
+        && !('competitionScheduleState' in request.resource.data);
+      allow update: if isEmailWhitelisted()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['competitionScheduleState'])
+        && (!('competitionScheduleState' in resource.data)
+          || !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['venues', 'orchestraSessions', 'masterclassSessions']));
+      allow delete: if isEmailWhitelisted()
+        && !('competitionScheduleState' in resource.data);
+    }
+
+    match /sessionAssignments/{eventId} {
+      allow read: if isEmailWhitelisted();
+      allow write: if isEmailWhitelisted()
+        && !('competitionScheduleState' in
+          get(/databases/$(database)/documents/events/$(eventId)).data);
+    }
+
+    // Payment recovery receipts can only be written by the backend.
+    match /ticketPaymentReceipts/{receiptId} {
+      allow read: if isEmailWhitelisted();
+      allow write: if false;
+    }
+
+    // Protect state, claims and replay keys together.
+    match /ticketRedemptions/{document=**} {
+      allow read: if isEmailWhitelisted();
+      allow write: if false;
+    }
+
+    // Result email delivery leases/history are accessed through the backend.
+    match /scoringResultEmailDeliveries/{document=**} {
+      allow read, write: if false;
+    }
+
+    // REPLACES the production unrestricted catch-all. Keeping the old one
+    // alongside this rule would bypass every protected collection above.
+    // Preserve existing whitelist access for all other collections, including
+    // publicBookings, seats{eventId}, ticketSeatOwnership, ticketCapacity,
+    // ticketCheckoutKeys, winnerOrchestraClaims, orchestraAssignments,
+    // systemSettings, users, whitelist and legacy collections.
+    match /{collection}/{document=**} {
+      allow read, write: if isEmailWhitelisted()
+        && collection != 'events'
+        && collection != 'sessionAssignments'
+        && collection != 'competitionSessionPlans'
+        && collection != 'scoringResultEmailDeliveries'
+        && collection != 'ticketPaymentReceipts'
+        && collection != 'ticketRedemptions';
+    }
+  }
+}

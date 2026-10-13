@@ -1,0 +1,14 @@
+{
+  "passed": 4,
+  "coreFilesUnchanged": 12,
+  "baselines": {
+    "frontend": "865474869d8d85856d5d65a0ef2ba6fd2ec20706",
+    "backend": "f08a71df217ba99f71f1435b20383be42be17069"
+  },
+  "checks": [
+    "Every pre-existing frontend API method/helper is unchanged; only the redemption method was added.",
+    "All pre-existing payment-router endpoint registrations and handlers are unchanged.",
+    "Checkout, pricing/fulfillment, receipt recovery, seat administration and email/job modules match HEAD exactly.",
+    "Existing collection permissions are unchanged; only ticketRedemptions and its fallback exclusion were added."
+  ]
+}

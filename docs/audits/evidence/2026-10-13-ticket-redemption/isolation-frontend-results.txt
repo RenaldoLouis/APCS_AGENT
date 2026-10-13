@@ -1,0 +1,40 @@
+PASS src/utils/scoringResultEmails.test.js
+PASS src/utils/csvVariableSafeUtil.test.js
+PASS src/Pages/AdminDashboard/PublicCustomersList.emailStatus.test.js
+PASS src/Pages/TicketBooking/PublicTicketBookingPage.test.js
+PASS src/utils/videoPenaltyRules.test.js
+PASS src/utils/awardSynchronization.integration.test.js
+PASS src/services/http.test.js
+PASS src/Pages/AdminDashboard/TicketRedemption.test.js
+PASS src/utils/guestRegistrants.test.js
+PASS src/apis/competitionPlanning.test.js
+PASS src/utils/loadEventResultEmailRows.test.js
+PASS src/utils/scoringCalculator.test.js
+PASS src/utils/sessionAssignmentGroups.test.js
+PASS src/apis/scoringResultEmails.test.js
+PASS src/utils/registrantAttendance.test.js
+PASS src/apis/ticketRedemption.test.js
+PASS src/utils/ticketRedemption.test.js
+PASS src/utils/awardSynchronization.test.js
+PASS src/utils/priceProvider.test.js
+
+Test Suites: 19 passed, 19 total
+Tests:       311 passed, 311 total
+Snapshots:   0 total
+Time:        1.824 s, estimated 3 s
+Ran all test suites.
+Jest did not exit one second after the test run has completed.
+
+This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.
+[0;33mOne of your dependencies, babel-preset-react-app, is importing the
+"@babel/plugin-proposal-private-property-in-object" package without
+declaring it in its dependencies. This is currently working because
+"@babel/plugin-proposal-private-property-in-object" is already in your
+node_modules folder for unrelated reasons, but it [1mmay break at any time[0;33m.
+
+babel-preset-react-app is part of the create-react-app project, [1mwhich
+is not maintianed anymore[0;33m. It is thus unlikely that this bug will
+ever be fixed. Add "@babel/plugin-proposal-private-property-in-object" to
+your devDependencies to work around this error. This will make this message
+go away.[0m
+  

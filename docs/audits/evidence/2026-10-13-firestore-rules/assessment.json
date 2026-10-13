@@ -1,0 +1,36 @@
+{
+  "score": 2,
+  "summary": "Compatibility candidate enforces the six local protected collection boundaries and preserves existing production workflows. It deliberately retains broad whitelisted booking/inventory/user permissions required by existing frontend actions, so it is not comprehensive production hardening.",
+  "findings": [
+    {
+      "check": "Overlapping allow grants",
+      "severity": "critical",
+      "issue": "The supplied production catch-all allows whitelisted writes to backend-only receipts, planning, redemption and email delivery state. Adding deny rules alone cannot restrict this grant.",
+      "recommendation": "Addressed in the candidate: replace the catch-all and exclude all six protected collections, including descendant paths. Do not keep the old fallback alongside the candidate."
+    },
+    {
+      "check": "Authority source and admin privileges",
+      "severity": "critical",
+      "issue": "The checked-in local users rule permits anonymous document writes, including role changes used by isAdmin/isJury.",
+      "recommendation": "Addressed for this candidate: do not import unconditional local user writes. Existing production whitelist-based user writes are retained because staff login and user management use them. The active local rules file remains unchanged."
+    },
+    {
+      "check": "Business logic versus direct client permissions",
+      "severity": "major",
+      "issue": "Whitelisted clients retain unrestricted booking/inventory writes/deletes and can bypass frontend paid-booking deletion and payment checks. The current non-manual Mark Paid and terminal deletion paths require direct access.",
+      "recommendation": "Retained compatibility limitation: migrate remaining client mutations to protected backend endpoints before denying direct writes; add field/type/state/identity validation wherever client writes remain."
+    },
+    {
+      "check": "Public information exposure",
+      "severity": "moderate",
+      "issue": "Supplied production public users/whitelist reads remain, and can expose stored contact or role fields.",
+      "recommendation": "Retained to preserve the requested production behavior. A separate access/privacy review should first trace login and user-management dependencies."
+    },
+    {
+      "check": "Update bypass, type safety and resource exhaustion",
+      "severity": "major",
+      "issue": "Protected collections deny all client mutation types, but retained legacy whitelist writes and jury score writes do not impose complete field/type/size constraints. Whitelisted actors also retain broader registration/scoring access than the narrow rules suggest.",
+      "recommendation": "The candidate verifies protected create/update/delete boundaries. Redesign legacy validation and trusted-staff authorization separately rather than claiming this merge enforces all domain constraints."
+    }
+  ]
+}

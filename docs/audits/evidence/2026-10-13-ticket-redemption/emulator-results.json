@@ -1,0 +1,16 @@
+{
+  "passed": 7,
+  "checks": [
+    "Two simultaneous staff claims: one commit, one stale-request rejection; 3/5 redeemed.",
+    "Three concurrent identical request IDs: one handover/history entry, two replays.",
+    "Concurrent performer claims through different bookings: shared 2/3 total, one remaining.",
+    "Concurrent undo: one correction commit; the original two tickets restored once.",
+    "Retry of the original claim after correction is rejected, without authorizing a new handover.",
+    "Orchestra session move rejected while shared performer places remain redeemed.",
+    "Actual rules: whitelisted client can read state but cannot write state, history or replay keys."
+  ],
+  "date": "2026-10-13",
+  "projectId": "demo-apcs-redemption-qa",
+  "host": "127.0.0.1:8082",
+  "syntheticDataOnly": true
+}

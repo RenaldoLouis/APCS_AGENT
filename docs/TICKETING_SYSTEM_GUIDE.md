@@ -1,5 +1,56 @@
 # APCS Ticketing System Guide
 
+## 2026-10-13 — Copyable production Firestore rules
+
+Use the [full merged rules candidate](FIRESTORE_PRODUCTION_MERGED_2026-10-13.rules) for the owner's supplied production baseline. Replace the full console text, retaining a copy of the prior rules; do not append the old unrestricted whitelist catch-all. The candidate preserves original public reads and staff/jury workflows, adds local planning protections/public event reads, and reserves payment receipts, redemption claims/replay keys and scoring email tracking for backend writes. It excludes the local file's anonymous `users` write permission.
+
+Public checkout, paid callbacks, manual-payment actions, orchestra assignment and redemption continue through existing backend operations. Existing direct staff non-manual Mark Paid and terminal-booking deletion permissions are retained to avoid breaking those actions. This means paid records are not fully protected against direct writes by whitelisted clients. A separate backend migration is needed before closing those permissions. Planned timetable/venue/session updates now require their supported backend workflows; unrelated event edits remain available.
+
+**247 synthetic emulator permission checks passed**; no production publication, provider/email test or browser verification was performed. The active local rules file remains unchanged, so a later CLI deploy of that file would overwrite this candidate. Verify the intended database, matching staff email/whitelist entries, frontend/backend release and Firestore indexes separately, then manually check staff/jury login, customer/seat lookup, planning, manual-payment administration, orchestra assignment and redemption. [Full comparison, evidence and acceptance guidance](FIRESTORE_PRODUCTION_RULES_REVIEW_2026-10-13.md).
+
+## 2026-10-13 — Find bookings that need numbered seats
+
+Public Customers shows **Needs seat assignment (N)** in each affected row's Seats column. **N** is the number of missing performance seats for a paid booking. A gold summary above the table counts affected bookings throughout the selected event, including rows on other pages or hidden by search. The summary disappears when its count is zero.
+
+Expand a flagged booking and use **Assign Missing Seats (N)** to open the existing picker, then save the required seats. The row badge, button and picker share the same calculation: non-Masterclass ticket quantity minus saved selected-seat count. Pending/failed/expired bookings, fully assigned bookings and free-seating orchestra orders are not flagged. Labels still show the saved performance-seat names; an absent label alone does not create a missing-seat warning. The badge reflects loaded booking records, while the backend validates current ownership/payment/session/tier before saving. Refresh the page after changes made by another staff member.
+
+Manual acceptance: compare a partially assigned paid row with its expanded button, verify the event total survives searching/paging, complete an assignment and confirm the refreshed count decreases. Also check unpaid, fully assigned, Masterclass-only and free-seating rows have no badge. This refinement adds no Firestore reads/writes or backend behavior. See [the flow guide](SEAT_BOOKING_FLOW.md#2026-10-13--missing-numbered-seats-visible-in-public-customers) for the data rules and verification boundaries.
+
+## 2026-10-13 — Purchase-flow isolation verified after redemption
+
+Ticket Redemption records handover in a separate collection. Buying, prices, payment confirmation, invoices, seat ownership, inventory, confirmation emails, scoring and attendance logic retain their existing paths. Comparison checks show identical winner/public/orchestra purchase outcomes before and after redemption, including Paper.id/manual payments and retries. Staff seat assignment and adding paid purchases to the same orchestra assignment still work.
+
+Redemption staff requests now have a separate 100-request/minute/IP allowance, so busy redemption work does not use up the existing buyer/payment/other-feature request budget. Both limits remain enforced, including for unauthorized staff requests. Restart the backend through the normal workflow to load this repair.
+
+One deliberate admin behavior change remains: a group with active orchestra/performer claims cannot move to another orchestra session or lose redeemed entitlements until staff undo those claims with a reason. This does not prevent buying tickets or updating the same session for additional purchases. The follow-up passed **234 backend audits, 311 frontend unit/logic tests, 3 HTTP checks and 4 source comparisons**, with no browser/live-provider use. [Full isolation review](audits/TICKET_REDEMPTION_ISOLATION_REVIEW_2026-10-13.md).
+
+## 2026-10-13 — Use the separate Ticket Redemption page on event day
+
+Open **Ticketing System → Ticket Redemption**, choose the event and use **Exact Booking ID → Find booking**. Alternatively, search the saved buyer name, email, phone, performance name or ID and open the booking. Use **Search / load more** when the page says more bookings remain; searches examine bounded event-scoped pages. Booking data is loaded only on explicit staff actions.
+
+1. Check the buyer, **confirmed payment** and displayed venue/date/session. Unpaid bookings are visible for review but cannot be redeemed. Reconcile payment in Public Customers if necessary.
+2. Choose the appropriate allowance: **Performance tickets**, **Orchestra tickets**, or **Shared performer places**. Performance and orchestra counts are independent. Direct orchestra buyers retain their purchased categories; performance-linked orchestra benefits use their saved assignment and a separate Orchestra tickets count. Orchestra uses free seating, with no numbered-seat selection. An uncovered orchestra benefit says **Awaiting orchestra assignment**: save it through Orchestra Assignments first.
+3. Enter only the quantities you are handing over now. For five tickets with two people claiming, record two; three remain for later. Click **Review redemption**, verify buyer/session/categories and click **Record redemption**. Hand over only after recording succeeds. The page then refreshes the claimed/total counts and history.
+4. Claim performer places in their shared block, separately from the buyer's purchased tickets. The same group's other bookings show the same remaining performer allowance. A three-person ensemble gets three performer places across all purchases, rather than three for every booking. Public-only groups receive no performer bonus.
+5. If the result is uncertain, use **Retry saved claim**, including after refreshing in the same tab. Do not create a fresh claim or issue another set of tickets while that operation is unresolved. A second staff member with stale counts must refresh and review before retrying; the server prevents over-redemption.
+6. Correct a mistake with **Undo claim** and a reason. It restores only that claim once; history retains the original, the correction, the recording staff and Jakarta time. Retrying an old claim after it has been undone rejects and asks staff to review the correction. Undo active orchestra/performer claims before moving a group to another orchestra session. Adding purchases to the same assignment does not reset redemption.
+
+The page shows each allowance's latest 20 actions; complete audit and replay records remain stored. Historical paid tickets use their existing quantities/session; this feature does not migrate old bookings or redeem Masterclass passes. Claims record physical ticket handover, independently of seat assignment, RSVP attendance, payment processing, confirmation emails and individual hall entry. Staff handle missing numbered performance seats through the existing assignment workflow.
+
+**Release requirement:** deploy the changed Firestore rules protecting `ticketRedemptions`, release frontend/backend together and restart the backend normally. No customer records, live payments, emails or production settings were changed during implementation. [Acceptance walkthrough and verification evidence](TICKET_REDEMPTION.md).
+
+## 2026-10-13 — Recover the same checkout after refreshing
+
+After an uncertain checkout response, refreshing the page and reselecting its performance no longer erases the saved attempt. Rebuild the same tickets, selected seats/add-ons, contact details and payment mode, then retry; the saved key is reused and the backend returns the original booking/invoice. During invoice preparation the existing retry message retains that key. After a valid successful response the key is cleared; a genuinely different cart creates a new attempt through the existing fingerprint comparison.
+
+Verification: all 39 focused frontend checks pass; changed-file lint has zero errors/warnings. An offline actual page/API/repository probe reproduces one booking/invoice/tier reservation after refresh instead of the original two. The original evidence is preserved beside the new result. This repair preserves the key while buyers rebuild existing form choices; it does not automatically refill the cart. Ticket metadata changes and sales closure during recovery remain separate open cases. [Evidence and manual walkthrough](audits/PUBLIC_CHECKOUT_IDEMPOTENCY_REVIEW_2026-10-13.md#authorized-refresh-recovery-repair). No backend restart is required for this frontend-only change; refresh/reload the updated frontend through its normal workflow.
+
+## 2026-10-13 — Limits of checkout idempotency
+
+An unchanged retry in the same checkout page is protected, including after a response timeout. Real transaction checks also confirmed one booking/invoice/reservation for ten simultaneous requests carrying the same key, followed by safe replay. These provider/email-substituted checks do not certify production delivery/load.
+
+The initial review reproduced lost-key duplicates after reselection and after a ticket display-label change. Same-details reselection is now repaired above; display-metadata changes can still produce a new frontend fingerprint/key. Sales closing before replay can also block access to an existing booking through checkout. Keep the original invoice/booking reference and inspect its state before starting another attempt. [Full review and proof](audits/PUBLIC_CHECKOUT_IDEMPOTENCY_REVIEW_2026-10-13.md). The original recheck added evidence/docs; the later authorized refresh repair is recorded separately above.
+
 ## 2026-10-13 — Checkout crash repaired and confirmation status clarified
 
 Checkout now waits up to 90 seconds for invoice creation and the holding email. Timeout/network failures and incomplete responses show recovery guidance without crashing. **Retry with the same details** reuses the saved checkout key and reservation. If the original invoice is still being prepared, the service returns the existing booking with HTTP 202 and a retry message; it sends no holding email containing an empty payment link. Already-paid results go to payment status, while pending manual results continue to payment instructions.

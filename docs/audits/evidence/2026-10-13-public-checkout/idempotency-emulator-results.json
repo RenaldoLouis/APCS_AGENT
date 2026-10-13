@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-13",
+  "timezone": "Asia/Jakarta",
+  "emulator": "127.0.0.1:8082",
+  "projectId": "demo-apcs-ticketing-qa",
+  "isolation": "Temporary empty emulator; active 8081 data not used. Actual repository/Firestore transactions, substituted provider/email/timers.",
+  "checks": [
+    {
+      "name": "Concurrent retries of one checkout create one invoice and one capacity reservation",
+      "requests": 10,
+      "status": "PASS",
+      "bookingCount": 1,
+      "invoiceCalls": 1,
+      "reservedPresto": 1,
+      "elapsedMs": 4828
+    },
+    {
+      "name": "Idempotency recovery control: refused concurrent requests can retry the same checkout",
+      "requests": 10,
+      "status": "PASS",
+      "initialErrors": [],
+      "bookingCount": 1,
+      "invoiceCalls": 1,
+      "reservedPresto": 1,
+      "elapsedMs": 4202
+    }
+  ],
+  "observedWarnings": "Transaction lock timeout messages occurred in the temporary emulator; both checked caller outcomes passed without surfaced errors."
+}

@@ -1,0 +1,9 @@
+{
+  "passed": 3,
+  "syntheticDataOnly": true,
+  "checks": [
+    "100 staff requests share one redemption budget; the next is limited.",
+    "The same IP retains all 100 existing purchase/payment/other-feature requests; the original global limit still applies.",
+    "Unauthenticated redemption attempts are limited without consuming the existing purchase budget."
+  ]
+}
