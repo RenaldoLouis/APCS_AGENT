@@ -40,3 +40,14 @@ Google ReCAPTCHA blocks fully automated bots. To prevent scrolling issues and en
 - Instead, the script will fill out the entire form, pause, and wait for you.
 - You must **manually solve the ReCAPTCHA** and click the **"Submit Registration"** button yourself. 
 - The script will then resume automatically to verify the invoice link opens and leave the invoice tab open for your inspection.
+
+## Pre-push unit tests
+
+The `pre-push` Git hook runs `npm test` in `apcs_service`, then `react-scripts test` in `apcs_web`. Push only when it prints **ALL TESTS PASSED**.
+
+In `apcs_service`, `npm test` runs two runners:
+
+- **Jest** for `src/**/*.test.js`.
+- **Node's test runner** (`npm run test:scripts`) for `scripts/*.test.cjs`. These one-off script tests use `node:test`, which Jest 30 cannot run: it reports "Your test suite must contain at least one test", and some assertions fail inside its sandbox. `package.json` therefore excludes `scripts/` from Jest.
+
+Write new `scripts/` tests with `node:test` as `*.test.cjs`, and application tests with Jest as `*.test.js`.
