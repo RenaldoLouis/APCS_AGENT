@@ -4,6 +4,14 @@ This context defines the language used for competition registration, jury assess
 
 ## Language
 
+**Verified late-payment recovery**:
+Staff confirmation of a payment received for an expired booking, restoring its original tickets and seats only when those places can still be honored. Conflicting seats or uncertain capacity require separate staff review; payment verification alone does not authorize taking another customer's place.
+_Avoid_: Status override, forced payment, seat block
+
+**Competition Display Time Revision**:
+An optional replacement time range shown to ticket buyers on the booking page and in subsequently sent ticket emails. It leaves the locked competition schedule, group membership and order, seats, payments and admission entitlements unchanged; saving it does not notify existing buyers.
+_Avoid_: Rescheduling, session time change
+
 **Venue attendance confirmation**:
 A registrant's stated intention to attend the venue for the current winner-confirmation campaign. It applies to the entire solo/ensemble registration. It is distinct from performing, check-in, admission, payment and orchestra group membership. Unclear/blank imported responses count as not attending by the owner's chosen rule.
 _Avoid_: Paid attendance, checked-in performer, confirmed performance
@@ -67,6 +75,10 @@ _Avoid_: Per-purchase performer bonus, one place per ensemble
 Admission without an individual numbered seat reservation. Public orchestra buyers choose Presto or Allegro; staff choose winners' orchestra sessions after payment.
 _Avoid_: Unlimited attendance
 
+**Operational seat block**:
+A numbered competition chair kept out of sale for a specific session for photography, equipment or another staff purpose. Staff can remove the block; it cannot replace a customer's booked or held chair or the space already promised to ticket holders.
+_Avoid_: Customer reservation, checkout lock, venue-wide block
+
 **Staff-managed orchestra capacity**:
 The owner's policy that staff arrange sufficient orchestra admission space independently of the competition's numbered-seat layout, without a software admission-capacity ceiling. It applies to orchestra sessions only; numbered competition seating keeps its layout limits.
 _Avoid_: Guaranteed unlimited physical seating
@@ -79,9 +91,17 @@ _Avoid_: Orchestra capacity limit, assignment guard
 The venue, date, time and attendee quantity allocated by staff to a winning performance's paid group after payment, without individual orchestra seat numbers.
 _Avoid_: Orchestra seat assignment
 
+**Orchestra session**:
+A free-seating audience event with its own venue, date and time, created independently of competition performer sessions. Its venue cannot host overlapping orchestra, competition or historical Masterclass sessions, including timed competition drafts.
+_Avoid_: Extra competition session, numbered orchestra session
+
 **Orchestra attendance group**:
-An admin-organized group of registered orchestra attendees, independent of their competition performance group. A child may belong to both and retain their ticketable performance; attendance membership alone grants no ticket, admission, orchestra session or quota.
+An admin-organized group of registered orchestra attendees, independent of their competition performance group. A child may belong to both and retain their ticketable performance; attendance membership alone grants no ticket, admission or confirmed orchestra assignment.
 _Avoid_: Orchestra performance group, paid attendance group
+
+**Planned orchestra session**:
+An optional orchestra session chosen for an attendance group before ticket purchases. It suggests the later paid assignment, which staff must separately confirm; it grants no admission and does not replace an existing confirmed assignment.
+_Avoid_: Confirmed orchestra assignment, automatic admission
 
 **Guest registrant**:
 An existing registrant from a different event invited into the current event's performance or orchestra attendance group. Their original registration and results stay with the source event; a performance assignment can qualify them for the destination event's existing ticketing rules.
@@ -94,6 +114,14 @@ _Avoid_: Callback log, payment confirmation
 **Admin seat assignment**:
 Staff selection of the physical seat for a paid ticket whose buyer did not purchase the corresponding seat-selection add-on. Only bookings with confirmed payment qualify.
 _Avoid_: Automatic assignment
+
+**Documentation-only customer**:
+A customer whose documentation purchase was paid outside the system and recorded by staff. The record grants no seat, event admission, orchestra attendance or ticket redemption, and its payment status is always Paid.
+_Avoid_: Seatless ticket, free-seating booking, unpaid documentation order
+
+**Booking buyer contact**:
+The buyer's name, email and phone attached to one ticket purchase, distinct from the performer or registrant's contact details. Staff may correct it while the booking is pending; an already-issued payment invoice retains its original contact details.
+_Avoid_: Registrant profile, invoice customer update
 
 **Historical Masterclass pass assignment**:
 After confirmed payment, an admin assigns paid Masterclass add-on passes together with any complimentary passes from one booking to the same Masterclass session, then emails the buyer. Masterclass ticketing is outside the current sales process; this term applies only to historical entitlements.
@@ -118,3 +146,7 @@ _Avoid_: Mark paid, attendance confirmation
 **Shared performer allowance**:
 The complimentary orchestra places for performers in one paid performance group, counted once across all of that group's bookings. Redeeming a buyer's purchased tickets does not consume these performer places.
 _Avoid_: Performer bonus per booking
+
+**Venue layout lock**:
+The point at which any numbered seat exists for a venue and its rows, capacities and ticket tiers can no longer be edited. Publication alone does not trigger the lock. Venue name and image remain editable.
+_Avoid_: Publication lock, only occupied seats lock

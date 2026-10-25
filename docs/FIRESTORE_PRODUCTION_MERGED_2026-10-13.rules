@@ -82,10 +82,11 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if true;
       allow create: if isEmailWhitelisted()
-        && !('competitionScheduleState' in request.resource.data);
+        && !('competitionScheduleState' in request.resource.data)
+        && !('competitionTimeDisplay' in request.resource.data);
       allow update: if isEmailWhitelisted()
         && !request.resource.data.diff(resource.data).affectedKeys()
-          .hasAny(['competitionScheduleState'])
+          .hasAny(['competitionScheduleState', 'competitionTimeDisplay'])
         && (!('competitionScheduleState' in resource.data)
           || !request.resource.data.diff(resource.data).affectedKeys()
             .hasAny(['venues', 'orchestraSessions', 'masterclassSessions']));
@@ -117,6 +118,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Campaign snapshots, dummy receipts and delivery attempts are backend-only.
+    match /groupAnnouncementCampaigns/{document=**} {
+      allow read, write: if false;
+    }
+
     // REPLACES the production unrestricted catch-all. Keeping the old one
     // alongside this rule would bypass every protected collection above.
     // Preserve existing whitelist access for all other collections, including
@@ -129,6 +135,7 @@ service cloud.firestore {
         && collection != 'sessionAssignments'
         && collection != 'competitionSessionPlans'
         && collection != 'scoringResultEmailDeliveries'
+        && collection != 'groupAnnouncementCampaigns'
         && collection != 'ticketPaymentReceipts'
         && collection != 'ticketRedemptions';
     }

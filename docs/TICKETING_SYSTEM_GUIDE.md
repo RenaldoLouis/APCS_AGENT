@@ -1,5 +1,296 @@
 # APCS Ticketing System Guide
 
+## 2026-10-26 — Download a seat map image for a session
+
+Open **Seat Occupancy → View Layout** for a competition session and select **Download image**. You get a PNG of the venue map with the venue, date, time, tickets left per category and the time the layout was loaded. Grey seats are not available: booked, held in checkout, reserved, blocked, or in a category with zero tickets left. Gold (Presto) and blue (Allegro) seats can still be sold. Select **Refresh layout & availability** first when you need the latest state; the image shows the layout as loaded.
+
+The button stays disabled while **Ticket availability could not be verified** is shown. If a message lists seats the map does not contain, the venue image in Venue Settings does not follow the [seat map contract](SEAT_MAP_SVG_CONTRACT.md); upload the prepared SVG. Before the first download, upload the prepared Behring and Titan files from `docs/seat-maps/` in **Venue Settings**. They look exactly like the current images, including Behring's 15 grey team-blocked seats. Backend restart required for the new endpoint.
+
+Replacing a venue image is safe while sales are open and the schedule is published: change only the image, keep the venue name and seat rows, and save. Bookings, seats, capacity and the published schedule are not touched. A seat drawn grey in an image must stay blocked in every session of that venue, because buyers see the image next to the seat picker.
+
+
+Open **Seat Occupancy → View Layout** for the competition venue/session. Above the map, **Actual ticket availability** lists each category's **Total slots**, **Booked / held tickets**, **Blocked slots** and **Actually available**.
+
+The available count subtracts every booked or held ticket and operational block from that category's total. Tickets bought without the seat-selection add-on are included even before staff assign their chairs. For example, 28 Allegro slots with 27 booked/held tickets and one blocked chair means **0 actually available**, even if some chairs still look available on the map. Paid tickets and pending payments both use capacity. Unresolved checkout holds remain counted until the normal protected workflow releases them; an expired local timer does not establish a release.
+
+**Fully booked / unavailable** means the tier has zero remaining sale capacity. An **Over capacity** warning needs staff review and makes no automatic inventory correction. If **Ticket availability could not be verified** appears, use **Refresh layout & availability**; do not infer sale capacity from unassigned chairs. Counts are a snapshot, so refresh after purchases, payment/cancellation or assignment activity. Closing/reopening also reloads them. Block/unblock refreshes the summary automatically through the existing layout reload.
+
+The summary reads existing data and sends no email or booking change. Existing seat search, block/unblock and locked-booking review remain available; orchestra free seating is still managed separately. Frontend update only; no backend restart, data migration or new index/rule is required. [Owner verification examples and failure checks](SEAT_OCCUPANCY_LAYOUT_WALKTHROUGH.md#actual-ticket-availability).
+
+## 2026-10-25 — Edit contact details for a pending buyer
+
+In **Public Customers**, select the event and find a **Pending** ticket booking. Choose **Edit Buyer Contact**, correct the prefilled **Buyer Name**, **Email** and **Phone Number**, then **Save Contact Details**. Only these buyer contact details are editable. Use one plain email address; phone accepts 6–20 digits with an optional leading +, spaces, parentheses and hyphens. Name and phone are required. Paid, expired, failed and archived bookings do not qualify. Documentation-only records retain their separate Edit Customer action.
+
+The server rechecks pending state when saving. If payment completes or another staff member changes the contact after the editor opens, save is refused: close, Refresh and review the booking before reopening. Errors keep your draft; uncertain/network responses require Refresh to check whether the correction was saved. A successful save reloads the list, so a search using the old contact may stop matching the booking.
+
+The owner chose **APCS booking only**: future APCS messages use the corrected contact, while existing Paper.id invoice contacts and previously delivered emails remain unchanged. Save sends no email. Payment-info/confirmation delivery indicators keep their historical meaning; an intentional resend remains a separate action. Ticket quantities/prices, payment/invoice identity, original seats, capacity, session/performer assignment and the ticket buying flow stay unchanged. The backend must be released/restarted before or with the frontend. [Manual walkthrough](PUBLIC_CUSTOMERS_BUYER_CONTACT_WALKTHROUGH.md).
+
+## 2026-10-25 — Filter buyers needing seat assignment
+
+Public Customers now offers **All Seat Assignments → Needs seat assignment** beside the payment filter. It shows paid (`PAID`/`paid`) bookings with missing numbered seats, using the same `getMissingSeatCount` rule as the existing badge. Partially assigned purchases remain visible; free-seating, Masterclass-only and documentation-only purchases are excluded. Search and payment filters combine with this filter before pagination, so Pending or Expired produces no matches while Needs seat assignment is selected. Changing the filter resets to page one; switching events resets all filters; Refresh retains them. The gold missing-seat booking count remains event-wide. Filtering uses already-loaded rows and changes no Firestore queries, stored data, assignment API, payments, seat ownership or email behavior. Choose All Seat Assignments to restore the unfiltered seat view. See [manual checks](PUBLIC_CUSTOMERS_SEAT_ASSIGNMENT_WALKTHROUGH.md#filter-buyers-needing-seat-assignment).
+
+## 2026-10-24 — Teacher names hidden on booking cards
+
+Winner and public performance selection cards no longer display the teacher-name row. Buyers can still search by teacher name using the existing search field. Performance names, assigned venue/session details and the purchase process remain unchanged. Manual acceptance: check both buyer modes omit the teacher row and still allow selecting a performance and continuing to tickets. No backend release or data migration is required.
+
+## 2026-10-21 — One-time address for an individual rundown resend
+
+The selected-recipient dialog has an editable **Email** field prefilled with the historical campaign contact. Replace it to send that row's personalized rundown/PDF once to another mailbox. The entered address is not saved as a contact or written to Firestore; registration contacts, ticket buyer emails, bulk recipients/counts and original delivery evidence remain unchanged. Cancel/success clears the draft; errors retain it. Existing confirmation, version/dummy/runtime/completion checks, per-row cooldown and no-auto-retry behavior remain. A destination fingerprint protects request replay without persisting the alternate address. Release/restart the backend before or with the frontend and refresh recipients; older backends keep the new action disabled. [Detailed owner checks](GROUP_ANNOUNCEMENT_EMAIL_WALKTHROUGH.md#send-once-to-a-different-email-address).
+
+## 2026-10-21 — Resend a rundown email to one contact
+
+Open **Admin Page → Session Assignment → APCS2026 → Email Assigned Registrants** after the saved campaign finishes. Choose **Resend Email** on the intended row, check the registration, performer(s), address and PDF, then confirm **Resend to This Recipient**. Only that contact receives another rundown; an ensemble's other contact rows are not selected automatically. Existing approved-file/dummy/runtime checks remain. If the campaign just finished while the modal was open, use **Refresh Recipients / Progress** first.
+
+Rapid duplicate requests are protected, with a three-minute cooldown for another manual resend to the same row. Success means mail-server acceptance; check inbox/spam. For uncertain/interrupted results, check the mailbox/provider before any new confirmation. This action changes no ticket/payment/seat/assignment state and does not restart bulk delivery. Release frontend/backend together and restart the backend before using the new action. [Detailed acceptance steps](GROUP_ANNOUNCEMENT_EMAIL_WALKTHROUGH.md#individual-resend-after-the-campaign-finishes).
+
+## 2026-10-19 — Assigned-group bulk worker enabled
+
+The assigned-registrant email worker is enabled on the local backend and the backend has been restarted. The exact current dummy receipt is saved. Reopen or refresh the email modal, review attendance and recipients, and confirm bulk when ready. No campaign or email was triggered during activation. Published-group scope and all remaining send gates still apply; booking, seat, payment and admission flows are unchanged. A separate hosted backend needs its own flag and restart. [Activation and rollback](GROUP_ANNOUNCEMENT_EMAIL_WALKTHROUGH.md#19-october-2026--backend-worker-enabled).
+
+## 2026-10-19 — Review attendance totals before the group email
+
+The **Email Assigned Registrants** modal now starts with **Total not attending**, Attending, Not imported, Unavailable and total-registration counts. These are distinct registration totals: an ensemble or a registration with several email addresses counts once. Only explicit `willAttend: false` counts as Not attending; missing/unknown confirmation is shown separately as Not imported, and missing/unsupported registration data is Unavailable. A warning appears if any of these need review, so a zero Not attending count alone does not imply that everyone confirmed attendance.
+
+Open the modal or use **Refresh Recipients / Progress** to check current attendance. For an already queued campaign, attendance is checked for its saved registrations; the frozen email list and running worker are preserved. The counts are informational and do not remove anyone from the recipient list or add a new send restriction. Review discrepancies before choosing to send. This introduces no booking, seat, payment, capacity, membership, attendance or delivery write. Release frontend/backend together and restart the backend normally; no schema, rules, index or migration change. [Attendance walkthrough](GROUP_ANNOUNCEMENT_EMAIL_WALKTHROUGH.md#attendance-totals-before-sending).
+
+## 2026-10-19 — Recover a booking when another expired purchase still holds places
+
+An expired purchase can still hold ticket capacity through its canonical chair ownership after an older partial expiry. Reconcile Payment now recognizes a fully verified retained reservation instead of incorrectly reporting that its session counter differs. It preserves the other customer's booking and holds. No selected chair on the booking being recovered does not mean zero capacity demand: each ticket still needs a place, and missing chairs are assigned through the existing paid-booking workflow.
+
+For `hxfzh9Cxa459dFIDACI1`, the inspected session had 25 ordinary active Allegro tickets and two retained places on another expired booking. Its counter of 27 was explained; restoring this one-ticket purchase requires 28 of the 28 places. The source fix was tested offline and does not itself mark this production booking paid. After the backend update/restart, refresh Public Customers, verify full unrefunded payment against the exact production invoice, and retry the existing Reconcile Payment action. The transaction rechecks current inventory; another intervening purchase or conflicting hold can still stop recovery.
+
+Only complete reservations backed by matching active ownership and valid original chairs are recognized. Released/reassigned ownership is not counted twice; partial/mismatched ownership, unidentified counter drift and insufficient room still require staff review. Do not manually reduce the counter or bypass these checks. The frontend, payment confirmation/Resend controls, chair assignment and orchestra/admission flows retain their existing behavior. [Walkthrough and acceptance](LATE_PAYMENT_RECOVERY_WALKTHROUGH.md).
+
+## 2026-10-19 — Use the final 2026 rundown PDF
+
+The assigned-group rundown email now attaches `RUNDOWN APCS THE SOUND OF ASIA 2026 - FINALE ORCHESTRA.pdf` for both the fixed dummy test and future bulk delivery. The owner's supplied file is copied unchanged and pinned by SHA-256 in backend configuration. Existing email wording, APCS header/footer, published-group recipients, queue/retry rules and booking/seat/payment/admission behavior are unchanged. There is no schema, rules, index or migration change.
+
+Release the backend with the new PDF/configuration and restart through the normal workflow. Open **Admin Page → Session Assignment → APCS2026 → Email Assigned Registrants** and send a **new dummy to renaldolouis555@gmail.com**. The previous PDF's dummy receipt does not unlock this new version. Review the attachment and only then use the existing bulk confirmation when its worker/recipient gates pass; no worker flag or campaign was activated by this update.
+
+The PDF's main schedule says 14–15 November 2026, but some awarding-column headers still say **15 November 2025** (pages 2, 4, 5, 7, 8, 10, 12, 14). Those supplied bytes are preserved; check these typos during dummy review. [Attachment details and acceptance](GROUP_ANNOUNCEMENT_EMAIL_WALKTHROUGH.md).
+
+## 2026-10-19 — Reconcile verified payment after a booking expires
+
+For an expired version-2 Paper.id numbered competition booking with **Payment received — needs review (booking_canceled_before_payment)**, use the new **Reconcile Payment** button below that notice. The dialog displays the saved buyer/booking, invoice ID, amount, session and original seats. Verify the exact invoice is fully paid and unrefunded in the production Paper.id dashboard, check the confirmation box, add an optional note and select **Confirm Payment and Restore Booking**.
+
+The server validates receipt/booking identity and restores payment, original chairs, ownership and capacity atomically. It stops for staff review if chairs are owned/blocked elsewhere or capacity cannot be reconciled safely; it never picks replacement chairs. Success shows PAID and removes the review warning. If filtering Expired, switch to Paid/All Payment Statuses. Expand Order Details for verifier/invoice/note. Unselected tickets retain the existing Assign Missing Seats workflow; orchestra assignment remains separate.
+
+The first successful request attempts the normal confirmation email. Failure leaves payment confirmed and allows normal Resend after refresh. Duplicate recovery does not resend. For uncertain responses/delivery, check saved status and delivery before retrying. This is staff dashboard verification, not an independent provider lookup. It does not change cancellation behavior or establish why Paper.id accepted a late payment. Historical/legacy-quota, direct-orchestra and other review reasons remain separate staff cases.
+
+Release frontend/backend together and restart the intended backend before use. No customer records or emails were changed during implementation. [Full walkthrough, capacity safeguards and acceptance](LATE_PAYMENT_RECOVERY_WALKTHROUGH.md).
+
+## 2026-10-19 — Correct customer time wording on a locked competition group
+
+In **Admin Page → Session Assignment**, published/ready competition groups have **Add Time Revision** beside **Assigned time**. Enter the replacement time range in WIB, for example `11:10-13:30`, then choose **Save Display Time**. Admins still see the original `11:05-13:20` and a separate **Customer time** tag. **Edit Time Revision → Clear Revision → Save Display Time** restores the original wording. Save or discard any unsaved running-order changes before editing time copy. Draft, legacy and orchestra-attendance groups do not have this control.
+
+This changes the text on freshly loaded public booking pages and in emails sent afterward: paid confirmations/resends (including Send to Another Email), manual-payment instructions/resends and payment-pending seat-hold emails. **Saving sends no email.** Emails already delivered stay unchanged; use the existing paid-booking Resend action when appropriate. Generic announcement/PDF content and already-queued campaigns are not edited by a time revision. Orchestra assignment emails use their independently configured orchestra session.
+
+The original schedule remains locked. Group order/membership, venue/date, selected seats, seat ownership, payment status, invoice totals, eligibility, booking identity and admission benefits stay unchanged. This action is appropriate for correcting the communicated time only. An actual group move, date/venue change or reassignment requires its own workflow.
+
+The backend validates the range and checks the current published session before saving. If someone changed display copy first, save refuses to overwrite it and keeps your input open. Copy the draft if needed, close the dialog, reload the page and review the saved wording before retrying. A lost response may follow a successful save, so reload before repeating it. Cancel leaves saved wording unchanged; saving disables dismissal and event switching. No existing-data migration is required. Release the updated frontend/backend and protected Firestore rules together before owner acceptance.
+
+See [manual checks and verification boundaries](COMPETITION_DISPLAY_TIME_WALKTHROUGH.md).
+
+## 2026-10-18 — Finale Orchestra dummy and background bulk delivery
+
+Open **Admin Page → Session Assignment → APCS2026 → Email Assigned Registrants** after saving/discarding board edits. The list covers published competition performers only, using their current performer contacts. Review the exact Finale Orchestra subject/body and APCS header/footer, then choose **Send Dummy to renaldolouis555@gmail.com**. There is no arbitrary test-recipient field. The dummy always uses Alex Example and goes only to that fixed address.
+
+The supplied `Program Notes - Fixed.pdf` is dummy-only by owner choice. Client bulk stays disabled until the final client PDF is configured by its checksum, that exact message/PDF version has a successful dummy test, an intended server worker is enabled, and every contact issue is resolved. A new PDF/message needs a fresh dummy test. Review the message and attachment in the inbox before confirming **Send to All Assigned Registrants**. Starting saves a fixed recipient list and returns quickly; it does not wait for all emails in the browser.
+
+After the campaign is saved, staff can close the dialog/page or sign out. The server continues delivery; the existing inactivity logout is unchanged. Reopen/sign in to view saved progress, including mail-server acceptance, rejected addresses and uncertain outcomes. A server restart resumes pending recipients when the enabled worker returns. Accepted, rejected and uncertain recipients are never automatically resent; check the SMTP provider before any separate staff remediation. Do not start a new version merely to work around uncertain delivery. A changed/missing approved PDF pauses the campaign until its exact version is restored and staff choose Resume. Same-version Start retries reuse the existing campaign, including after a lost acknowledgement.
+
+This feature writes only the new protected campaign/delivery collection; it changes no ticket, seat, booking, payment, group assignment or admission data. Release backend/frontend and the updated Firestore rules together. Worker configuration is explicit and cannot run bulk from Firestore emulator mode. No production activation, real mail or live database write was performed by the agent. Follow the [release checklist and manual acceptance](GROUP_ANNOUNCEMENT_EMAIL_WALKTHROUGH.md).
+
+## 2026-10-18 — Add an already paid documentation-only customer
+
+Use **Public Customers → Add Documentation Customer** after staff verifies a documentation payment received outside APCS. Select the intended event first, enter the customer's name and optional note (for example documentation package and transfer reference), then **Save Customer**. The owner chose to accept **already paid customers only**: payment stays **PAID**, with no unpaid/pending choice. No performer/session/seat selection or existing registration is required.
+
+The row shows **Documentation only**, **No seat**, and email **NOT APPLICABLE**. It appears in name searches, All Payment Statuses and Paid; Pending/Expired exclude it. Amount is **Recorded offline** because this form does not collect an amount. Expand it to read the note, or use **Edit Customer** / the note editor to correct the name/note. These entries do not have ticket email, Mark Paid, seat assignment, cancellation or booking deletion actions. They do not grant venue admission, free seating, orchestra attendance or redeemable tickets. Documentation delivery remains outside this feature.
+
+Records are stored separately from ticket bookings and are combined only for this screen. This keeps them outside seat/attendance/capacity/payment recovery/redemption/planning validation. The missing-seat badge still counts actual bookings only. Saving checks the event and a record revision; stale edits are refused while your draft stays open. Copy the draft, cancel, **Refresh** and reopen the current record if another staff member changed it. A failed create retains its record ID so retrying the unchanged form after a lost acknowledgement does not create another entry. Changing events discards an unsaved draft; saving disables switching and dismissal.
+
+No backend release, database migration, rule change or index definition is added by this feature. The frontend uses existing whitelist authorization; hosted permission/persistence and UI acceptance are still required. If documentation records fail to load, the warning identifies the incomplete source while existing ticket bookings remain available. Use **Refresh** to retry. Follow the [manual walkthrough](DOCUMENTATION_CUSTOMERS_WALKTHROUGH.md) to check persistence, filters, ordinary booking controls and unchanged seat/attendance totals.
+
+## 2026-10-18 — Filter Public Customers by payment status
+
+In **Public Customers**, use the selector beside search to choose **Expired**, **Pending** or **Paid**. **All Payment Statuses** restores all normally visible bookings, including failed ones. Paid includes both saved `PAID` and `paid` values. Search and status work together across all loaded bookings for the selected event, before the table shows ten rows per page. A status change returns to page 1; switching events restores All Payment Statuses, clears search and returns to page 1. An empty result explains that no bookings match the search or status filter. The seat-assignment badge continues to count the entire event.
+
+Owner walkthrough after loading the updated frontend:
+
+1. Select an event with known expired, pending and paid bookings. Choose each status and confirm every visible Payment Status tag matches, including any uppercase/lowercase paid records.
+2. Enter a buyer name or email with a status selected. Confirm rows satisfy both filters; try a nonmatching search and check the empty message.
+3. From a later page, change status and confirm page 1. Restore All Payment Statuses and clear search to recover all normally visible rows, including failed bookings.
+4. Change events and confirm both filters and pagination reset. Verify the event-wide seat-assignment badge is independent of filters.
+
+Filtering uses already-loaded rows only. It changes no saved payment/booking data or actions and needs only the frontend update; no backend restart, schema/index/rules change or migration is required. Source review and lint do not replace owner browser acceptance.
+
+## 2026-10-18 — Change performance order in a published group
+
+**Regression follow-up:** four integrated winner/public-competition × Paper.id/manual tests pass with reordering between checkout and payment and again after redemption. Discovery, idempotent replay, seat fulfillment, orchestra allocation and admission balances remain valid. The full offline suite has 363 passes and one unrelated existing email-wording assertion failure. See [evidence and acceptance limits](PUBLISHED_GROUP_ORDER_WALKTHROUGH.md#18-october-2026--ticketing-regression-follow-up).
+
+In **Admin Page → Session Assignment**, expand a published or ready competition group, drag a registrant card above/below another card **in that same group**, then click **Save Order**. This reorders complete registration cards, including an ensemble as one registration. It does not rearrange performers inside an ensemble. **Discard** restores the last saved order; leaving the event with unsaved changes asks for confirmation. Save before exporting the final running order.
+
+Published membership and session details remain locked: no dragging to another group or the unassigned pool, adding/removing registrants, swapping groups, changing venue/date/time or editing attendance membership. While saving, dragging/event switching/discard are disabled. Save Order is disabled when nothing changed. With an unsaved order, seat-generation/readiness buttons are disabled until staff save or discard.
+
+The backend independently verifies that the saved group contains exactly the same registrations and that its published assignment and linked timetable still match. All changed groups save together with a shared revision check. If another staff member changed the schedule/order first, save rejects; refresh the board, review the latest order and apply the intended reorder again. Network/response failures retain the local draft; refresh to determine whether a lost response followed a successful save. Never bypass the lock with the draft save endpoint.
+
+Tickets, seats, payment, capacity, admission benefits and session notifications retain their existing values because session identity and membership are unchanged. This action sends no email. Release both frontend/backend and restart the backend normally before testing. No database migration, rule or index change. [Manual walkthrough, failure checks and offline evidence](PUBLISHED_GROUP_ORDER_WALKTHROUGH.md).
+
+## 2026-10-18 — Send a confirmation to another email
+
+In **Public Customers**, paid bookings now have **Send to Another Email** beside **Resend**. Open it, check the displayed buyer/booking/saved address, enter one recipient email and choose **Send Email**. The standard booking confirmation goes to that entered address only. The buyer's saved email, registrant record and APCS Email Status remain unchanged. Use this for a one-time copy, not to correct a saved contact address. The alternate address and send history are not saved.
+
+Both buttons can send again when the original status already says SENT. **Resend** uses the saved buyer address and updates the existing email-status flag; **Send to Another Email** sends a separate copy and leaves that flag alone. The new action is available only after confirmed payment, including paid manual bookings. For a pending manual booking's payment instructions, use the separate **Send/Resend Payment Info** action.
+
+The modal accepts one address, not a comma/semicolon list or `Name <address>` format. Staff authentication and whitelist access are checked by the backend. Cancel discards the draft; changing events closes it. While sending, the input, Send button, event selector and dialog dismissal are disabled. Failure keeps the recipient available to correct/retry. If delivery cannot be confirmed, check the recipient's inbox/spam before retrying: a lost response can follow a successful send, and each manual retry may send another copy.
+
+Owner walkthrough after releasing frontend/backend and restarting the backend normally:
+
+1. Use an approved paid test booking, including one whose APCS Email Status is SENT. Click **Send to Another Email**, verify the booking context and enter an owner-controlled alternate address.
+2. Choose **Send Email** once. Confirm loading/disabled controls, successful acknowledgement and delivery to the entered inbox. Check the ticket quantities, booking ID, venue/session and seat details in the usual confirmation template.
+3. Refresh Public Customers. Confirm the original buyer email and original APCS Email Status are unchanged. Verify the original recipient received no extra copy from this alternate-address action.
+4. Open again, enter a different address and Cancel; confirm nothing is sent. Switch events with an unsent draft; reopen a booking and confirm a fresh empty recipient.
+5. Try an empty/malformed address or multiple addresses; expect validation without sending. Confirm pending/failed/expired bookings have the action disabled. Verify a paid manual booking works like a paid Paper.id booking.
+6. Check an expired staff session or a simulated mail/network failure in the test environment. Expect an error with the modal/address retained and no original-status change. Avoid deliberately sending repeated copies while a request is pending.
+7. Verify **Resend** still uses the saved buyer address. If the new route reports `Cannot POST`, confirm the updated backend was released/restarted before investigating booking data.
+
+No live email or browser was used by the agent. Offline success does not certify deployed authentication, real SMTP delivery or inbox receipt.
+
+## 2026-10-17 — Buyer booking notes
+
+In **Public Customers**, the **Note** column lets staff add or edit a plain-text note for each buyer's booking. Choose **Add Note**, enter text (up to 2,000 characters, including multiple lines) and choose **Save Note**. The note appears directly in the list and loads again with the booking. **Edit Note** reopens it; clearing the text and saving removes it. **Cancel** discards unsaved edits. Notes belong to individual bookings, so multiple purchases by one buyer have separate notes.
+
+Saving changes only `publicBookings.adminNote`; payment, seats, admission, cancellation and customer emails retain their existing behavior. Existing whitelisted staff permissions apply, with no new API, migration, rule or index. A failed save keeps the draft open. If another staff member has changed the note, the save is refused: copy your draft, Cancel, refresh the page and reopen the current note. Switching events discards an unsaved draft; switching or dismissing the dialog is disabled while saving.
+
+Owner walkthrough (manual browser/live persistence checks):
+
+1. Open Public Customers, select an event and use **Add Note** on a booking. Save a two-line note; confirm it appears on the correct row.
+2. Refresh the page, select the same event and confirm the note persists. Check another booking by the same buyer remains separate.
+3. Use **Edit Note**, change the text and Cancel; confirm the saved text remains. Edit again and save; confirm the change persists after refresh.
+4. Clear the text and save; confirm **Add Note** returns and the note stays absent after refresh.
+5. Open the same note in two staff tabs. Save different text in the first, then try saving from the second; expect conflict guidance and a retained draft. Cancel/refresh to load the newer note.
+6. Confirm payment status and seat details remain unchanged. Check long text wrapping and event switching. Network/permission errors should retain the draft for retry.
+
+No browser or live database mutation was performed by the agent; rendered appearance and real persistence remain owner acceptance checks.
+
+## 2026-10-15 — Opening nationality modal
+
+When the public ticket page is ready, buyers first see **What is your nationality?** with two choices:
+
+- **Indonesian:** the existing Paper.id payment flow with a 30-minute payment window.
+- **International:** the existing PayNow/bank-transfer flow. After reservation, payment instructions are emailed; there is no automatic expiry. Staff must verify payment and mark the booking paid, or explicitly cancel it if unpaid. Selected seats and purchased capacity remain held while pending.
+
+This replaces the Step 4 international-payment checkbox for all buyer paths. Nationality is self-declared for this checkout and is not inferred from a performer's profile. The buyer must choose before continuing; **Change** above the stepper allows correction before submission. Switching performances, buyer type or session retains the choice. Review & Pay displays the payment method and the corresponding existing hold notice/button. The four checkout steps and assigned performance/session rules remain the same. Refreshing or opening the page again prompts for a new choice; it is not saved as a customer nationality field. For an uncertain checkout retry, select the same option and use the same booking details so the saved checkout key can be reused.
+
+**Owner walkthrough after the frontend update:**
+
+1. Open the booking link. Confirm the dark/gold modal offers both options, fits a phone-width screen, and requires a selection even when pressing Escape or clicking outside. Check keyboard focus and activation.
+2. Choose International. Switch performances and buyer types, then complete the normal steps. Confirm the choice remains International and Step 4 shows PayNow/bank transfer, the pending-reservation notice and **Reserve & Email Payment Instructions**, with no international checkbox.
+3. In the approved test environment, submit an international booking. Confirm the existing acknowledgement route and emailed instructions. Inspect the saved booking for `paymentMode: manual`, no Paper.id invoice and no expiry. It remains pending until staff confirms/cancels it; a delivery failure should preserve the existing recovery guidance rather than claim success.
+4. Start another visit and choose Indonesian. Confirm Paper.id in review and the 30-minute notice; in the approved test environment, verify the usual payment link/status flow. A local timer alone must not release inventory before provider cancellation is confirmed.
+5. Before submitting, use **Change** to switch nationality. Confirm cart, buyer details and totals remain intact while the payment method, notice and submit button update together. Closing a reopened modal without choosing keeps the current choice. Refresh and confirm the initial modal appears again.
+6. Repeat the review checks for registered-winner, public performance and direct orchestra purchases. Where testing response recovery, retain the same nationality and details when retrying.
+
+Verification completed: **19 frontend checkout/API tests**, focused ESLint, whitespace checks and standards/spec/hygiene/conditional-path review. No browser, live database/provider/email action or deployment was used; visual and live acceptance remain owner checks. This update requires frontend release only and reuses the existing backend API and staff payment workflow.
+
+## 2026-10-14 — Seat unavailable message at final checkout
+
+If a selected competition seat becomes held, booked, reserved or blocked before **Review & Pay** is submitted, checkout continues to reject it safely. Production now displays a clear message such as **The selected seat (A11) is no longer available. It may have been booked or blocked. Please go back to seat selection and choose another seat.** Canonical ownership and occupied legacy aliases use the same guidance. An exhausted ticket category instead asks the buyer to return to ticket selection and change the quantity or category, because replacing a seat alone cannot restore sold-out capacity.
+
+Use **Back** twice (through Your Details) to reach Select Tickets. That step fetches the current layout; deselect the unavailable chair and choose a different available chair in the purchased category. Quantities, buyer details, the assigned performance/session and payment choice are retained. There is no automatic cart reset, redirect or new form step. A replacement seat uses the existing changed-cart checkout-key behavior. Payment timeouts and uncertain invoice responses retain their existing instruction to retry with the same details or contact APCS; they are not labeled as seat conflicts.
+
+These errors occur in the existing transaction before a booking/invoice is committed. Seat ownership, blocking/cancellation safeguards, pricing, paid capacity, Paper.id/manual payment and confirmation-email behavior are unchanged. No database collection, schema, rule, index or migration is introduced. The existing production error middleware exposes only the operational 409 message/code; unrelated unexpected errors remain generic.
+
+**Manual walkthrough after backend release/restart:**
+
+1. In a test environment, select an available competition chair and reach Review & Pay. Have another buyer hold/book it or staff block it before submission.
+2. Submit with Paper.id mode and then repeat with manual payment. Expect the specific seat guidance, preserved details and no new booking/invoice for the rejected attempt.
+3. Go Back twice, deselect the unavailable chair, select another available chair, and proceed with the original details. Expect the existing payment or manual-instructions route.
+4. If the entire category is full, expect quantity/category guidance. For a timeout or invoice still being prepared, retain the same details and follow the existing recovery message.
+
+Offline repository/production-middleware and frontend handler/API tests pass; no browser, provider call, live database write or deployment was used for verification. Only backend source needs to be released for the changed messages; the current frontend already displays them.
+
+## 2026-10-14 — WIB in Review & Pay and payment confirmation
+
+The **Session** row in Step 4 **Review & Pay** and the payment-confirmed email now includes **WIB** after the time range. A saved orchestra-assignment time included in that payment email also carries **WIB**. All times remain the existing Jakarta session times; booking details and payment/assignment rules are unchanged.
+
+Manual acceptance after frontend/backend release: check Step 4 for winner, public competition and direct orchestra purchases, then inspect a new payment-confirmed email's main Session row and any assigned orchestra time. Expect a range such as **10:00-11:00 WIB**. Restart the backend normally to load the email template; previously delivered emails remain unchanged. Offline checks passed; browser appearance and inbox delivery remain for owner verification.
+
+## 2026-10-14 — English seat-held email deadline
+
+Seat-held payment requests now use a fully English deadline, for example **Complete your payment before 14 October 2026 at 23:24 WIB (UTC+7).** The date still comes from the booking's existing expiry and uses Jakarta time with a 24-hour clock. Payment links, the hold duration and confirmed provider cancellation requirements are unchanged.
+
+Restart/release the backend normally to apply the formatting to future generated emails. Already delivered emails cannot change. Manual acceptance: inspect a new seat-held email for **October** and **at** instead of **Oktober** and **pukul**, a colon-separated time, the bold deadline and the retained timezone. Offline sender/template checks passed, including midnight rollover; recipient inbox delivery was not tested.
+
+## 2026-10-14 — Block seats for photography or equipment
+
+Open **Seat Occupancy → View Layout** for the competition session. Click an available chair, check the seat/session, enter a reason and choose **Block seat**. It becomes purple, shows **Blocked**, and appears in the overview's Blocked count. Hover for the saved reason. Click the blocked chair and choose **Unblock seat** to make it available for sale again. Each block applies only to that venue/date/time; other sessions retain their inventory.
+
+Blocked chairs cannot be selected by buyers or assigned in Public Customers. Booked/reserved seats cannot be blocked; checkout-locked chairs still open the existing booking cancellation review. Blocks also reduce the tier's total tickets for sale when buyers skip seat selection. If all chairs are already needed for paid or held tickets, the backend refuses a block even when the chair looks available while awaiting assignment. Manual-payment and unresolved checkout holds stay protected. Blocking/unblocking records staff identity/time and a reason, without payment, booking, email or orchestra changes.
+
+After a stale conflict or uncertain response, the layout refreshes so staff can review its latest status. Regenerating seats keeps active blocks and block history/revisions. Existing counters default to zero blocked chairs; the first block initializes its counter and preserves legacy booking demand. The backend endpoint requires a fresh Firebase token and whitelist membership. Public seat-list responses omit staff block metadata. Release frontend/backend together and restart the backend normally; no collection/index/rules change or migration is required. [Owner walkthrough and verification limits](SEAT_BLOCKING_WALKTHROUGH.md).
+
+## 2026-10-14 — Save venue rows before seat generation
+
+In **Venue Settings → Edit**, row letters, capacities and tiers may be changed until numbered seats exist for that venue, even if the competition schedule is already published. Save uses the authenticated backend, preserving its ID, timetable and other venue/event records. Another venue's seats do not block saving. Once any numbered seat exists (including an available seat), a layout change is rejected with **Seat layout cannot be changed because numbered seats already exist for this venue.** Name/image-only changes remain available.
+
+Saving does not regenerate or delete seats. Concurrent backend generation checks its layout snapshot inside each seat-write transaction. Refresh after a stale-edit rejection and review the latest values before retrying. Adding/deleting venues retains existing behavior and permissions. Keep the current Firestore rules; deploy both frontend/backend changes through the normal release process to enable this on the hosted site. [Manual acceptance walkthrough](VENUE_LAYOUT_SAVING_WALKTHROUGH.md).
+
+## 2026-10-14 — Create orchestra sessions independently
+
+In **Orchestra Settings → Add session**, choose an existing venue, pick a date, enter same-day start/end times, set the informational performance-linked quota and save. You do not need a Performer Session first. The new slot is separate from competition drafts/publication and remains free seating; it generates no numbered seats or bookings. Direct public buyers see configured orchestra sessions subject to existing ticket price/eligibility rules. Paid performance-linked groups still use **Orchestra Assignments → Assign & email**, and attendance planning may select the new session as an optional default without granting admission.
+
+The backend rejects invalid dates, reversed/equal/overnight times, duplicate slots and overlaps with timed competition drafts, published competition slots, other orchestra sessions or historical Masterclass sessions in the same venue/day. Adjacent times and different venues/dates are allowed. New and edited sessions retain the existing session ID/date/time format. Informational quota edits preserve active attendance. In-use sessions cannot be moved/deleted; saved paid assignments and legacy numbered inventory protect against stale counters. Clear a planned attendance-group link before deletion or a venue/date change. Payment confirmation, purchased quantities, shared performer allowance, email retry and Ticket Redemption requirements remain unchanged.
+
+The two owner-designated empty production Titan sessions on **15 November, 15:30–17:30 and 19:30–21:30** were backed up and removed after live reference checks. No document or unrelated record was deleted. The eight real draft sessions, eight groups and four archived booking tombstones are unchanged; revision **169 → 170** requires refreshing open planning pages. Production currently has no orchestra definitions; create the actual new ones after the frontend/backend release. The emulator retains the earlier snapshot, including its old orchestra definitions.
+
+Verification passed **254 backend offline audits, 34 frontend tests and three cleanup safeguard tests**, plus lint/syntax and compiler checks. Live readback proves the narrow production deletion, while the new flow was checked with substituted services. Browser, genuine payment/inbox and production feature acceptance remain separate. Source changes are uncommitted and require frontend/backend release together with a normal backend restart. [Manual walkthrough, coverage and cleanup backup](ORCHESTRA_INDEPENDENT_SCHEDULING_WALKTHROUGH.md).
+
+## 2026-10-14 — Old production Seat Occupancy row cleaned up
+
+Removed only the obsolete **Behring Theatre / 14 November 2026 / 08:00–09:00** venue timetable entry in production. There were no generated target seat documents to delete. A private backup, dependency checks, a snapshot-guarded transaction and exact readback confirmed all **eight real draft sessions, eight groups, two orchestra sessions and four archived booking records** were preserved. Only the old time and the event/plan revision counters changed (**168 → 169**); publication, inventory generation and sale eligibility were not changed. Refresh Seat Occupancy to remove the old row, and refresh open planning pages before saving. The local emulator remains the earlier production snapshot. [Cleanup evidence and manual acceptance](audits/PRODUCTION_OBSOLETE_BEHRING_SESSION_CLEANUP_2026-10-14.md).
+
+**Earlier orchestra creation restriction (superseded by the independent timetable above):** Orchestra Settings currently lets staff choose only dates/times already present in the venue timetable. Its backend checks the same requirement. For draft APCS2026, adding a session in Performer Sessions creates a private competition draft, which does not immediately populate those orchestra options. Publishing requires every draft session assigned to a competition group, and orchestra save rejects competition times with assigned performers/active bookings. Do not create a dummy competition session merely to add orchestra attendance. The orchestra schedule is a separate free-seating definition and needs independent date/time controls to remove this current dependency; this cleanup did not implement that change. The existing Titan orchestra definitions on **15 November, 15:30–17:30 and 19:30–21:30** remain intact, but their times are absent from the current venue timetable, so the present form cannot select them for a new/edit save without addressing its restriction.
+
+## 2026-10-14 — Production-data copy available locally
+
+Refreshed local Firestore from a read-only production snapshot: **7,556 documents**, with every path/field verified before and after a successful native export and restart. The emulator is running at `127.0.0.1:8081` with the refreshed everyday startup export and export-on-exit enabled. The prior local database is backed up with matching checksums; its local-only tests and planning edits are outside the new active copy.
+
+No booking/business rules, schema, sale gates or production records were changed. The API and frontend were not started. Auth users, payment-provider state, email and Storage/S3 files were not copied; those integrations keep their existing configuration. Follow the existing integration/background-job guidance before starting the API for purchase tests. [Snapshot and rollback details, full restart verification and compatible CLI runtime](LOCAL_FIRESTORE.md#2026-10-14--production-snapshot-refreshed-and-restart-verified).
+
+## 2026-10-14 — Find a buyer's or registrant's seats in the open layout
+
+In **Seat Occupancy**, open **View Layout** for the required competition venue/date/time. Occupied and locked seats now show the buyer's name below the seat number. Long names use a two-line caption; hover the seat/caption for the full **Buyer** and separate **Registrant** name, status, available email and booking ID. **Buyer not recorded** means the current records do not provide a buyer name; it is not a registrant identity or payment conclusion.
+
+Type a buyer, registrant or ensemble member in **Search registrant or buyer name in this session**. Matching ignores case and extra spaces and requires all typed words. The result table shows matching seat labels, buyers, registrants and statuses. Gold outlines identify those seats in the complete map; other seats are dimmed without moving rows or aisles. Status colors remain unchanged. Clear the field to restore the ordinary view. A no-match result means no loaded occupied seat matches that name in this session.
+
+The dialog searches only current booked/reserved/locked numbered seats in its selected session. Use the existing **Registrant and Reservation Lookup → Load Lookup** below the overview for other sessions, performer assignments without tickets and paid reservations awaiting seat assignment. Names follow current seat-to-booking references; a canceled booking's old saved labels cannot identify a newly available/reallocated seat. Legacy holder metadata is used when there is no matching booking document. If the dialog warns that booking details could not load, reopen it to retry before relying on complete name results.
+
+Caption-sized cells may make wide venue maps require horizontal scrolling; the complete left/right sides and center aisle remain accessible. Locked **seat buttons** retain the existing review/reconciliation action; searching or hovering does not change inventory, payment or admission. Layout opening/closing, session switching and active-event changes clear the search. This change adds only explicit linked-booking reads and local display/search, with no backend release or assignment change. [Owner acceptance steps](SEAT_OCCUPANCY_LAYOUT_WALKTHROUGH.md); source/self-review and lint pass with zero errors/one existing warning, and the running compiler has warnings without errors. Browser verification remains with the owner.
+
+## 2026-10-14 — Identify Presto and Allegro when assigning seats
+
+Open a paid numbered booking in **Public Customers**, expand it and choose **Assign Missing Seats**. Its map now labels **Presto section** in gold and **Allegro section** in blue above the corresponding seats. Available seats use the same section color, and hovering any seat shows its saved ticket tier and status. Existing Lento seats, if present, have a purple labeled section. Sections come from the session's actual seat records; staff should not infer tiers from row letters.
+
+Read the purchased ticket quantities above the map and choose the remaining seats in the matching sections. Selected seats have a dark background with tier-colored text/borders. Booked, reserved and locked seats keep their status colors and cannot be selected. One stage, row numbers and venue aisles remain in place. The total selection limit and paid-only assignment flow are unchanged; the server still checks the combined existing/new seat quantities against each purchased tier before saving.
+
+Save the assignment, review the refreshed booking's seat labels and missing-seat count, then use the existing confirmation resend action when needed. Free-seating orchestra bookings do not receive numbered seats. This display change adds no data entry, query, schema or backend requirement. Other seat-picker pages keep their existing presentation.
+
+Code review/self-review and changed-file lint passed with zero errors/two existing warnings; the existing frontend compiler reports warnings without errors. Browser acceptance remains with the owner. Follow the [staff walkthrough](PUBLIC_CUSTOMERS_SEAT_ASSIGNMENT_WALKTHROUGH.md) for mixed-tier bookings, partial assignments, seat states and both venue layouts.
+
+## 2026-10-14 — Plan orchestra attendance before purchases, then confirm paid assignments
+
+1. Configure the actual orchestra sessions in **Orchestra Settings**. In an editable Admin Page plan, add/edit an **Orchestra Attendance** group with its venue and date. Select **Planned orchestra session (optional)** from the matching sessions, add the registered attendees and choose **Keep on board**, then **Save Changes**. The group and assigned-registration roster display its planned time. No purchase is needed to make this plan.
+2. Follow normal competition publication/readiness and buyer payment. Once a registrant has qualifying paid performance-linked purchases, refresh **Orchestra Assignments**. For a new assignment the saved plan preselects the Session dropdown and displays **awaiting confirmation**. Its assigned quantity stays unchanged until staff confirm.
+3. Review the paid headcount and session. Override the suggestion if needed, then click **Assign & email**. The saved paid assignment and buyer emails use this confirmed selection. Use **Retry email** for reported delivery failures.
+4. On **Ticket Redemption**, verify the paid booking/session and record handover quantities. A planned session alone does not enable orchestra redemption. Purchased orchestra tickets and shared performer places retain their separate allowances. If more tickets are purchased later, update the paid assignment before redeeming the newly covered orchestra bookings.
+
+Planning is optional. Without a valid linked session, choose one manually as before. Staff selection takes precedence, followed by an existing confirmed paid assignment, followed by the plan. An older group with no session link remains usable. A deleted session, mismatched venue/date or ambiguous membership supplies no default and does not disable manual assignment. Updating/removing a plan never automatically changes a confirmed paid assignment, sends emails or grants tickets. Direct orchestra-only buyers already choose their session at checkout and skip this prefill.
+
+The optional session is saved with the same draft revision protection as membership. Changing the group's venue/date/type clears the local session link; selecting no session is valid. Published attendance groups remain read-only alongside their competition plan. This change does not add post-publication planning edits or automatic payment-triggered allocation/email. Existing registrant eligibility, independent performance membership and redemption safeguards remain in force. No records are migrated and existing groups need no new selection unless staff want prefill.
+
+**246 backend offline audits and 8 focused frontend tests passed**, with zero lint errors and one existing unused-function warning. Use the [manual walkthrough](ORCHESTRA_ATTENDANCE_WALKTHROUGH.md#optional-session-prefill--14-october-2026) to verify the owner browser and deployed payment/email/redemption flow. Release frontend/backend together and restart the backend normally; existing unlinked records remain compatible.
+
 ## 2026-10-13 — Copyable production Firestore rules
 
 Use the [full merged rules candidate](FIRESTORE_PRODUCTION_MERGED_2026-10-13.rules) for the owner's supplied production baseline. Replace the full console text, retaining a copy of the prior rules; do not append the old unrestricted whitelist catch-all. The candidate preserves original public reads and staff/jury workflows, adds local planning protections/public event reads, and reserves payment receipts, redemption claims/replay keys and scoring email tracking for backend writes. It excludes the local file's anonymous `users` write permission.
@@ -145,6 +436,8 @@ Search uses existing booking fields, including both current `buyerName` and lega
 
 ## 2026-10-09 — Find registrants and public reservations on event day
 
+For names already holding numbered seats in a specific session, **View Layout** offers buyer captions and its own name search. Continue using **Load Lookup** for event-wide assignment/reservation discovery and bookings awaiting numbered seats.
+
 In **Seat Occupancy**, use **Registrant and Reservation Lookup → Load Lookup**. Type a performer/ensemble member or reservation name to find matching competition sessions across the active event. Registration contact/teacher names and registration/booking IDs also match. The paginated table shows performer, buyer, venue, date, time, numbered seats, record type, payment/assignment status and reference ID. Search is case-insensitive, handles extra spaces and resets to page one. Clear the input to restore the complete loaded roster.
 
 **Performer assignment** means the performer has a session; staff must still verify admission/payment separately. **Public reservation** and **Winner reservation** show individual bookings and saved payment status. Several buyers for the same performer remain separate reservations. Current seat ownership supplies labels, including pending locks; old saved labels do not prove a seat remains assigned. A paid booking without matching seats says **Awaiting seat assignment**: use Public Customers' existing assignment flow. A failed/expired booking is not paid admission even if it still has an unresolved lock. Legacy seat holders can be found by saved holder names. Archived test bookings and free-seating orchestra sessions are outside this lookup; use Orchestra Settings/Assignments for orchestra headcounts.
@@ -197,11 +490,11 @@ In each orchestra group, type a performer or teacher name directly into the atte
 
 The internal attendance table uses the same simple white-card styling, light borders and default Ant Design controls as the performance panels, with concise helper text. The owner approved this page-specific exception to APCS branding.
 
-Use **Add performance group** for the upper board and **Add orchestra group** in the lower **Orchestra Attendance** table. Attendance rows show group, venue, date, registration count and a searchable attendee selector. The selector includes eligible registered children who already have a performance group, shows their current performance group and teacher, and shows children assigned to another attendance group as disabled options labeled with that group. Existing stored members remain visible, including missing-record placeholders, so membership is not silently deleted.
+Use **Add performance group** for the upper board and **Add orchestra group** in the lower **Orchestra Attendance** table. Attendance rows show group, venue, date, registration count and a searchable attendee selector; the optional planned-session time was added on 14 October. The selector includes eligible registered children who already have a performance group, shows their current performance group and teacher, and shows children assigned to another attendance group as disabled options labeled with that group. Existing stored members remain visible, including missing-record placeholders, so membership is not silently deleted.
 
 A child can have one performance assignment and one attendance assignment. The left pool and assigned count refer only to performances. Adding/removing an attendee never moves their performance; deleting a group affects only its own membership. **Save Changes** saves both sections, **Discard** restores both, and **Clear All** clears both with an explicit confirmation. Published plans remain read-only. Group-type conversion is available in draft and rejects membership conflicts within the destination type.
 
-Attendance groups stay outside ticketable performance lists. A child in both sections remains listed by their performance group after publication/readiness and can buy under the normal eligibility rules. Only children without a performance assignment are classified as attendance-only and excluded. Membership does not itself issue free admission or tickets; the existing paid Orchestra Assignments workflow and admission arrangements remain separate.
+Attendance groups stay outside ticketable performance lists. A child in both sections remains listed by their performance group after publication/readiness and can buy under the normal eligibility rules. Only children without a performance assignment are classified as attendance-only and excluded. Membership does not itself issue free admission or tickets. The optional planned session now supplies a default to paid Orchestra Assignments, while confirmation and admission remain separate.
 
 Follow [the manual walkthrough](ORCHESTRA_ATTENDANCE_WALKTHROUGH.md). Deploy/restart the updated frontend and backend together through the normal approved workflow; existing published projections are not automatically migrated.
 ## 2026-10-09 — Local sessions available for all 12 planning groups
@@ -301,7 +594,7 @@ Updated for the owner-confirmed business process on **28 September 2026**, inclu
 | Ticket Settings | Set ticket prices and remaining competition add-ons; Masterclass and orchestra seat-selection products are hidden and cannot be newly added |
 | Orchestra Settings | Configure orchestra venue/date/time and an informational performance-linked quota; view session headcounts (staff manage actual capacity) |
 | Orchestra Assignments | Assign paid public/winner performance groups to orchestra sessions and send/retry assignment emails |
-| Seat Occupancy | Inspect numbered competition seats, search performer/reservation names for session and seat details, and reconcile linked locked competition bookings; historical orchestra seat rows are hidden |
+| Seat Occupancy | Inspect numbered competition seats, block/unblock unused chairs for one session with a reason, search performer/reservation names, and reconcile linked locked competition bookings; historical orchestra seat rows are hidden |
 | Admin Page | Drag performers into draft groups, mark groups as Competition performance or Orchestra attendance, link competition groups to draft sessions, publish, and finalize competition sessions; retain legacy assignment tools |
 
 Masterclass Settings and Masterclass Assignments are removed from this menu. Public Customers remains a separate main-menu page for booking status, paid competition seat assignment, manual-payment confirmation/cancellation, payment-instruction resend and confirmation resend.
@@ -311,7 +604,7 @@ Masterclass Settings and Masterclass Assignments are removed from this menu. Pub
 1. Select the correct event in System Settings.
 2. Check venue labels carefully: these names appear in buyer emails. Configure tier/row capacity and competition time slots.
 3. Set competition and public ticket prices. Public orchestra tickets use `presto` and `allegro`; new Masterclass sales and Presto Masterclass benefits are disabled.
-4. Add orchestra sessions from venue/date/time options. Each has an informational **performance-linked attendance quota** for planning public competition ticket holders, winner ticket holders and eligible performers. Orchestra Settings does not generate numbered seats or ask for reserved rows.
+4. Add independent orchestra sessions in Orchestra Settings using an existing venue and the date/start/end pickers. No competition session is required; same-venue/day conflicts with timed draft and published competition sessions or other special sessions are rejected. Each has an informational **performance-linked attendance quota** for public competition ticket holders, winner ticket holders and eligible performers. Orchestra Settings does not generate numbered seats or ask for reserved rows.
 5. *Updated 7 October 2026.* Orchestra admission has no software ceiling. Neither the quota nor the competition seat layout limits direct orchestra sales or group assignment. Staff must arrange enough seating for confirmed attendance; free seating is not a guarantee of unlimited physical space.
 6. Save winners' competition assignments in Admin Page. They do not need an orchestra assignment before purchasing tickets.
 
@@ -321,7 +614,7 @@ The backend requires a whole-number quota of zero or more and prevents moving/de
 
 The winner selects their name/winning performance, then buys tickets for the competition venue/date/time already assigned by the internal team. Ensemble member names remain visible. Competition seat selection and remaining add-ons retain their existing behavior.
 
-The customer does **not** select an orchestra session or numbered orchestra seats. The checkout has four steps: entry, tickets, details, review/payment. There is no complimentary quota banner, free-orchestra-seat step, Masterclass add-on or complimentary Masterclass notice.
+The customer does **not** select an orchestra session or numbered orchestra seats. After the opening nationality/payment choice, checkout has four steps: entry, tickets, details, review/payment. There is no complimentary quota banner, free-orchestra-seat step, Masterclass add-on or complimentary Masterclass notice.
 
 After payment, the orchestra group headcount is:
 
@@ -344,7 +637,7 @@ Choose **Public Buyer → Watch a Performance**, search the assigned winning per
 
 Public performance buyers may purchase the configured **performance seat-selection add-on**. Choose the number of seats to select, then select exactly that many available seats within the purchased Presto/Allegro quantities. Each add-on unit covers one numbered performance seat, and its configured price appears in the order total, cart and Review & Pay. Other winner add-ons remain unavailable to public buyers. This works with both Paper.id and manual PayNow/bank-transfer checkout. The add-on does not add orchestra places; only purchased performance ticket quantities count toward those places.
 
-Without the add-on, or for tickets not covered by it, staff assign the remaining performance seats after payment in **Public Customers → Assign Missing Seats**, then resend the confirmation. Switching to another performance or Orchestra Ticket clears the previous seat/add-on selections. Orchestra-only checkout has no seat-selection add-on or numbered seat map.
+Without the add-on, or for tickets not covered by it, staff assign the remaining performance seats after payment in **Public Customers → Assign Missing Seats**, using the labeled gold Presto and blue Allegro sections to match the purchased quantities, then resend the confirmation. Switching to another performance or Orchestra Ticket clears the previous seat/add-on selections. Orchestra-only checkout has no seat-selection add-on or numbered seat map.
 
 The public performance list is not restricted to winners currently allowed to make a winner purchase, but public sale dates still control checkout. An older public competition checkout made without a selected performance retains its original competition-only entitlement; it is not converted into an orchestra booking.
 
@@ -358,7 +651,9 @@ The purchased venue/date/time must match an existing `events.orchestraSessions` 
 
 ## International PayNow or bank-transfer option
 
-On **Review & Pay**, a buyer may opt into **Use international payment options (PayNow or bank transfer)**. This applies to public and winner checkouts. The choice is self-declared; it does not use the registrant's country or phone prefix. The ticket booking is reserved with no Paper.id invoice or 30-minute expiry. The buyer receives a ticket-specific email with the server-calculated IDR total, booking ID, existing PayNow/bank details and a request to reply with payment proof. PayNow buyers must contact admin for the SGD amount. The acknowledgement page displays the booking ID; the booking stays pending until staff act.
+Choose **International** in the opening nationality modal to use PayNow or bank transfer. Choose **Indonesian** for the usual Paper.id flow and 30-minute payment window. This applies to public and winner checkouts. The choice is self-declared; it does not use the registrant's country or phone prefix, and it remains selected when the buyer changes performance or session. A **Change** action above the steps allows correction before submission. Step 4 displays the chosen payment method instead of an international-payment checkbox.
+
+For International, the ticket booking is reserved with no Paper.id invoice or 30-minute expiry. The buyer receives a ticket-specific email with the server-calculated IDR total, booking ID, existing PayNow/bank details and a request to reply with payment proof. PayNow buyers must contact admin for the SGD amount. The acknowledgement page displays the booking ID; the booking stays pending and inventory remains held until staff act. Refreshing the page asks the nationality question again; use the same choice and booking details to recover an uncertain checkout.
 
 After verifying payment outside the system, open **Public Customers → Mark Paid**. The protected backend rechecks pending state and owned inventory, books selected seats, records the staff actor and attempts the standard ticket confirmation email. If delivery fails, use **Resend**. For an unpaid manual booking, staff first verify no payment was received, then choose **Cancel Unpaid**; the protected action releases its complete reservation. **Send/Resend Payment Info** retries instructions while the booking is pending. Do not use these manual actions for a Paper.id invoice booking.
 
@@ -368,12 +663,16 @@ After verifying payment outside the system, open **Public Customers → Mark Pai
 2. Review each performance's paid public competition tickets, paid winner tickets, performer count, total attendance and already assigned quantity. The group includes all eligible paid purchases even if bookings span pages. Public-only groups have no performer allowance.
 3. Select one orchestra session for the whole group. Each option shows the current assigned headcount and the informational quota.
 4. Click **Assign & email**. The server rechecks the paid group and assigns the whole group without truncating it. The quota does not block the assignment, so check physical seating yourself.
-5. Each covered booking buyer receives an English APCS email with the logo header and copyright footer, booking reference, orchestra venue/date/time, own purchased quantity and shared group headcount. Seating is free; no seat numbers are assigned. Ticketing screens and emails use English-only copy until a proper translation feature is implemented.
+5. Each covered booking buyer receives an English email titled **APCS Orchestra & Awarding Session Confirmation**, with the APCS logo header and copyright footer. It confirms **APCS 2026 Orchestra & Awarding Session** and shows **Booking ID**, **Winning Performer**, **Session Details** (for example 15 November 2026, 15:30–17:30, Titan Theatre), and **Your Complimentary Tickets**. PRESTO and ALLEGRO rows show that booking's corresponding purchased quantities as `N tickets — Free Seating`, including zero for an unpurchased category. The owner confirmed there is no LENTO in this event; other saved categories remain visible for other/historical events. The notification omits internal assignment references and shared group headcounts. Ticketing screens and emails use English-only copy until a proper translation feature is implemented.
 6. If delivery fails, the assignment stays saved. **Retry email** sends only missing deliveries for the current assignment revision. Refresh before retrying a busy send.
 
 A later purchase does not invalidate existing confirmed places. For an ensemble that grows from seven to nine attendees, the table shows nine total and seven assigned. Staff must update the assignment to cover all nine. If the room cannot physically fit the additional attendees, choose another session for the entire group; all covered buyers receive the revised details.
 
 Session changes produce a new assignment revision and fresh notifications to all covered bookings. Re-saving an unchanged assignment does not consume quota again. The email-send lease prevents simultaneous retries; after a crash during SMTP delivery, a retry can still duplicate an email if its success was not saved. There is no automatic background retry worker.
+
+The revised notification asks buyers to present the booking ID at the counter to redeem tickets and explains that seating is first-come, first-served according to ticket category. If the assignment includes a shared performer allowance, it also says the performer's complimentary ticket can be redeemed at the same time; public-only groups omit that sentence. It closes with “We look forward to seeing you! ✨” and **APCS Music Team**. Category quantities are per booking, without adding the performer allowance or tickets from other bookings. Email formatting changes no admission quantities, paid status, assignments, redemption rules or notification tracking. The separate paid-booking confirmation still uses its existing attendance block.
+
+After the normal backend restart/release, owner acceptance should compare received notifications for mixed categories, one purchased category (the other row shows zero), and a public-only group. Verify bold labels, the saved orchestra venue/date/time, category totals, conditional performer sentence, and logo/footer. An already delivered email remains unchanged, and Retry email still skips acknowledged deliveries; a real session change notifies the covered bookings through the existing workflow. All **26 offline orchestra audits** passed for the 13 October update; inbox appearance and delivery remain owner acceptance.
 
 ## Track event-day attendance
 

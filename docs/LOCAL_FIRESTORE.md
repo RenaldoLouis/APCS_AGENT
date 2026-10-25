@@ -1,8 +1,45 @@
 # Local Firestore development
 
+## 2026-10-14 — Latest production refresh at 17:23 CEST
+
+At the owner's request, production `apcs-profile` Firestore was copied again using the existing read-only snapshot exporter. Export started at **17:23 CEST (15:23 UTC)**; the resulting snapshot contains **7,557 documents** (**7,549 top-level, 8 nested**) across **18 root collections** and **19 traversed collection paths**. This supersedes the earlier same-day local copy. It is a traversal snapshot, not an atomic production point-in-time backup.
+
+The running emulator had loaded a recovery export. Before replacing it, a separate native export preserved its in-memory data, and the saved startup directory was copied with matching SHA-256 file checksums. The old emulator was gracefully stopped; import used a fresh, empty emulator. Every document path and encoded field matched the snapshot, with no extra records. A single Ctrl+C completed a successful native export and clean exit. That export was installed as the everyday startup directory, then restarted and fully compared again at **17:30 CEST (15:30 UTC)**. Both comparisons passed.
+
+Private, Git-ignored evidence and recovery files:
+
+- Production snapshot: `apcs_service/.local/firestore-snapshots/firestore-2026-10-14T15-23-51-220Z.ndjson.gz`.
+- Current startup export: `apcs_service/.local/firestore-emulator/`.
+- Refresh evidence: `apcs_service/.local/firestore-refresh-20261014-evening/` contains `backup-verification.json`, `verification-before-restart.json`, `verification.json`, and the local-only `verify.cjs` helper.
+- Previous local data: `running-emulator-before-refresh/` preserves the live database; `saved-emulator-before-refresh/` and `previous-saved-directory/` preserve the prior saved copy. `refreshed-emulator/` retains the newly verified native export.
+
+Firestore remains running at **`127.0.0.1:8081`**, importing/exporting the everyday startup directory, using installed Node 20.19.5 and Firebase CLI 13.29.1. The API was not listening on 8080 and was not started. Local-only data was replaced by the production snapshot and remains recoverable from the backups. Production was read only; Auth accounts, Storage/S3 objects, provider state and emails were not copied. No application-source changes, browser verification, provider/email actions, dependency changes, commits or pushes occurred. Existing schema and data flows are unchanged. Self-review confirmed the guarded production-read/local-write boundary, complete nested traversal, recoverable backups and exact post-restart comparison.
+
+## 2026-10-14 — Production snapshot refreshed and restart verified
+
+At the owner's request, production `apcs-profile` Firestore was read into a private snapshot starting at **14:56 WIB**. The fresh local copy contains **7,556 documents** (**7,548 top-level, 8 nested**) across **17 root collections**; the exporter traversed **18 collection paths**. Every document path and encoded field matched the snapshot, with no extra local records, immediately after import and again after export/shutdown/restart. Post-restart verification completed at **15:02 WIB**. This is a traversal snapshot, so production edits during export can reflect different moments.
+
+No emulator, Express API or React server was running at preflight. The previous saved database was backed up first; all five files matched the originals by SHA-256. Import used an empty loopback emulator. One Ctrl+C produced an explicit successful native export and clean CLI exit. The verified export replaced the everyday startup directory, retaining the previous directory separately. Firestore is now running on **`127.0.0.1:8081`**, loaded from that refreshed export, with export-on-exit enabled. The API and frontend were not started.
+
+Private, Git-ignored files:
+
+- Snapshot: `apcs_service/.local/firestore-snapshots/firestore-2026-10-14T07-56-15-596Z.ndjson.gz`.
+- Everyday startup export: `apcs_service/.local/firestore-emulator/`.
+- Previous local database: `apcs_service/.local/firestore-refresh-20261014/saved-emulator-before-refresh/` and `previous-saved-directory/`.
+- Backup checksums: `apcs_service/.local/firestore-refresh-20261014/backup-verification.json`.
+- Full comparisons: `apcs_service/.local/firestore-refresh-20261014/verification-before-restart.json` and `verification.json` (after restart).
+
+The installed Firebase CLI 13.29.1 failed under Node 25.8.2 (`SlowBuffer.prototype` in `buffer-equal-constant-time`). Successful launches explicitly used installed Node 20.19.5; no dependencies or tools were changed. If ordinary `firebase` startup hits this error, run from `apcs_web`:
+
+```sh
+/Users/renaldolouis/.nvm/versions/node/v20.19.5/bin/node /usr/local/lib/node_modules/firebase-tools/lib/bin/firebase.js --config firebase.json emulators:start --only firestore --project apcs-profile --import ../apcs_service/.local/firestore-emulator --export-on-exit=../apcs_service/.local/firestore-emulator
+```
+
+Local-only edits and synthetic test records in the active copy were replaced with production snapshot values; they remain recoverable in the backups. No records were selectively seeded or reconciled. Production was read only. Auth users, Storage/S3 objects, provider payment state and emails were not copied. External integrations remain unchanged; starting the API later can run provider/email jobs against copied records, as described below. No browser verification, application-source edits, production writes, provider actions, emails, commits or pushes occurred.
+
 ## 2026-10-12 — Friday paid-test records absent after failed shutdown export
 
-The last recorded production refresh remains 7 October. The active local export was last saved on 9 October at 12:48 WIB, before the team's 21:33–21:36 paid booking. On 10 October at 10:05 WIB, shutdown attempted `--export-on-exit` but logged repeated `write EIO` errors. On 12 October the emulator imported the unchanged noon export. The emailed booking and its receipt are absent locally; an exact production lookup also found no booking. Evidence strongly supports unsaved local state being lost on restart, rather than paid-booking cleanup. [Evidence, safeguards, limitations and operational follow-up](audits/LOCAL_BOOKING_PERSISTENCE_2026-10-12.md).
+At the time of the 12 October investigation, the last recorded production refresh was 7 October. The active local export was last saved on 9 October at 12:48 WIB, before the team's 21:33–21:36 paid booking. On 10 October at 10:05 WIB, shutdown attempted `--export-on-exit` but logged repeated `write EIO` errors. On 12 October the emulator imported the unchanged noon export. The emailed booking and its receipt were absent locally; an exact production lookup also found no booking. Evidence strongly supports unsaved local state being lost on restart, rather than paid-booking cleanup. [Evidence, safeguards, limitations and operational follow-up](audits/LOCAL_BOOKING_PERSISTENCE_2026-10-12.md).
 
 Do not treat `--export-on-exit` as proof of a completed backup. Before ending a paid-test session, create and verify a separate export; retain the previous good copy. Failed shutdown export can leave the next startup importing stale data. No database data or application code was changed in this investigation.
 
